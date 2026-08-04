@@ -155,6 +155,18 @@ async function requireToken(req, res, next) {
 // INTERNAL HELPERS
 // =============================================================================
 
+/** Upload to Drive — never throws; returns null fileId on failure. */
+async function safeUpload(buffer, filename, mimeType, folderId) {
+  if (!folderId) return null
+  try {
+    const { fileId } = await uploadBuffer(buffer, filename, mimeType, folderId)
+    return fileId
+  } catch (err) {
+    console.error(`[Drive] Upload failed for "${filename}" (non-fatal):`, err.message)
+    return null
+  }
+}
+
 /** Returns true if all steps are complete or skipped. */
 async function checkAllComplete(onboardingId) {
   const { data: steps } = await supabase
@@ -183,9 +195,7 @@ async function completeOnboarding(onboardingId) {
     const filename  = `${onboarding.short_address} AppFolio Entry Sheet.pdf`
 
     if (onboarding.google_drive_folder_id) {
-      const { fileId } = await uploadBuffer(
-        pdfBuffer, filename, 'application/pdf', onboarding.google_drive_folder_id
-      )
+      const fileId = await safeUpload(pdfBuffer, filename, 'application/pdf', onboarding.google_drive_folder_id)
       await supabase.from('onboarding_documents').insert({
         onboarding_id:        onboardingId,
         document_type:        'appfolio_entry_sheet',
@@ -597,15 +607,7 @@ app.post('/api/onboard/:token/step/1', requireToken, async (req, res) => {
 
     const filename = `${ob.short_address} Management Agreement - Signature Certificate.pdf`
 
-    let fileId = null
-    if (ob.google_drive_folder_id) {
-      try {
-        const result = await uploadBuffer(certBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
-        fileId = result.fileId
-      } catch (driveErr) {
-        console.error('[Step 1] Drive upload failed (non-fatal):', driveErr.message)
-      }
-    }
+    const fileId = await safeUpload(certBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
 
     await supabase.from('onboarding_documents').insert({
       onboarding_id:        ob.id,
@@ -709,11 +711,7 @@ app.post(
       const pdfBuffer = await generateQuestionnairePDF(safeData, ob.short_address, ownerRoutingNumber, ownerAccountNumber)
       const filename  = `${ob.short_address} Property Questionnaire.pdf`
 
-      let fileId = null
-      if (ob.google_drive_folder_id) {
-        const result = await uploadBuffer(pdfBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
-        fileId = result.fileId
-      }
+      const fileId = await safeUpload(pdfBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
 
       await supabase.from('onboarding_documents').insert({
         onboarding_id:        ob.id,
@@ -803,11 +801,7 @@ app.post('/api/onboard/:token/step/3', requireToken, async (req, res) => {
       // W-9
       const w9Buffer   = await generateW9(taxData)
       const w9Filename = `${ob.short_address} W9${suffix}.pdf`
-      let w9FileId = null
-      if (ob.google_drive_folder_id) {
-        const r = await uploadBuffer(w9Buffer, w9Filename, 'application/pdf', ob.google_drive_folder_id)
-        w9FileId = r.fileId
-      }
+      const w9FileId = await safeUpload(w9Buffer, w9Filename, 'application/pdf', ob.google_drive_folder_id)
       await supabase.from('onboarding_documents').insert({
         onboarding_id:        ob.id,
         step_number:          3,
@@ -821,11 +815,7 @@ app.post('/api/onboard/:token/step/3', requireToken, async (req, res) => {
       if (isCA) {
         const caBuffer   = await generateCA590(taxData)
         const caFilename = `${ob.short_address} CA Form 590${suffix}.pdf`
-        let caFileId = null
-        if (ob.google_drive_folder_id) {
-          const r = await uploadBuffer(caBuffer, caFilename, 'application/pdf', ob.google_drive_folder_id)
-          caFileId = r.fileId
-        }
+        const caFileId = await safeUpload(caBuffer, caFilename, 'application/pdf', ob.google_drive_folder_id)
         await supabase.from('onboarding_documents').insert({
           onboarding_id:        ob.id,
           step_number:          3,
@@ -837,11 +827,7 @@ app.post('/api/onboard/:token/step/3', requireToken, async (req, res) => {
       } else {
         const caBuffer   = await generateCA588(taxData)
         const caFilename = `${ob.short_address} CA Form 588${suffix}.pdf`
-        let caFileId = null
-        if (ob.google_drive_folder_id) {
-          const r = await uploadBuffer(caBuffer, caFilename, 'application/pdf', ob.google_drive_folder_id)
-          caFileId = r.fileId
-        }
+        const caFileId = await safeUpload(caBuffer, caFilename, 'application/pdf', ob.google_drive_folder_id)
         await supabase.from('onboarding_documents').insert({
           onboarding_id:        ob.id,
           step_number:          3,
@@ -921,11 +907,7 @@ app.post('/api/onboard/:token/step/4', requireToken, upload.single('document'), 
   const filename  = `${ob.short_address} ${docType}.pdf`
 
   try {
-    let fileId = null
-    if (ob.google_drive_folder_id) {
-      const r = await uploadBuffer(buffer, filename, 'application/pdf', ob.google_drive_folder_id)
-      fileId = r.fileId
-    }
+    const fileId = await safeUpload(buffer, filename, 'application/pdf', ob.google_drive_folder_id)
 
     await supabase.from('onboarding_documents').insert({
       onboarding_id:        ob.id,
@@ -1028,11 +1010,7 @@ Respond ONLY with valid JSON and no other text:
 
   // --- DB + Drive (always runs even on SCAN_ERROR) ---
   try {
-    let fileId = null
-    if (ob.google_drive_folder_id) {
-      const r = await uploadBuffer(buffer, filename, mimetype, ob.google_drive_folder_id)
-      fileId  = r.fileId
-    }
+    const fileId = await safeUpload(buffer, filename, mimetype, ob.google_drive_folder_id)
 
     await supabase.from('onboarding_documents').insert({
       onboarding_id:        ob.id,
@@ -1218,11 +1196,7 @@ app.post('/api/onboard/:token/step/7', requireToken, async (req, res) => {
     })
 
     const filename = `${ob.short_address} Occupied Units Addendum - Signature Certificate.pdf`
-    let fileId = null
-    if (ob.google_drive_folder_id) {
-      const r = await uploadBuffer(certBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
-      fileId = r.fileId
-    }
+    const fileId = await safeUpload(certBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
 
     await supabase.from('onboarding_documents').insert({
       onboarding_id:        ob.id,
@@ -1268,11 +1242,7 @@ app.post('/api/onboard/:token/upload-document', requireToken, upload.single('fil
   const filename = `${ob.short_address} ${dt}.${ext}`
 
   try {
-    let fileId = null
-    if (ob.google_drive_folder_id) {
-      const r = await uploadBuffer(buffer, filename, mimetype, ob.google_drive_folder_id)
-      fileId = r.fileId
-    }
+    const fileId = await safeUpload(buffer, filename, mimetype, ob.google_drive_folder_id)
 
     await supabase.from('onboarding_documents').insert({
       onboarding_id:        ob.id,
