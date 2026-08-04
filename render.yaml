@@ -40,3 +40,9 @@ services:
 
       - key: APPFOLIO_STACK_CLIENT_SECRET
         sync: false
+
+      - key: APPFOLIO_DEVELOPER_ID
+        value: "ba023937-8784-11f1-8ce1-0a9c478fe029"
+
+      - key: APPFOLIO_TRUST_ACCOUNT_ID
+        value: "e6bec046-8097-11eb-8ad9-06457bb955b6"
