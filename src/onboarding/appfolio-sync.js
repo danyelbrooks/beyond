@@ -153,6 +153,26 @@ async function createAppFolioProperty(authHeader, onboarding, propType) {
 }
 
 /**
+ * Fetch the direct AppFolio URL for a property by its ID.
+ * Returns null if the lookup fails — non-fatal.
+ */
+async function getAppFolioPropertyLink(authHeader, propertyId) {
+  try {
+    const res = await fetch(`${AF_BASE}/properties?filters[Id]=${propertyId}`, {
+      headers: {
+        'Authorization':           authHeader,
+        'X-AppFolio-Developer-ID': process.env.APPFOLIO_DEVELOPER_ID || '',
+      },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data?.data?.[0]?.Link || null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Main export.
  *
  * @param {object} onboarding  — full row from the onboardings table
@@ -255,12 +275,14 @@ export async function syncToAppFolio(onboarding, supabase) {
     // D. Create property record in AppFolio
     // -------------------------------------------------------------------------
     let appfolioPropertyId = null
+    let appfolioPropertyLink = null
 
     if (authHeader) {
       try {
         const propType = s2.propType || s2['prop-type'] || ''
         appfolioPropertyId = await createAppFolioProperty(authHeader, onboarding, propType)
         if (appfolioPropertyId) {
+          appfolioPropertyLink = await getAppFolioPropertyLink(authHeader, appfolioPropertyId)
           await supabase
             .from('onboardings')
             .update({ appfolio_property_id: String(appfolioPropertyId) })
@@ -304,11 +326,15 @@ export async function syncToAppFolio(onboarding, supabase) {
       ? `• AppFolio Property ID: ${appfolioPropertyId} (auto-created ✓)`
       : `• AppFolio property NOT auto-created — enter manually`
 
+    const propertyLinkLine = appfolioPropertyLink
+      ? `  1. Open property directly: ${appfolioPropertyLink}`
+      : `  1. Open AppFolio → Properties → search "${addr}"`
+
     const lines = [
       `AppFolio setup for ${addr} (${owner}):`,
       ``,
       `ACTION REQUIRED — Link owner to property:`,
-      `  1. Open AppFolio → Properties → search "${addr}"`,
+      propertyLinkLine,
       `  2. Open the property → Owners tab → Add Owner`,
       `  3. Search for "${owner}" → set ownership % → Save`,
       ``,
