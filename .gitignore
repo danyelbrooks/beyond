@@ -3,3 +3,10 @@
 *.env
 .env*
 node_modules/
+service-account-key.json
+gmail-oauth-client.json
+gmail-token.json
+bpm-service-account.json
+
+# Google service account credentials — never commit
+bpm-drive-account.json

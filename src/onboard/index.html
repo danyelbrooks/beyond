@@ -1,0 +1,3236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Onboarding — Beyond Property Management</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bpm-blue:    #1a56db;
+      --bpm-green:   #16a34a;
+      --bpm-border:  #e2e8f0;
+      --bpm-bg:      #f8fafc;
+      --bpm-surface: #ffffff;
+      --bpm-text:    #1e293b;
+      --bpm-muted:   #64748b;
+      --bpm-radius:  8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bpm-bg);
+      color: var(--bpm-text);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .portal-header {
+      background: var(--bpm-surface);
+      border-bottom: 1px solid var(--bpm-border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .portal-logo {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--bpm-blue);
+      letter-spacing: -0.3px;
+    }
+    .portal-logo span { color: var(--bpm-text); font-weight: 400; font-size: 0.85rem; margin-left: 8px; }
+
+    /* Progress bar */
+    .progress-section {
+      background: var(--bpm-surface);
+      border-bottom: 1px solid var(--bpm-border);
+      padding: 16px 24px;
+    }
+    .progress-steps {
+      display: flex;
+      gap: 0;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .step-dot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+      gap: 6px;
+    }
+    .step-dot::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: calc(-50% + 14px);
+      right: calc(50% + 14px);
+      height: 2px;
+      background: var(--bpm-border);
+    }
+    .step-dot:first-child::before { display: none; }
+    .step-dot.done::before, .step-dot.active::before { background: var(--bpm-blue); }
+
+    .step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--bpm-border);
+      background: var(--bpm-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--bpm-muted);
+      z-index: 1;
+      position: relative;
+    }
+    .step-dot.done .step-circle  { background: var(--bpm-blue); border-color: var(--bpm-blue); color: #fff; }
+    .step-dot.active .step-circle { border-color: var(--bpm-blue); color: var(--bpm-blue); font-weight: 800; }
+    .step-dot.skipped .step-circle { background: #e5e7eb; }
+
+    .step-name {
+      font-size: 0.62rem;
+      color: var(--bpm-muted);
+      text-align: center;
+      max-width: 60px;
+      line-height: 1.2;
+      display: none;
+    }
+    @media (min-width: 540px) { .step-name { display: block; } }
+    .step-dot.active .step-name { color: var(--bpm-blue); font-weight: 600; }
+
+    /* Main content */
+    .portal-body {
+      max-width: 680px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .step-card {
+      background: var(--bpm-surface);
+      border: 1px solid var(--bpm-border);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .step-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--bpm-blue);
+      margin-bottom: 6px;
+    }
+    .step-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .step-subtitle {
+      font-size: 0.9rem;
+      color: var(--bpm-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Form elements */
+    .field-group { margin-bottom: 18px; }
+    .field-row { display: flex; gap: 14px; margin-bottom: 18px; }
+    .field-row .field-group { flex: 1; margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: var(--bpm-text);
+    }
+    label.required::after { content: ' *'; color: #dc2626; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--bpm-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      color: var(--bpm-text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--bpm-blue);
+      box-shadow: 0 0 0 3px rgba(26,86,219,.12);
+    }
+    input[readonly] { background: #f1f5f9; color: var(--bpm-muted); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .radio-stack { display: flex; flex-direction: column; gap: 10px; }
+    .radio-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid var(--bpm-border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .radio-option:hover { border-color: var(--bpm-blue); background: #f0f4ff; }
+    .radio-option input[type="radio"] { margin-top: 2px; flex-shrink: 0; }
+    .radio-option.selected { border-color: var(--bpm-blue); background: #eff6ff; }
+    .radio-option-label { font-size: 0.875rem; font-weight: 600; }
+    .radio-option-desc  { font-size: 0.78rem; color: var(--bpm-muted); margin-top: 2px; }
+
+    /* Consent box */
+    .consent-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .consent-box h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--bpm-blue); margin-bottom: 8px; }
+    .consent-box p  { font-size: 0.82rem; line-height: 1.5; color: #1e40af; margin-bottom: 10px; }
+    .consent-check  { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; cursor: pointer; }
+    .consent-check input { width: auto; }
+
+    /* Signature area */
+    .sig-tabs { display: flex; gap: 0; border: 1px solid var(--bpm-border); border-radius: 6px; overflow: hidden; margin-bottom: 12px; width: fit-content; }
+    .sig-tab {
+      padding: 7px 18px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #f8fafc;
+      color: var(--bpm-muted);
+      border: none;
+      transition: background 0.12s;
+    }
+    .sig-tab.active { background: var(--bpm-blue); color: #fff; }
+
+    .sig-canvas-wrap {
+      border: 1px solid var(--bpm-border);
+      border-radius: 6px;
+      background: #fff;
+      position: relative;
+      margin-bottom: 8px;
+    }
+    canvas#sig-canvas {
+      display: block;
+      width: 100%;
+      max-width: 560px;
+      height: 150px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .sig-type-wrap { display: none; }
+    .sig-type-wrap.active { display: block; }
+    .sig-canvas-wrap.hidden { display: none; }
+
+    input#sig-typed {
+      font-family: 'Georgia', cursive;
+      font-style: italic;
+      font-size: 1.5rem;
+      padding: 20px;
+      height: 80px;
+      margin-bottom: 8px;
+    }
+
+    .sig-clear { font-size: 0.78rem; color: var(--bpm-muted); cursor: pointer; text-decoration: underline; }
+    .sig-clear:hover { color: var(--bpm-text); }
+
+    .sig-declaration {
+      font-size: 0.8rem;
+      color: var(--bpm-muted);
+      padding: 10px;
+      background: #f8fafc;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    /* File upload */
+    .file-drop {
+      border: 2px dashed var(--bpm-border);
+      border-radius: 8px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .file-drop:hover, .file-drop.drag-over { border-color: var(--bpm-blue); background: #eff6ff; }
+    .file-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .file-drop-icon { font-size: 2rem; margin-bottom: 8px; }
+    .file-drop-label { font-weight: 600; font-size: 0.9rem; color: var(--bpm-text); }
+    .file-drop-hint  { font-size: 0.78rem; color: var(--bpm-muted); margin-top: 4px; }
+    .file-selected { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; margin-top: 10px; }
+    .file-selected-name { font-size: 0.875rem; font-weight: 600; color: #14532d; }
+    .file-remove { font-size: 0.78rem; color: #dc2626; cursor: pointer; margin-left: auto; }
+
+    /* Info box */
+    .info-box {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      color: #92400e;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .info-box.blue { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+
+    /* Deposit */
+    .deposit-amount {
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--bpm-blue);
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 28px;
+      background: var(--bpm-blue);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      font-family: inherit;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-back {
+      background: none;
+      border: 1px solid var(--bpm-border);
+      color: var(--bpm-muted);
+      padding: 10px 20px;
+      border-radius: var(--bpm-radius);
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .btn-back:hover { border-color: var(--bpm-blue); color: var(--bpm-blue); }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      background: var(--bpm-surface);
+      color: var(--bpm-text);
+      border: 1px solid var(--bpm-border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-secondary:hover { background: #f1f5f9; }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--bpm-border);
+    }
+
+    /* Conditional sections */
+    .conditional { display: none; }
+    .conditional.visible { display: block; }
+
+    /* Section divider */
+    .form-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--bpm-muted);
+      padding: 18px 0 8px;
+      border-bottom: 1px solid var(--bpm-border);
+      margin-bottom: 16px;
+    }
+    .form-section-title:first-child { padding-top: 0; }
+
+    /* Error/loading states */
+    .error-screen, .loading-screen {
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .error-screen h2 { font-size: 1.4rem; margin-bottom: 8px; }
+    .error-screen p  { color: var(--bpm-muted); }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top-color: var(--bpm-blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.875rem;
+      color: #991b1b;
+      margin-top: 12px;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* Completion screen */
+    .complete-screen { text-align: center; }
+    .complete-screen .checkmark {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    .complete-screen h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 12px; }
+    .complete-screen p  { color: var(--bpm-muted); font-size: 0.95rem; line-height: 1.6; max-width: 480px; margin: 0 auto 20px; }
+
+    .roadmap {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: left;
+      max-width: 480px;
+      margin: 20px auto;
+    }
+    .roadmap h4 { font-size: 0.85rem; font-weight: 700; color: #14532d; margin-bottom: 10px; }
+    .roadmap li { font-size: 0.85rem; color: #166534; padding: 4px 0; list-style: none; }
+    .roadmap li::before { content: '✓ '; font-weight: 700; }
+
+    .contact-footer {
+      margin-top: 24px;
+      font-size: 0.85rem;
+      color: var(--bpm-muted);
+    }
+    .contact-footer a { color: var(--bpm-blue); }
+
+    /* Confetti */
+    @keyframes confetti-fall {
+      0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    .confetti-piece {
+      position: fixed;
+      width: 8px;
+      height: 12px;
+      top: -20px;
+      animation: confetti-fall linear forwards;
+      z-index: 999;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="portal-header">
+  <div class="portal-logo">Beyond Property Management <span>| Owner Onboarding</span></div>
+</div>
+
+<!-- Progress bar -->
+<div class="progress-section">
+  <div class="progress-steps" id="progress-steps"></div>
+</div>
+
+<!-- Main content -->
+<div class="portal-body">
+  <div id="portal-content">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <p style="color:var(--bpm-muted)">Loading your onboarding...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================================================
+// STATE
+// =============================================================================
+
+let state = null
+const API  = ''  // same origin — onboarding server serves this file
+
+function getToken() {
+  const segments = window.location.pathname.split('/')
+  return segments[segments.length - 1] || segments[segments.length - 2] || ''
+}
+
+function escHtml(s) {
+  if (!s) return ''
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+function formatTin(input, prefix) {
+  const tinType = document.querySelector(`input[name="${prefix}tin-type"]:checked`)?.value
+  const digits  = input.value.replace(/\D/g, '')
+  if (tinType === 'ein') {
+    // EIN: XX-XXXXXXX (max 10 chars)
+    input.value     = digits.length > 2 ? digits.slice(0,2) + '-' + digits.slice(2,9) : digits
+    input.maxLength = 10
+  } else {
+    // SSN: XXX-XX-XXXX (max 11 chars)
+    let v = digits.slice(0, 9)
+    if (v.length > 5) v = v.slice(0,3) + '-' + v.slice(3,5) + '-' + v.slice(5)
+    else if (v.length > 3) v = v.slice(0,3) + '-' + v.slice(3)
+    input.value     = v
+    input.maxLength = 11
+  }
+}
+
+function goBack(currentStepNumber) {
+  const renders = { 1: renderStep1, 2: renderStep2, 3: renderStep3, 4: renderStep4, 5: renderStep5, 6: renderStep6, 7: renderStep7 }
+  for (let n = currentStepNumber - 1; n >= 1; n--) {
+    const step = (state.steps || []).find(s => s.stepNumber === n)
+    if (!step || step.status !== 'skipped') {
+      const fn = renders[n]
+      if (fn) { fn(); window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+    }
+  }
+}
+
+function updateTinFormat(prefix) {
+  const tinType = document.querySelector(`input[name="${prefix}tin-type"]:checked`)?.value
+  const el      = document.getElementById(`${prefix}tin`)
+  if (!el) return
+  el.placeholder = tinType === 'ein' ? 'XX-XXXXXXX' : 'XXX-XX-XXXX'
+  el.maxLength   = tinType === 'ein' ? 10 : 11
+  if (el.value) { el.value = el.value.replace(/\D/g, ''); formatTin(el, prefix) }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  // dateStr is YYYY-MM-DD from Postgres; parse as local date to avoid UTC shift
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+// =============================================================================
+// INIT
+// =============================================================================
+
+async function init() {
+  const token = getToken()
+  if (!token || token.length !== 64) {
+    showErrorScreen('invalid')
+    return
+  }
+
+  try {
+    const res = await fetch(`${API}/api/onboard/${token}`)
+    if (res.status === 404) { showErrorScreen('invalid')  ; return }
+    if (res.status === 403) { showErrorScreen('revoked')  ; return }
+    if (!res.ok)             { showErrorScreen('generic') ; return }
+    state = await res.json()
+    renderProgress()
+    renderCurrentStep()
+  } catch (err) {
+    showErrorScreen('generic')
+  }
+}
+
+function showErrorScreen(type) {
+  const msgs = {
+    invalid: { h: 'Link Not Found', p: 'This onboarding link is invalid or has expired. Please contact help@bpmsd.com.' },
+    revoked: { h: 'Link Revoked', p: 'This onboarding has been revoked. Please contact Beyond Property Management at help@bpmsd.com.' },
+    generic: { h: 'Something Went Wrong', p: 'Unable to load your onboarding. Please try again or contact help@bpmsd.com.' },
+  }
+  const m = msgs[type] || msgs.generic
+  document.getElementById('portal-content').innerHTML = `
+    <div class="error-screen">
+      <h2>${m.h}</h2>
+      <p>${m.p}</p>
+    </div>
+  `
+}
+
+// =============================================================================
+// PROGRESS BAR
+// =============================================================================
+
+const STEP_LABELS = ['Agreement', 'Questionnaire', 'Tax Forms', 'Entity Docs', 'Insurance', 'Deposit', 'Addendum']
+
+function renderProgress() {
+  if (!state?.steps) return
+  const container = document.getElementById('progress-steps')
+  container.innerHTML = state.steps.map((s, i) => {
+    const num    = s.stepNumber
+    const status = s.status
+    let cls = 'step-dot'
+    if (status === 'complete' || status === 'skipped') cls += ' done'
+    else if (num === state.currentStep) cls += ' active'
+    else cls += ' future'
+    if (status === 'skipped') cls += ' skipped'
+    const circle = status === 'complete' ? '&#10003;' : (status === 'skipped' ? '—' : String(num))
+    return `
+      <div class="${cls}">
+        <div class="step-circle">${circle}</div>
+        <div class="step-name">${escHtml(STEP_LABELS[i] || `Step ${num}`)}</div>
+      </div>
+    `
+  }).join('')
+}
+
+// =============================================================================
+// ROUTING
+// =============================================================================
+
+function renderCurrentStep() {
+  const step = (state.steps || []).find(s => s.status === 'not_started' || s.status === 'in_progress')
+  if (!step) { renderComplete() ; return }
+
+  const renders = { 1: renderStep1, 2: renderStep2, 3: renderStep3, 4: renderStep4, 5: renderStep5, 6: renderStep6, 7: renderStep7 }
+  const fn = renders[step.stepNumber]
+  if (fn) fn()
+  else renderComplete()
+}
+
+async function submitStep(stepNumber, payload, isFormData = false) {
+  const token   = getToken()
+  const url     = `${API}/api/onboard/${token}/step/${stepNumber}`
+  const options = isFormData
+    ? { method: 'POST', body: payload }
+    : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+
+  const res    = await fetch(url, options)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || `Step ${stepNumber} submission failed`)
+  return result
+}
+
+async function advanceAfterStep(result) {
+  if (result.complete) { renderComplete() ; return }
+  // Refresh state from server
+  const token = getToken()
+  const res   = await fetch(`${API}/api/onboard/${token}`)
+  if (res.ok) {
+    state = await res.json()
+    renderProgress()
+    renderCurrentStep()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+// =============================================================================
+// SIGNATURE CANVAS HELPER
+// =============================================================================
+
+function buildSignatureWidget(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+
+  container.innerHTML = `
+    <div class="sig-tabs">
+      <button class="sig-tab active" data-tab="draw">Draw</button>
+      <button class="sig-tab" data-tab="type">Type</button>
+    </div>
+    <div class="sig-canvas-wrap" id="${containerId}-canvas-wrap">
+      <canvas id="${containerId}-canvas" width="560" height="150"></canvas>
+      <div style="padding:4px 8px;font-size:0.75rem;color:var(--bpm-muted)">
+        Draw your signature above
+      </div>
+    </div>
+    <div class="sig-type-wrap" id="${containerId}-type-wrap">
+      <input type="text" id="${containerId}-typed" placeholder="Type your full name" style="font-family:Georgia,serif;font-style:italic;font-size:1.3rem;height:70px;" />
+    </div>
+    <div><span class="sig-clear" id="${containerId}-clear">Clear</span></div>
+  `
+
+  // Canvas drawing
+  const canvas  = document.getElementById(`${containerId}-canvas`)
+  const ctx     = canvas.getContext('2d')
+  let drawing   = false
+  ctx.strokeStyle = '#1e293b'
+  ctx.lineWidth   = 2
+  ctx.lineCap     = 'round'
+
+  function pos(e) {
+    const r = canvas.getBoundingClientRect()
+    const scaleX = canvas.width  / r.width
+    const scaleY = canvas.height / r.height
+    const src = e.touches ? e.touches[0] : e
+    return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY }
+  }
+
+  canvas.addEventListener('mousedown',  e => { drawing = true ; ctx.beginPath() ; const p = pos(e) ; ctx.moveTo(p.x, p.y) })
+  canvas.addEventListener('mousemove',  e => { if (!drawing) return ; const p = pos(e) ; ctx.lineTo(p.x, p.y) ; ctx.stroke() })
+  canvas.addEventListener('mouseup',    () => { drawing = false })
+  canvas.addEventListener('mouseleave', () => { drawing = false })
+  canvas.addEventListener('touchstart', e => { e.preventDefault() ; drawing = true ; ctx.beginPath() ; const p = pos(e) ; ctx.moveTo(p.x, p.y) }, { passive: false })
+  canvas.addEventListener('touchmove',  e => { e.preventDefault() ; if (!drawing) return ; const p = pos(e) ; ctx.lineTo(p.x, p.y) ; ctx.stroke() }, { passive: false })
+  canvas.addEventListener('touchend',   () => { drawing = false })
+
+  // Tab switching
+  container.querySelectorAll('.sig-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.sig-tab').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      const tab = btn.dataset.tab
+      document.getElementById(`${containerId}-canvas-wrap`).classList.toggle('hidden', tab !== 'draw')
+      document.getElementById(`${containerId}-type-wrap`).classList.toggle('active', tab === 'type')
+    })
+  })
+
+  // Clear
+  document.getElementById(`${containerId}-clear`).addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    const typed = document.getElementById(`${containerId}-typed`)
+    if (typed) typed.value = ''
+  })
+}
+
+function getSignatureData(containerId) {
+  const activeTab = document.querySelector(`#${containerId} .sig-tab.active`)?.dataset.tab || 'draw'
+  if (activeTab === 'type') {
+    const text = document.getElementById(`${containerId}-typed`)?.value?.trim()
+    if (!text) return null
+    // Render typed signature to canvas
+    const canvas = document.createElement('canvas')
+    canvas.width = 560 ; canvas.height = 150
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, 560, 150)
+    ctx.font = 'italic 48px Georgia, serif'
+    ctx.fillStyle = '#1e293b'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, 280, 75)
+    return canvas.toDataURL('image/png').split(',')[1]
+  } else {
+    const canvas = document.getElementById(`${containerId}-canvas`)
+    // Check if canvas is blank
+    const data = canvas.toDataURL('image/png')
+    const blank = document.createElement('canvas')
+    blank.width = canvas.width ; blank.height = canvas.height
+    if (data === blank.toDataURL('image/png')) return null
+    return data.split(',')[1]
+  }
+}
+
+async function hashDocument(content) {
+  const enc  = new TextEncoder()
+  const buf  = await crypto.subtle.digest('SHA-256', enc.encode(content))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('')
+}
+
+function showStepError(msg) {
+  const el = document.querySelector('.error-msg')
+  if (el) { el.textContent = msg ; el.classList.add('visible') }
+}
+
+// =============================================================================
+// STEP 1 — Management Agreement
+// =============================================================================
+
+function renderStep1() {
+  const agreementLabel = state.agreementType === 'full_management'
+    ? 'Full Management Agreement'
+    : 'Lease Listing Agreement'
+
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card">
+      <div class="step-label">Step 1 of 7</div>
+      <div class="step-title">Management Agreement</div>
+      <div class="step-subtitle">Please review and sign your ${escHtml(agreementLabel)} for ${escHtml(state.propertyAddress)}.</div>
+
+      ${state.managementStartDate ? `
+      <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:18px 20px;margin-bottom:20px;">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--bpm-blue);margin-bottom:10px;">Key Agreement Terms</div>
+        <p style="font-size:0.8rem;color:#1e40af;margin-bottom:12px;">Please confirm these details are correct before signing.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+          <tr><td style="padding:4px 0;color:#1e40af;width:50%;">Owner Name</td><td style="padding:4px 0;font-weight:600;color:var(--bpm-text);">${escHtml(state.ownerName)}</td></tr>
+          <tr><td style="padding:4px 0;color:#1e40af;">Property</td><td style="padding:4px 0;font-weight:600;color:var(--bpm-text);">${escHtml(state.propertyAddress)}</td></tr>
+          <tr><td style="padding:4px 0;color:#1e40af;">Management Company</td><td style="padding:4px 0;font-weight:600;color:var(--bpm-text);">Beyond Property Management, Inc.</td></tr>
+          <tr><td style="padding:4px 0;color:#1e40af;">Management Start Date</td><td style="padding:4px 0;font-weight:600;color:var(--bpm-text);">${escHtml(formatDate(state.managementStartDate))}</td></tr>
+          <tr><td style="padding:4px 0;color:#1e40af;">Agreement End Date</td><td style="padding:4px 0;font-weight:600;color:var(--bpm-text);">${escHtml(formatDate(state.agreementTerminationDate))}</td></tr>
+        </table>
+      </div>
+      ` : ''}
+
+      <div class="consent-box">
+        <h4>Electronic Signature Consent</h4>
+        <p>
+          By proceeding, you agree to sign this document electronically. Your electronic signature
+          is legally binding under the California Uniform Electronic Transactions Act (UETA).
+          You have the right to request a paper copy at any time.
+          Contact <a href="mailto:help@bpmsd.com" style="color:var(--bpm-blue)">help@bpmsd.com</a> to withdraw consent.
+        </p>
+        <label class="consent-check">
+          <input type="checkbox" id="consent-check" />
+          I agree to sign this document electronically
+        </label>
+      </div>
+
+      <div id="agreement-content" style="border:1px solid var(--bpm-border);border-radius:6px;overflow:hidden;margin-bottom:20px;">
+        <iframe
+          src="/api/onboard/templates/agreement/${state.agreementType}"
+          style="width:100%;height:600px;border:none;display:block;"
+          title="${escHtml(agreementLabel)}"
+        >
+          <p style="padding:20px;color:var(--bpm-muted);">
+            Your browser cannot display PDFs inline.
+            <a href="/api/onboard/templates/agreement/${state.agreementType}" target="_blank">Click here to open the agreement</a>.
+          </p>
+        </iframe>
+      </div>
+
+      <div class="form-section-title">Your Signature</div>
+
+      <div class="sig-declaration">
+        I, <strong>${escHtml(state.ownerName)}</strong>, am signing as the property owner.
+        By signing below I confirm I have read and agree to all terms of the ${escHtml(agreementLabel)}.
+        Today's date: <strong>${new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</strong>
+      </div>
+
+      <div id="sig-widget-1"></div>
+
+      <div class="error-msg"></div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-sign-1" disabled>Sign &amp; Continue</button>
+      </div>
+    </div>
+  `
+
+  buildSignatureWidget('sig-widget-1')
+
+  // Enable sign button only when consent is checked
+  document.getElementById('consent-check').addEventListener('change', e => {
+    document.getElementById('btn-sign-1').disabled = !e.target.checked
+  })
+
+  document.getElementById('btn-sign-1').addEventListener('click', submitStep1)
+}
+
+async function submitStep1() {
+  const btn = document.getElementById('btn-sign-1')
+  const sig = getSignatureData('sig-widget-1')
+  if (!sig) return showStepError('Please draw or type your signature before continuing.')
+
+  btn.disabled = true
+  btn.textContent = 'Saving...'
+
+  try {
+    const docContent = state.agreementType + ':' + state.propertyAddress + ':' + state.ownerName
+    const docHash    = await hashDocument(docContent)
+
+    const result = await submitStep(1, {
+      signature:    sig,
+      consentGiven: true,
+      timestamp:    new Date().toISOString(),
+      userAgent:    navigator.userAgent,
+      documentHash: docHash,
+    })
+    await advanceAfterStep(result)
+  } catch (err) {
+    showStepError(err.message)
+    btn.disabled = false
+    btn.textContent = 'Sign & Continue'
+  }
+}
+
+// =============================================================================
+// STEP 2 — Property Questionnaire
+// =============================================================================
+
+function renderStep2() {
+  const units     = parseInt(state.units) || 1
+  const firstName = (state.ownerName || '').split(' ')[0] || ''
+  const lastName  = (state.ownerName || '').split(' ').slice(1).join(' ') || ''
+
+  // Build per-unit occupancy cards for multi-unit properties
+  function unitOccupancyCards() {
+    let html = ''
+    for (let u = 1; u <= units; u++) {
+      html += `
+        <div style="border:1px solid var(--bpm-border);border-radius:8px;padding:16px;margin-bottom:12px;">
+          <div style="font-size:0.82rem;font-weight:700;margin-bottom:12px;color:var(--bpm-text);">Unit ${u}</div>
+          <div class="field-group">
+            <label>Occupancy Status</label>
+            <div class="radio-stack">
+              <label class="radio-option"><input type="radio" name="occ-unit-${u}" value="vacant" /> <div><div class="radio-option-label">Vacant</div></div></label>
+              <label class="radio-option"><input type="radio" name="occ-unit-${u}" value="owner_occupied" /> <div><div class="radio-option-label">Owner Occupied</div></div></label>
+              <label class="radio-option"><input type="radio" name="occ-unit-${u}" value="move_out" /> <div><div class="radio-option-label">Tenant Occupied (Move-Out Scheduled)</div></div></label>
+              <label class="radio-option"><input type="radio" name="occ-unit-${u}" value="staying" /> <div><div class="radio-option-label">Tenant Occupied (Tenant is STAYING)</div></div></label>
+            </div>
+          </div>
+          <div class="conditional" id="unit-${u}-tenant-info">
+            <div class="field-row">
+              <div class="field-group"><label>Current Tenant Name</label><input type="text" id="unit-${u}-tenant-name" /></div>
+              <div class="field-group"><label>Tenant Phone</label><input type="tel" id="unit-${u}-tenant-phone" /></div>
+            </div>
+            <div class="field-group"><label>Tenant Email</label><input type="email" id="unit-${u}-tenant-email" /></div>
+            <div class="conditional" id="unit-${u}-move-out-date">
+              <div class="field-group"><label>Expected Move-Out Date</label><input type="date" id="unit-${u}-move-out" /></div>
+            </div>
+            <div class="conditional" id="unit-${u}-deposit-field">
+              <div class="field-group"><label>Current Security Deposit Amount ($)</label><input type="number" id="unit-${u}-deposit" min="0" placeholder="0" /></div>
+              <div class="field-group"><label>Current Monthly Rent</label><input type="number" id="unit-${u}-rent" min="0" placeholder="$0.00" /></div>
+            </div>
+          </div>
+        </div>
+      `
+    }
+    return html
+  }
+
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card">
+      <div class="step-label">Step 2 of 7</div>
+      <div class="step-title">Property Questionnaire</div>
+      <div class="step-subtitle">Help us get to know your property. Take your time — this information sets up your account correctly.</div>
+
+      <!-- SECTION 1: RENTAL DETAILS -->
+      <div class="form-section-title">Rental Details</div>
+      <div class="field-group">
+        <label>Preferred Lease Term</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="lease-term" value="month_to_month" /> <div><div class="radio-option-label">Month-to-Month</div></div></label>
+          <label class="radio-option"><input type="radio" name="lease-term" value="6_months" /> <div><div class="radio-option-label">6 Months</div></div></label>
+          <label class="radio-option selected"><input type="radio" name="lease-term" value="12_months" checked /> <div><div class="radio-option-label">12 Months <span style="font-size:0.78rem;color:var(--bpm-blue);font-weight:400;">BPM Recommends</span></div></div></label>
+          <label class="radio-option"><input type="radio" name="lease-term" value="flexible" /> <div><div class="radio-option-label">Flexible</div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Rent</label>
+        <div class="radio-stack">
+          <label class="radio-option selected"><input type="radio" name="rent-type" value="tbd" checked /> <div><div class="radio-option-label">To Be Determined <span style="font-size:0.78rem;color:var(--bpm-blue);font-weight:400;">BPM Recommends</span></div></div></label>
+          <label class="radio-option"><input type="radio" name="rent-type" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="rent-other-wrap" style="margin-top:8px">
+          <input type="text" id="rent-amount" placeholder="$___/month" style="max-width:200px" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Security Deposit</label>
+        <div class="radio-stack">
+          <label class="radio-option selected"><input type="radio" name="deposit-type" value="25_less" checked /> <div><div class="radio-option-label">$25 Less Than Rent <span style="font-size:0.78rem;color:var(--bpm-blue);font-weight:400;">BPM Recommends</span></div></div></label>
+          <label class="radio-option"><input type="radio" name="deposit-type" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="deposit-other-wrap" style="margin-top:8px">
+          <input type="text" id="deposit-amount-custom" placeholder="$___" style="max-width:200px" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Is this property furnished?</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="yes" /> <div><div class="radio-option-label">Yes <span style="font-size:0.72rem;color:var(--bpm-blue)">BPM Prefers</span></div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="negotiable" /> <div><div class="radio-option-label">Negotiable</div></div></label>
+        </div>
+      </div>
+
+      <!-- SECTION 2: PROPERTY DETAILS -->
+      <div class="form-section-title">Property Details</div>
+      ${(state.yearBuilt || state.sqFt || state.floodZone) ? `
+      <div class="info-box blue" style="margin-bottom:16px">Year built, square footage, and flood zone pre-filled from county tax records. Please verify.</div>
+      ` : ''}
+      <div class="field-group">
+        <label>Property Type</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="prop-type" value="detached_house" /> <div><div class="radio-option-label">Detached House</div></div></label>
+          <label class="radio-option"><input type="radio" name="prop-type" value="condo" /> <div><div class="radio-option-label">Condo</div></div></label>
+          <label class="radio-option"><input type="radio" name="prop-type" value="2_4_units" /> <div><div class="radio-option-label">2-4 Units</div></div></label>
+          <label class="radio-option"><input type="radio" name="prop-type" value="apartment_complex" /> <div><div class="radio-option-label">Apartment Complex (4 or more)</div></div></label>
+          <label class="radio-option"><input type="radio" name="prop-type" value="mobile_home" /> <div><div class="radio-option-label">Mobile Home</div></div></label>
+          <label class="radio-option"><input type="radio" name="prop-type" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="prop-type-other-wrap" style="margin-top:8px">
+          <input type="text" id="prop-type-other" placeholder="Please specify" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Year Built</label>
+          <input type="number" id="year-built" placeholder="e.g. 1985" min="1800" max="2030" value="${escHtml(String(state.yearBuilt || ''))}" />
+        </div>
+        <div class="field-group">
+          <label>Property Square Footage</label>
+          <input type="number" id="sq-footage" placeholder="e.g. 1400" min="0" value="${escHtml(String(state.sqFt || ''))}" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Number of Bedrooms</label>
+        <div class="radio-stack" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+          ${['Studio','1','2','3','4','5','6'].map(v => { const isChecked = state.bedrooms && String(state.bedrooms) === v; return `<label class="radio-option${isChecked ? ' selected' : ''}" style="flex:0 0 auto;min-width:70px"><input type="radio" name="bedrooms" value="${v}"${isChecked ? ' checked' : ''} /> <div><div class="radio-option-label">${v}</div></div></label>`; }).join('')}
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Number of Full Bathrooms</label>
+        <div class="radio-stack" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+          ${['1','2','3','4','5'].map(v => { const bathRounded = state.bathrooms ? String(Math.round(Number(state.bathrooms))) : ''; const isChecked = bathRounded && bathRounded === v; return `<label class="radio-option${isChecked ? ' selected' : ''}" style="flex:0 0 auto;min-width:60px"><input type="radio" name="full-baths" value="${v}"${isChecked ? ' checked' : ''} /> <div><div class="radio-option-label">${v}</div></div></label>`; }).join('')}
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Number of Half Bathrooms</label>
+        <div class="radio-stack" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+          ${['0','1','2','3'].map(v => `<label class="radio-option" style="flex:0 0 auto;min-width:60px"><input type="radio" name="half-baths" value="${v}" /> <div><div class="radio-option-label">${v}</div></div></label>`).join('')}
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Neighborhood Name <span style="font-weight:400;color:var(--bpm-muted)">(e.g. Pacific Beach, Rolando)</span></label>
+        <input type="text" id="neighborhood" placeholder="Neighborhood name" />
+      </div>
+      <div class="field-group">
+        <label>Has there been a death on the property in the last 3 years?</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option" style="flex:1"><input type="radio" name="death-on-property" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="death-on-property" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+        </div>
+      </div>
+      <div id="death-detail-wrap" style="display:none">
+        <div class="field-group">
+          <label>Please briefly describe the circumstances <span style="font-weight:400;color:var(--bpm-muted)">(e.g., natural causes, accident, homicide)</span></label>
+          <div class="info-box" style="margin-bottom:8px">Deaths within 3 years must be disclosed to prospective tenants under California Civil Code §1710.2.</div>
+          <textarea id="death-detail" rows="3" placeholder="Describe circumstances..."></textarea>
+        </div>
+      </div>
+
+      <!-- NEW SECTION: CURRENT PROPERTY MANAGEMENT -->
+      <div class="form-section-title">Current Property Management</div>
+      <div class="field-group">
+        <label>Is this property currently managed by a property management company?</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option" style="flex:1"><input type="radio" name="currently-managed" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="currently-managed" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+        </div>
+      </div>
+      <div class="conditional" id="mgmt-company-details">
+        <div class="field-group">
+          <label>Management Company Name</label>
+          <input type="text" id="mgmt-company-name" placeholder="Company name" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Website / URL</label>
+            <input type="text" id="mgmt-company-url" placeholder="e.g. company.com" />
+          </div>
+          <div class="field-group">
+            <label>Phone Number</label>
+            <input type="tel" id="mgmt-company-phone" placeholder="(619) 555-0100" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Contact Name</label>
+            <input type="text" id="mgmt-contact-name" placeholder="Contact person's name" />
+          </div>
+          <div class="field-group">
+            <label>Email</label>
+            <input type="email" id="mgmt-company-email" placeholder="e.g. info@company.com" />
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: CURRENT OCCUPANCY -->
+      <div class="form-section-title">Current Occupancy</div>
+      ${units === 1 ? `
+        <div class="field-group">
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="occ-unit-1" value="vacant" /> <div><div class="radio-option-label">Vacant</div></div></label>
+            <label class="radio-option"><input type="radio" name="occ-unit-1" value="owner_occupied" /> <div><div class="radio-option-label">Owner Occupied</div></div></label>
+            <label class="radio-option"><input type="radio" name="occ-unit-1" value="move_out" /> <div><div class="radio-option-label">Tenant Occupied (Move-Out Scheduled)</div></div></label>
+            <label class="radio-option"><input type="radio" name="occ-unit-1" value="staying" /> <div><div class="radio-option-label">Tenant Occupied (Tenant is STAYING)</div></div></label>
+          </div>
+        </div>
+        <div class="conditional" id="unit-1-tenant-info">
+          <div class="field-row">
+            <div class="field-group"><label>Current Tenant Name</label><input type="text" id="unit-1-tenant-name" /></div>
+            <div class="field-group"><label>Tenant Phone</label><input type="tel" id="unit-1-tenant-phone" /></div>
+          </div>
+          <div class="field-group"><label>Tenant Email</label><input type="email" id="unit-1-tenant-email" /></div>
+          <div class="conditional" id="unit-1-move-out-date">
+            <div class="field-group"><label>Expected Move-Out Date</label><input type="date" id="unit-1-move-out" /></div>
+          </div>
+          <div class="conditional" id="unit-1-deposit-field">
+            <div class="field-group"><label>Current Security Deposit Amount ($)</label><input type="number" id="unit-1-deposit" min="0" placeholder="0" /></div>
+            <div class="field-group"><label>Current Monthly Rent</label><input type="number" id="unit-1-rent" min="0" placeholder="$0.00" /></div>
+          </div>
+        </div>
+      ` : unitOccupancyCards()}
+
+      <!-- SECTION 4: APPLIANCES -->
+      <div class="form-section-title">Appliances</div>
+      <div class="field-group">
+        <label>Property Appliances That Convey With Lease <span style="font-weight:400;color:var(--bpm-muted)">(select all that apply)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          ${[
+            ['appl-fridge-kitchen','Refrigerator in Kitchen'],
+            ['appl-fridge-garage','Refrigerator in Garage'],
+            ['appl-single-oven','Single Oven'],
+            ['appl-double-oven','Double Oven'],
+            ['appl-dishwasher','Dishwasher'],
+            ['appl-trash-compactor','Trash Compactor'],
+            ['appl-washer','Full-size Washing Machine'],
+            ['appl-dryer','Full-size Dryer'],
+            ['appl-stackable','Stackable Washer/Dryer'],
+            ['appl-water-softener','Water Softener'],
+            ['appl-wine-fridge','Wine Refrigerator'],
+            ['appl-microwave','Microwave'],
+            ['appl-stove','Stove'],
+            ['appl-garbage-disposal','Garbage Disposal'],
+            ['appl-range-hood','Range Hood / Vent Fan'],
+            ['appl-gas-range','Gas Range'],
+            ['appl-electric-range','Electric Range'],
+            ['appl-microwave-hood-combo','Built-in Microwave Hood Combo'],
+            ['appl-chest-freezer','Chest Freezer'],
+            ['appl-instant-hot-water','Instant Hot Water Dispenser'],
+            ['appl-water-filter','Whole House Water Filtration']
+          ].map(([id, lbl]) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="${id}" style="width:auto" /> ${lbl}</label>`).join('')}
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="appl-other-check" style="width:auto" /> Other</label>
+          <input type="text" id="appl-other-text" placeholder="Specify" style="display:none;max-width:250px" />
+        </div>
+      </div>
+
+      <!-- SECTION 5: AMENITIES -->
+      <div class="form-section-title">Amenities</div>
+      <div class="field-group">
+        <label>Property Amenities <span style="font-weight:400;color:var(--bpm-muted)">(select all that apply)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          ${[
+            ['amen-ss-appliances','Stainless Steel Appliances'],
+            ['amen-laundry-room','Laundry Room'],
+            ['amen-laundry-garage','Laundry Room in Garage'],
+            ['amen-vaulted-ceilings','Vaulted Ceilings'],
+            ['amen-open-floor','Open Floor Plan'],
+            ['amen-dual-pane','Dual Pane Windows'],
+            ['amen-shutters','Shutters'],
+            ['amen-granite','Granite Countertops'],
+            ['amen-upgraded-kitchen','Upgraded Kitchen'],
+            ['amen-upgraded-fixtures','Upgraded Fixtures'],
+            ['amen-fireplace-electric','Fireplace (Electric & Functional)'],
+            ['amen-fireplace-wood','Fireplace (Wood & Functional)'],
+            ['amen-enclosed-backyard','Enclosed Backyard'],
+            ['amen-patio','Private Patio'],
+            ['amen-balcony','Balcony'],
+            ['amen-deck','Deck'],
+            ['amen-dual-master','Dual Master Suite'],
+            ['amen-jack-jill','Jack & Jill Bedroom'],
+            ['amen-office','Office'],
+            ['amen-den','Den'],
+            ['amen-formal-dining','Formal Dining Room'],
+            ['amen-breakfast-nook','Breakfast Nook'],
+            ['amen-drought-landscaping','Drought Tolerant Landscaping'],
+            ['amen-living-room','Living Room'],
+            ['amen-bonus-room','Bonus Room'],
+            ['amen-loft','Loft'],
+            ['amen-backyard-pool','Backyard Pool'],
+            ['amen-backyard-spa','Backyard Spa'],
+            ['amen-rv-parking','RV/Boat Parking'],
+            ['amen-washer-electric','Washer/Dryer Electric Hook-ups Only'],
+            ['amen-washer-gas','Washer/Dryer Gas Hook-ups Only'],
+            ['amen-central-ac','Central A/C'],
+            ['amen-quartz','Quartz Countertop'],
+            ['amen-attic-fan','Whole House Attic Fan'],
+            ['amen-sprinklers','Sprinklers Automated and Operable'],
+            ['amen-smart-thermo','Smart Thermostat'],
+            ['amen-smart-doorbell','Smart Doorbell'],
+            ['amen-ev-charging','EV Charging'],
+            ['amen-walk-in-closet','Walk-in Closet'],
+            ['amen-hardwood-floors','Hardwood Floors'],
+            ['amen-tile-floors','Tile / Stone Floors'],
+            ['amen-carpet','Carpet'],
+            ['amen-ceiling-fans','Ceiling Fans'],
+            ['amen-recessed-lighting','Recessed Lighting'],
+            ['amen-crown-molding','Crown Molding'],
+            ['amen-adu','ADU / Guest House'],
+            ['amen-solar-owned','Solar Panels (Owned)'],
+            ['amen-outdoor-kitchen','Outdoor Kitchen / Built-in BBQ'],
+            ['amen-storage-room','Storage Room / Shed']
+          ].map(([id, lbl]) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="${id}" style="width:auto" /> ${lbl}</label>`).join('')}
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="amen-other-check" style="width:auto" /> Other</label>
+          <input type="text" id="amen-other-text" placeholder="Specify" style="display:none;max-width:250px" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Community Features <span style="font-weight:400;color:var(--bpm-muted)">(select all that apply)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          ${[
+            ['comm-pool','Pool'],
+            ['comm-spa','Spa'],
+            ['comm-sauna','Sauna'],
+            ['comm-clubhouse','Club House'],
+            ['comm-fitness','Fitness Room'],
+            ['comm-gated','Gated Community'],
+            ['comm-bbq','BBQ Area'],
+            ['comm-dog-run','Dog Run'],
+            ['comm-tot-lot','Tot Lot'],
+            ['comm-tennis','Tennis Court'],
+            ['comm-racquetball','Racquetball Court'],
+            ['comm-pickleball','Pickleball Court'],
+            ['comm-package-lockers','Package Lockers'],
+            ['comm-laundry-facility','Laundry Facility'],
+            ['comm-bike-storage','Bike Storage'],
+            ['comm-controlled-access','Controlled Access / Fob Entry'],
+            ['comm-elevator','Elevator'],
+            ['comm-visitor-parking','Visitor Parking']
+          ].map(([id, lbl]) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="${id}" style="width:auto" /> ${lbl}</label>`).join('')}
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="comm-other-check" style="width:auto" /> Other</label>
+          <input type="text" id="comm-other-text" placeholder="Specify" style="display:none;max-width:250px" />
+        </div>
+      </div>
+
+      <!-- SECTION 6: ACCESS & KEYS -->
+      <div class="form-section-title">Access &amp; Keys</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Mailbox Location</label>
+          <input type="text" id="mailbox-location" placeholder="e.g. Front of building" />
+        </div>
+        <div class="field-group">
+          <label>Mailbox Number <span style="font-weight:400;color:var(--bpm-muted)">(write N/A if none)</span></label>
+          <input type="text" id="mailbox-number" placeholder="e.g. 12 or N/A" />
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+        <div class="field-group" style="margin-bottom:0"><label>Front Door Keys — # Provided</label><input type="number" id="keys-front-door" min="0" placeholder="0" /></div>
+        <div class="field-group" style="margin-bottom:0"><label>Common Area Keys — # Provided</label><input type="number" id="keys-common" min="0" placeholder="0" /></div>
+        <div class="field-group" style="margin-bottom:0"><label>Mailbox Keys — # Provided</label><input type="number" id="keys-mailbox" min="0" placeholder="0" /></div>
+        <div class="field-group" style="margin-bottom:0"><label>Parking Pass(es)/Permit # — # Provided</label><input type="number" id="keys-parking" min="0" placeholder="0" /></div>
+        <div class="field-group" style="margin-bottom:0"><label>Garage Remotes — # Provided</label><input type="number" id="keys-garage-remote" min="0" placeholder="0" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Garage Keypad Code</label>
+          <input type="text" id="garage-keypad-code" placeholder="e.g. 1234" />
+        </div>
+        <div class="field-group">
+          <label>Gate Code</label>
+          <input type="text" id="gate-code" placeholder="e.g. #5678" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Alarm Code</label>
+        <input type="text" id="alarm-code" placeholder="e.g. 1234#" style="max-width:200px" />
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Other Keys — # Provided</label>
+          <input type="number" id="keys-other-count" min="0" placeholder="0" />
+        </div>
+        <div class="field-group">
+          <label>Please Specify</label>
+          <input type="text" id="keys-other-desc" placeholder="e.g. Storage unit key" />
+        </div>
+      </div>
+
+      <!-- SECTION 7: PARKING -->
+      <div class="form-section-title">Parking</div>
+      <div class="field-group">
+        <label>Parking <span style="font-weight:400;color:var(--bpm-muted)">(select all that apply)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          ${[
+            ['park-driveway-1','Private Driveway 1-Car'],
+            ['park-driveway-2','Private Driveway 2-Car'],
+            ['park-driveway-3','Private Driveway 3-Car'],
+            ['park-driveway-4','Private Driveway 4-Car'],
+            ['park-garage-attached-1','1-Car Attached Garage'],
+            ['park-garage-attached-2','2-Car Attached Garage'],
+            ['park-garage-attached-3','3-Car Attached Garage'],
+            ['park-carport-1','Assigned Carport 1-Car'],
+            ['park-carport-2','Assigned Carport 2-Car'],
+            ['park-street','Street'],
+            ['park-garage-detached-1','1-Car Detached Garage'],
+            ['park-garage-detached-2','2-Car Detached Garage'],
+            ['park-assigned-1','Assigned Not Covered 1 Space'],
+            ['park-assigned-2','Assigned Not Covered 2 Spaces']
+          ].map(([id, lbl]) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="${id}" style="width:auto" /> ${lbl}</label>`).join('')}
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="park-other-check" style="width:auto" /> Other</label>
+          <input type="text" id="park-other-text" placeholder="Specify" style="display:none;max-width:250px" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Parking Space Numbers and/or Restrictions <span style="font-weight:400;color:var(--bpm-muted)">(e.g. Guest Pass, No Overnight Parking)</span></label>
+        <textarea id="parking-restrictions" style="min-height:60px" placeholder="e.g. Space #14, guest passes available at office"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Garage Space Number(s)</label>
+          <input type="text" id="garage-space-numbers" placeholder="e.g. G-12, G-13" />
+        </div>
+        <div class="field-group">
+          <label>Garage Location</label>
+          <input type="text" id="garage-location" placeholder="e.g. Behind building B" />
+        </div>
+      </div>
+
+      <!-- SECTION 8: HOA -->
+      <div class="form-section-title">HOA</div>
+      <div class="field-group">
+        <label>Is there an HOA?</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option" style="flex:1"><input type="radio" name="has-hoa" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="has-hoa" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+        </div>
+      </div>
+      <div class="conditional" id="hoa-details-section">
+        <div class="field-group">
+          <label>HOA Name(s)</label>
+          <input type="text" id="hoa-name" placeholder="e.g. Pacific Heights HOA" />
+        </div>
+        <div class="field-group">
+          <label>HOA Company Name</label>
+          <input type="text" id="hoa-company" placeholder="e.g. Community Management Co" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>HOA Phone</label>
+            <input type="tel" id="hoa-phone" placeholder="e.g. (619) 555-0100" />
+          </div>
+          <div class="field-group">
+            <label>HOA Email</label>
+            <input type="email" id="hoa-email" placeholder="e.g. info@cmco.com" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label>HOA Website</label>
+          <input type="text" id="hoa-website" placeholder="e.g. cmco.com" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>HOA Login Name</label>
+            <input type="text" id="hoa-login-name" placeholder="Username or account number" />
+          </div>
+          <div class="field-group">
+            <label>Login password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely for your records)</span></label>
+            <input type="text" id="hoa-login-password" placeholder="Password" />
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 9: UTILITIES -->
+      <div class="form-section-title">Utilities</div>
+      <div class="field-group">
+        <label>Tenant Pays <span style="font-weight:400;color:var(--bpm-muted)">(select all that apply)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          ${['Electricity','Gas','Water','Sewer','Trash','Cable','Internet','Gardener','Pool','Solar'].map(u => `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="tenant-pays-${u.toLowerCase()}" style="width:auto" /> ${u}</label>`).join('')}
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Owner Pays <span style="font-weight:400;color:var(--bpm-muted)">(select all that apply)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          ${[
+            ['owner-pays-electricity','Electricity',false],
+            ['owner-pays-gas','Gas',false],
+            ['owner-pays-water','Water',false],
+            ['owner-pays-sewer','Sewer',false],
+            ['owner-pays-trash','Trash',false],
+            ['owner-pays-cable','Cable',false],
+            ['owner-pays-internet','Internet',false],
+            ['owner-pays-gardener','Gardener',true],
+            ['owner-pays-pool','Pool/Spa',true],
+            ['owner-pays-solar','Solar',false],
+            ['owner-pays-hoa','HOA',true],
+            ['owner-pays-security','Security System',false]
+          ].map(([id, lbl, rec]) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="${id}" style="width:auto" /> ${lbl}${rec ? ' <span style="font-size:0.72rem;color:var(--bpm-blue)">BPM Rec.</span>' : ''}</label>`).join('')}
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="owner-pays-other-check" style="width:auto" /> Other</label>
+          <input type="text" id="owner-pays-other-text" placeholder="Specify" style="display:none;max-width:250px" />
+        </div>
+      </div>
+      <!-- Gardener details — shown when Owner Pays: Gardener is checked -->
+      <div id="gardener-details-wrap" style="display:none">
+        <div class="field-group">
+          <label>Gardener / Landscaper</label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:12px;cursor:pointer">
+            <input type="checkbox" id="gardener-bpm-bid" style="width:auto" />
+            <span>I don't have one — please have BPM get a gardener bid</span>
+          </label>
+          <div id="gardener-vendor-fields">
+            <div class="field-row">
+              <div class="field-group">
+                <label>Vendor Name</label>
+                <input type="text" id="gardener-name" placeholder="e.g. Green Thumb Landscaping" />
+              </div>
+              <div class="field-group">
+                <label>Phone</label>
+                <input type="tel" id="gardener-phone" placeholder="(619) 555-0100" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label>Email</label>
+                <input type="email" id="gardener-email" placeholder="vendor@email.com" />
+              </div>
+              <div class="field-group">
+                <label>Website</label>
+                <input type="text" id="gardener-url" placeholder="e.g. greenthumb.com" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Water Company Name</label>
+        <input type="text" id="water-company-name" placeholder="e.g. Helix Water District" />
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Water Company Website</label>
+          <input type="text" id="water-website" placeholder="e.g. sdcwa.org" />
+        </div>
+        <div class="field-group">
+          <label>Water Login Name</label>
+          <input type="text" id="water-login-name" placeholder="Username or account number" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Water Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely for your records)</span></label>
+        <input type="text" id="water-login-password" placeholder="Password" style="max-width:300px" />
+      </div>
+      <div class="field-group">
+        <label>Sewer — Is it part of the water bill?</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="sewer-type" value="same_as_water" /> <div><div class="radio-option-label">Yes, same as water bill</div></div></label>
+          <label class="radio-option"><input type="radio" name="sewer-type" value="separate_bill" /> <div><div class="radio-option-label">No, separate bill</div></div></label>
+          <label class="radio-option"><input type="radio" name="sewer-type" value="property_tax" /> <div><div class="radio-option-label">On Property Tax Bill (Owner Cost)</div></div></label>
+          <label class="radio-option"><input type="radio" name="sewer-type" value="hoa_pays" /> <div><div class="radio-option-label">HOA Pays Sewer (Owner Cost)</div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Trash Company</label>
+        <div class="radio-stack">
+          ${['Waste Management','EDCO','City of San Diego','Borrego Landfill','Allied Waste','Republic Service','Fallbrook Refuse','California Submeter','Yes Management','Guardian','Meternet','On Property Tax Bill','HOA Trash'].map(t => `<label class="radio-option"><input type="radio" name="trash-company" value="${t}" /> <div><div class="radio-option-label">${t}</div></div></label>`).join('')}
+          <label class="radio-option"><input type="radio" name="trash-company" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="trash-other-wrap" style="margin-top:8px">
+          <input type="text" id="trash-other-text" placeholder="Specify trash company" />
+        </div>
+        <div class="field-group" style="margin-top:12px">
+          <label>Trash Company Website</label>
+          <input type="text" id="trash-website" placeholder="e.g. wastemanagement.com" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Trash Login Name</label>
+            <input type="text" id="trash-login-name" placeholder="Username or account number" />
+          </div>
+          <div class="field-group">
+            <label>Trash Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely for your records)</span></label>
+            <input type="text" id="trash-login-password" placeholder="Password" />
+          </div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Electricity Company Name <span style="font-weight:400;color:var(--bpm-muted)">(e.g. SDG&amp;E, SDCP)</span></label>
+        <input type="text" id="elec-company-name" placeholder="e.g. SDG&E" />
+      </div>
+      <div class="field-group">
+        <label>Electricity Company Website</label>
+        <input type="text" id="elec-website" placeholder="e.g. sdge.com" />
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Electricity Login Name</label>
+          <input type="text" id="elec-login-name" placeholder="Username or account number" />
+        </div>
+        <div class="field-group">
+          <label>Electricity Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely)</span></label>
+          <input type="text" id="elec-login-password" placeholder="Password" />
+        </div>
+      </div>
+
+      <div id="solar-details-wrap" style="display:none">
+        <div class="form-section-title">Solar</div>
+        <div class="field-group">
+          <label>Solar Company Name</label>
+          <input type="text" id="solar-company-name" placeholder="e.g. SunPower, Tesla Solar" />
+        </div>
+        <div class="field-group">
+          <label>Solar Company Website</label>
+          <input type="text" id="solar-company-url" placeholder="e.g. sunpower.com" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Solar Login Name</label>
+            <input type="text" id="solar-login-name" placeholder="Username or account number" />
+          </div>
+          <div class="field-group">
+            <label>Solar Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely)</span></label>
+            <input type="text" id="solar-login-password" placeholder="Password" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Is the solar system:</label>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="solar-status" value="paid_off" /> <div><div class="radio-option-label">Paid Off (Owned outright)</div></div></label>
+            <label class="radio-option"><input type="radio" name="solar-status" value="leased" /> <div><div class="radio-option-label">Leased</div></div></label>
+            <label class="radio-option"><input type="radio" name="solar-status" value="ppa" /> <div><div class="radio-option-label">Power Purchase Agreement (PPA)</div></div></label>
+          </div>
+        </div>
+      </div>
+
+      <div id="pool-company-wrap" class="field-group" style="display:none">
+        <label>Pool Company</label>
+        <input type="text" id="pool-company" placeholder="Company name and contact" />
+      </div>
+
+      <!-- SECTION 10: PROPERTY DISCLOSURES -->
+      <div class="form-section-title">Property Disclosures</div>
+      <div class="field-group">
+        <label>Are you aware of any Lead-Based Paint?</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option" style="flex:1"><input type="radio" name="lead-paint" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="lead-paint" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Is your property in a Flood Zone?${state.floodZone ? ' <span style="font-size:0.75rem;font-weight:400;color:var(--bpm-muted)">(from FEMA flood maps)</span>' : ''}</label>
+        <div class="radio-stack">
+          <label class="radio-option${state.floodZone && state.sfha ? ' selected' : ''}"><input type="radio" name="flood-zone" value="yes"${state.floodZone && state.sfha ? ' checked' : ''} /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option${state.floodZone && !state.sfha ? ' selected' : ''}"><input type="radio" name="flood-zone" value="no_no_insurance"${state.floodZone && !state.sfha ? ' checked' : ''} /> <div><div class="radio-option-label">No, and I do not carry flood insurance</div></div></label>
+          <label class="radio-option"><input type="radio" name="flood-zone" value="no_has_insurance" /> <div><div class="radio-option-label">No, however I do carry flood insurance</div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Are you aware of any Asbestos?</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="asbestos" value="not_aware" /> <div><div class="radio-option-label">Not Aware</div></div></label>
+          <label class="radio-option"><input type="radio" name="asbestos" value="yes" /> <div><div class="radio-option-label">Yes, there is</div></div></label>
+          <label class="radio-option"><input type="radio" name="asbestos" value="has_clearance" /> <div><div class="radio-option-label">No, I have a Clearance</div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Bed Bugs — Are you aware of any infestation?</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option" style="flex:1"><input type="radio" name="bed-bugs" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="bed-bugs" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Mold</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="mold" value="not_aware" /> <div><div class="radio-option-label">Not Aware</div></div></label>
+          <label class="radio-option"><input type="radio" name="mold" value="yes" /> <div><div class="radio-option-label">Yes, there is — BPM to get a Mold Clearance</div></div></label>
+          <label class="radio-option"><input type="radio" name="mold" value="past_clearance" /> <div><div class="radio-option-label">Past Issue; I have a Clearance</div></div></label>
+          <label class="radio-option"><input type="radio" name="mold" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="mold-other-wrap" style="margin-top:8px">
+          <input type="text" id="mold-other-text" placeholder="Please describe" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Is there a Tankless Water Heater?</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="tankless-wh" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+          <label class="radio-option"><input type="radio" name="tankless-wh" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option"><input type="radio" name="tankless-wh" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="tankless-wh-date-wrap" style="margin-top:8px">
+          <div class="field-group" style="margin-bottom:0"><label>Last Serviced On</label><input type="date" id="tankless-wh-service-date" /></div>
+        </div>
+        <div class="conditional" id="tankless-wh-other-wrap" style="margin-top:8px">
+          <input type="text" id="tankless-wh-other-text" placeholder="Please describe" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>What is the heat source?</label>
+        <div class="radio-stack" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+          ${['Radiant','Central','Wall','Unknown'].map(h => `<label class="radio-option" style="flex:0 0 auto"><input type="radio" name="heat-source" value="${h.toLowerCase()}" /> <div><div class="radio-option-label">${h}</div></div></label>`).join('')}
+          <label class="radio-option" style="flex:0 0 auto"><input type="radio" name="heat-source" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="heat-source-other-wrap" style="margin-top:8px">
+          <input type="text" id="heat-source-other-text" placeholder="Please describe" style="max-width:300px" />
+        </div>
+      </div>
+      <div id="central-heater-wrap" style="display:none">
+        <div class="field-group">
+          <label>How many filters does your central heater have?</label>
+          <div class="radio-stack" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+            ${['1','2','3','4'].map(n => `<label class="radio-option" style="flex:0 0 auto"><input type="radio" name="heater-filter-count" value="${n}" /> <div><div class="radio-option-label">${n}</div></div></label>`).join('')}
+            <label class="radio-option" style="flex:0 0 auto"><input type="radio" name="heater-filter-count" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+          </div>
+        </div>
+        <div id="heater-filter-sizes-wrap" style="display:none;margin-top:8px">
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:8px">HVAC Filter Size(s) <span style="font-weight:400;color:var(--bpm-muted)">(e.g. 10x20x2)</span></label>
+          <div id="heater-filter-sizes-inputs"></div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Is there a Home Warranty?</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option" style="flex:1"><input type="radio" name="home-warranty" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="home-warranty" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+        </div>
+      </div>
+      <div class="conditional" id="home-warranty-details-wrap">
+        <div class="field-row">
+          <div class="field-group"><label>Company</label><input type="text" id="warranty-company" /></div>
+          <div class="field-group"><label>Phone Number</label><input type="tel" id="warranty-phone" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field-group"><label>Policy Number</label><input type="text" id="warranty-policy" /></div>
+          <div class="field-group"><label>Expiration Date</label><input type="date" id="warranty-expiry" /></div>
+        </div>
+        <div class="field-group">
+          <label>Warranty Company Website</label>
+          <input type="text" id="warranty-url" placeholder="e.g. americanhomewarranty.com" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Warranty Portal Login Name</label>
+            <input type="text" id="warranty-login-name" placeholder="Username or account number" />
+          </div>
+          <div class="field-group">
+            <label>Warranty Portal Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely)</span></label>
+            <input type="text" id="warranty-login-password" placeholder="Password" />
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 11: OWNER INFORMATION -->
+      <div class="form-section-title">Owner Information</div>
+      <p style="font-size:0.82rem;color:var(--bpm-muted);margin-bottom:16px">We've pre-filled what we found — please confirm and complete.</p>
+      <div class="field-group">
+        <label>Number of Owners</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option selected" style="flex:1"><input type="radio" name="num-owners" value="1" checked /> <div><div class="radio-option-label">1</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="num-owners" value="2" /> <div><div class="radio-option-label">2</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="num-owners" value="3" /> <div><div class="radio-option-label">3</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="num-owners" value="4" /> <div><div class="radio-option-label">4</div></div></label>
+        </div>
+      </div>
+      <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Owner #1</div>
+      <div class="field-row">
+        <div class="field-group"><label>First Name</label><input type="text" id="owner1-first" value="${escHtml(firstName)}" /></div>
+        <div class="field-group"><label>Last Name</label><input type="text" id="owner1-last" value="${escHtml(lastName)}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>Email</label><input type="email" id="owner1-email" value="${escHtml(state.ownerEmail || '')}" /></div>
+        <div class="field-group"><label>Phone</label><input type="tel" id="owner1-phone" value="${escHtml(state.ownerPhone || '')}" /></div>
+      </div>
+      <div class="field-group">
+        <label>Mailing Address — Street</label>
+        <input type="text" id="owner1-street" value="${escHtml((state.ownerMailingAddress || '').split(',')[0] || '')}" placeholder="123 Main St" />
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>City</label><input type="text" id="owner1-city" value="${escHtml((state.ownerMailingAddress || '').split(',')[1]?.trim() || '')}" /></div>
+        <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner1-state" value="${escHtml((state.ownerMailingAddress || '').split(',')[2]?.trim() || '')}" maxlength="2" /></div>
+        <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner1-zip" value="${escHtml((state.ownerMailingAddress || '').split(',')[3]?.trim() || '')}" maxlength="10" /></div>
+      </div>
+      <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #1 Draw Information</div>
+      <div class="info-box blue" style="margin-bottom:12px">This information is used to set up your owner distribution in AppFolio. It is transmitted securely and is not stored on our servers.</div>
+      <div class="field-group">
+        <label>Account Type</label>
+        <div class="radio-stack" style="flex-direction:row;gap:12px">
+          <label class="radio-option selected" style="flex:1"><input type="radio" name="draw-account-type" value="checking" checked /> <div><div class="radio-option-label">Checking</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="draw-account-type" value="savings" /> <div><div class="radio-option-label">Savings</div></div></label>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Routing Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+          <input type="text" id="owner-routing" autocomplete="off" placeholder="9 digits" maxlength="9" />
+        </div>
+        <div class="field-group">
+          <label>Account Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+          <input type="text" id="owner-account" autocomplete="off" placeholder="Account number" />
+        </div>
+      </div>
+      <div class="conditional" id="owner2-section">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #2</div>
+        <div class="field-row">
+          <div class="field-group"><label>First Name</label><input type="text" id="owner2-first" /></div>
+          <div class="field-group"><label>Last Name</label><input type="text" id="owner2-last" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field-group"><label>Email</label><input type="email" id="owner2-email" /></div>
+          <div class="field-group"><label>Phone</label><input type="tel" id="owner2-phone" /></div>
+        </div>
+        <div class="field-group"><label>Street</label><input type="text" id="owner2-street" /></div>
+        <div class="field-row">
+          <div class="field-group"><label>City</label><input type="text" id="owner2-city" /></div>
+          <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner2-state" maxlength="2" /></div>
+          <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner2-zip" maxlength="10" /></div>
+        </div>
+        <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #2 Draw Information</div>
+        <div class="field-group">
+          <label>Account Type</label>
+          <div class="radio-stack" style="flex-direction:row;gap:12px">
+            <label class="radio-option selected" style="flex:1"><input type="radio" name="draw-account-type-2" value="checking" checked /> <div><div class="radio-option-label">Checking</div></div></label>
+            <label class="radio-option" style="flex:1"><input type="radio" name="draw-account-type-2" value="savings" /> <div><div class="radio-option-label">Savings</div></div></label>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Routing Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+            <input type="text" id="owner2-routing" autocomplete="off" placeholder="9 digits" maxlength="9" />
+          </div>
+          <div class="field-group">
+            <label>Account Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+            <input type="text" id="owner2-account" autocomplete="off" placeholder="Account number" />
+          </div>
+        </div>
+      </div>
+      <div class="conditional" id="owner3-section">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #3</div>
+        <div class="field-row">
+          <div class="field-group"><label>First Name</label><input type="text" id="owner3-first" /></div>
+          <div class="field-group"><label>Last Name</label><input type="text" id="owner3-last" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field-group"><label>Email</label><input type="email" id="owner3-email" /></div>
+          <div class="field-group"><label>Phone</label><input type="tel" id="owner3-phone" /></div>
+        </div>
+        <div class="field-group"><label>Street</label><input type="text" id="owner3-street" /></div>
+        <div class="field-row">
+          <div class="field-group"><label>City</label><input type="text" id="owner3-city" /></div>
+          <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner3-state" maxlength="2" /></div>
+          <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner3-zip" maxlength="10" /></div>
+        </div>
+        <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #3 Draw Information</div>
+        <div class="field-group">
+          <label>Account Type</label>
+          <div class="radio-stack" style="flex-direction:row;gap:12px">
+            <label class="radio-option selected" style="flex:1"><input type="radio" name="draw-account-type-3" value="checking" checked /> <div><div class="radio-option-label">Checking</div></div></label>
+            <label class="radio-option" style="flex:1"><input type="radio" name="draw-account-type-3" value="savings" /> <div><div class="radio-option-label">Savings</div></div></label>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Routing Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+            <input type="text" id="owner3-routing" autocomplete="off" placeholder="9 digits" maxlength="9" />
+          </div>
+          <div class="field-group">
+            <label>Account Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+            <input type="text" id="owner3-account" autocomplete="off" placeholder="Account number" />
+          </div>
+        </div>
+      </div>
+      <div class="conditional" id="owner4-section">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #4</div>
+        <div class="field-row">
+          <div class="field-group"><label>First Name</label><input type="text" id="owner4-first" /></div>
+          <div class="field-group"><label>Last Name</label><input type="text" id="owner4-last" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field-group"><label>Email</label><input type="email" id="owner4-email" /></div>
+          <div class="field-group"><label>Phone</label><input type="tel" id="owner4-phone" /></div>
+        </div>
+        <div class="field-group"><label>Street</label><input type="text" id="owner4-street" /></div>
+        <div class="field-row">
+          <div class="field-group"><label>City</label><input type="text" id="owner4-city" /></div>
+          <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner4-state" maxlength="2" /></div>
+          <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner4-zip" maxlength="10" /></div>
+        </div>
+        <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #4 Draw Information</div>
+        <div class="field-group">
+          <label>Account Type</label>
+          <div class="radio-stack" style="flex-direction:row;gap:12px">
+            <label class="radio-option selected" style="flex:1"><input type="radio" name="draw-account-type-4" value="checking" checked /> <div><div class="radio-option-label">Checking</div></div></label>
+            <label class="radio-option" style="flex:1"><input type="radio" name="draw-account-type-4" value="savings" /> <div><div class="radio-option-label">Savings</div></div></label>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Routing Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+            <input type="text" id="owner4-routing" autocomplete="off" placeholder="9 digits" maxlength="9" />
+          </div>
+          <div class="field-group">
+            <label>Account Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
+            <input type="text" id="owner4-account" autocomplete="off" placeholder="Account number" />
+          </div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>How did you hear about Beyond Property Management?</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="referral-source" value="realtor" /> <div><div class="radio-option-label">Realtor</div></div></label>
+          <label class="radio-option"><input type="radio" name="referral-source" value="current_client" /> <div><div class="radio-option-label">Current Client</div></div></label>
+          <label class="radio-option"><input type="radio" name="referral-source" value="google" /> <div><div class="radio-option-label">Google</div></div></label>
+          <label class="radio-option"><input type="radio" name="referral-source" value="yelp" /> <div><div class="radio-option-label">Yelp</div></div></label>
+          <label class="radio-option"><input type="radio" name="referral-source" value="other" /> <div><div class="radio-option-label">Other</div></div></label>
+        </div>
+        <div class="conditional" id="referral-other-wrap" style="margin-top:8px">
+          <input type="text" id="referral-other-text" placeholder="Please specify" />
+        </div>
+      </div>
+      <div class="conditional" id="referral-name-wrap">
+        <div class="field-group">
+          <label>Name and contact info so we can thank them</label>
+          <input type="text" id="referral-contact" placeholder="Name, phone or email" />
+        </div>
+      </div>
+
+      <!-- SECTION 12: ADDITIONAL INFORMATION -->
+      <div class="form-section-title">Additional Information</div>
+      <div class="field-group">
+        <label>Preferred Vendors &amp; Contact Information</label>
+        <textarea id="preferred-vendors" placeholder="e.g. ABC Plumbing (619) 555-0100, preferred electrician..." style="min-height:80px"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Anything else we should know? Warranties? As-is items?</label>
+        <textarea id="additional-notes" placeholder="Special instructions, property quirks, as-is conditions..." style="min-height:80px"></textarea>
+      </div>
+
+      <!-- TENANT DOCUMENTS -->
+      <div id="tenant-docs-wrap" style="display:none">
+        <div class="form-section-title">Existing Tenant Documents</div>
+        <p style="color:var(--bpm-muted);margin-bottom:16px">Since a tenant is staying, please upload any existing documents you have. These help us get up to speed quickly. Upload what you have — nothing is required here.</p>
+        <div class="field-group">
+          <label>Current Lease Agreement</label>
+          <input type="file" id="doc-lease" accept=".pdf" />
+        </div>
+        <div class="field-group">
+          <label>Tenant Application</label>
+          <input type="file" id="doc-application" accept=".pdf" />
+        </div>
+        <div class="field-group">
+          <label>Move-In Inspection Report</label>
+          <input type="file" id="doc-move-in-inspection" accept=".pdf,.jpg,.jpeg,.png" />
+        </div>
+        <div class="field-group">
+          <label>Lease Addenda</label>
+          <input type="file" id="doc-lease-addenda" accept=".pdf" multiple />
+          <div style="font-size:0.78rem;color:var(--bpm-muted);margin-top:4px">You can upload multiple files — hold Ctrl/Cmd to select more than one.</div>
+        </div>
+        <div class="field-group">
+          <label>Tenant Driver License / ID</label>
+          <input type="file" id="doc-driver-license" accept=".pdf,.jpg,.jpeg,.png" />
+        </div>
+      </div>
+
+      <!-- CERTIFICATION -->
+      <div class="form-section-title">Certification</div>
+      <div class="consent-box">
+        <label class="consent-check">
+          <input type="checkbox" id="step2-certify" />
+          I certify that the above is true to the best of my knowledge.
+        </label>
+      </div>
+
+      <div class="error-msg"></div>
+
+      <div class="btn-row" style="justify-content:space-between">
+        <button class="btn-back" onclick="goBack(2)">&#8592; Back</button>
+        <button class="btn-primary" id="btn-save-q" disabled>Save &amp; Continue</button>
+      </div>
+    </div>
+  `
+
+  // Certification gates the Save button
+  document.getElementById('step2-certify').addEventListener('change', e => {
+    document.getElementById('btn-save-q').disabled = !e.target.checked
+  })
+
+  // Radio option selected-state highlight (generic)
+  document.querySelectorAll('.radio-option input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll(`input[name="${radio.name}"]`).forEach(r => {
+        r.closest('.radio-option')?.classList.remove('selected')
+      })
+      radio.closest('.radio-option')?.classList.add('selected')
+    })
+  })
+
+  // Rental details conditionals
+  document.querySelectorAll('input[name="rent-type"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('rent-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+  }))
+  document.querySelectorAll('input[name="deposit-type"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('deposit-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+  }))
+
+  // Property type other
+  document.querySelectorAll('input[name="prop-type"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('prop-type-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+  }))
+
+  // Tenant docs visibility — show when any unit has "staying"
+  function updateTenantDocsVisibility() {
+    const anyStaying = Array.from(document.querySelectorAll('input[name^="occ-unit-"]:checked'))
+      .some(r => r.value === 'staying')
+    const wrap = document.getElementById('tenant-docs-wrap')
+    if (wrap) wrap.style.display = anyStaying ? 'block' : 'none'
+  }
+
+  // Per-unit occupancy conditionals (all units 1..N)
+  for (let u = 1; u <= units; u++) {
+    document.querySelectorAll(`input[name="occ-unit-${u}"]`).forEach(r => {
+      r.addEventListener('change', () => {
+        const v = r.value
+        document.getElementById(`unit-${u}-tenant-info`)?.classList.toggle('visible', (v === 'move_out' || v === 'staying') && r.checked)
+        document.getElementById(`unit-${u}-move-out-date`)?.classList.toggle('visible', v === 'move_out' && r.checked)
+        document.getElementById(`unit-${u}-deposit-field`)?.classList.toggle('visible', v === 'staying' && r.checked)
+        updateTenantDocsVisibility()
+      })
+    })
+  }
+  updateTenantDocsVisibility()
+
+  // Appliances / amenities / community / parking other text fields
+  ;[
+    ['appl-other-check','appl-other-text'],
+    ['amen-other-check','amen-other-text'],
+    ['comm-other-check','comm-other-text'],
+    ['park-other-check','park-other-text'],
+    ['owner-pays-other-check','owner-pays-other-text'],
+  ].forEach(([chkId, txtId]) => {
+    document.getElementById(chkId)?.addEventListener('change', e => {
+      const el = document.getElementById(txtId)
+      if (el) el.style.display = e.target.checked ? 'inline-block' : 'none'
+    })
+  })
+
+  // HOA
+  document.querySelectorAll('input[name="has-hoa"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('hoa-details-section').classList.toggle('visible', r.value === 'yes' && r.checked)
+  }))
+
+
+  // Death on property conditional
+  document.querySelectorAll('input[name="death-on-property"]').forEach(r => r.addEventListener('change', () => {
+    const wrap = document.getElementById('death-detail-wrap')
+    if (wrap) wrap.style.display = (r.value === 'yes' && r.checked) ? 'block' : 'none'
+  }))
+
+  // Currently managed — show/hide management company details
+  document.querySelectorAll('input[name="currently-managed"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('mgmt-company-details')?.classList.toggle('visible', r.value === 'yes' && r.checked)
+  }))
+
+  // Utilities conditionals
+  document.querySelectorAll('input[name="trash-company"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('trash-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+  }))
+
+  // Pool company visibility — show when Backyard Pool, Backyard Spa, community Pool, or community Spa is checked
+  function updatePoolCompanyVisibility() {
+    const amenPool = document.getElementById('amen-backyard-pool')?.checked
+    const amenSpa  = document.getElementById('amen-backyard-spa')?.checked
+    const commPool = document.getElementById('comm-pool')?.checked
+    const commSpa  = document.getElementById('comm-spa')?.checked
+    const wrap = document.getElementById('pool-company-wrap')
+    if (wrap) wrap.style.display = (amenPool || amenSpa || commPool || commSpa) ? 'block' : 'none'
+  }
+  ;['amen-backyard-pool','amen-backyard-spa','comm-pool','comm-spa'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', updatePoolCompanyVisibility)
+  })
+  updatePoolCompanyVisibility()
+
+  // Solar details visibility — show when Solar is in tenant pays, owner pays, or amenities
+  function updateSolarVisibility() {
+    const tenantSolar = document.getElementById('tenant-pays-solar')?.checked
+    const ownerSolar  = document.getElementById('owner-pays-solar')?.checked
+    const amenSolar   = document.getElementById('amen-solar-owned')?.checked
+    const wrap = document.getElementById('solar-details-wrap')
+    if (wrap) wrap.style.display = (tenantSolar || ownerSolar || amenSolar) ? 'block' : 'none'
+  }
+  ;['tenant-pays-solar','owner-pays-solar','amen-solar-owned'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', updateSolarVisibility)
+  })
+  updateSolarVisibility()
+
+  // Gardener details — show when Owner Pays: Gardener is checked
+  function updateGardenerVisibility() {
+    const checked = document.getElementById('owner-pays-gardener')?.checked
+    document.getElementById('gardener-details-wrap').style.display = checked ? '' : 'none'
+  }
+  document.getElementById('owner-pays-gardener')?.addEventListener('change', updateGardenerVisibility)
+  updateGardenerVisibility()
+
+  // BPM bid checkbox hides the vendor fields
+  document.getElementById('gardener-bpm-bid')?.addEventListener('change', function() {
+    document.getElementById('gardener-vendor-fields').style.display = this.checked ? 'none' : ''
+  })
+
+  // Disclosures conditionals
+  document.querySelectorAll('input[name="mold"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('mold-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+  }))
+  document.querySelectorAll('input[name="tankless-wh"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('tankless-wh-date-wrap').classList.toggle('visible', r.value === 'yes' && r.checked)
+    document.getElementById('tankless-wh-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+  }))
+  document.querySelectorAll('input[name="heat-source"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('heat-source-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+    document.getElementById('central-heater-wrap').style.display = r.value === 'central' && r.checked ? 'block' : 'none'
+  }))
+
+  // Heater filter count -> render size inputs
+  document.querySelectorAll('input[name="heater-filter-count"]').forEach(r => r.addEventListener('change', () => {
+    if (!r.checked) return
+    const wrap      = document.getElementById('heater-filter-sizes-wrap')
+    const container = document.getElementById('heater-filter-sizes-inputs')
+    wrap.style.display = 'block'
+    if (r.value === 'other') {
+      container.innerHTML = `<input type="text" id="filter-size-other" placeholder="e.g. 10x20x2, 16x25x1" />`
+    } else {
+      const count = parseInt(r.value)
+      container.innerHTML = Array.from({ length: count }, (_, i) =>
+        `<div class="field-group" style="margin-bottom:8px"><label style="font-weight:400;font-size:0.8rem">Filter ${i + 1}</label><input type="text" id="filter-size-${i + 1}" placeholder="e.g. 10x20x2" /></div>`
+      ).join('')
+    }
+  }))
+
+  // Home warranty
+  document.querySelectorAll('input[name="home-warranty"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('home-warranty-details-wrap').classList.toggle('visible', r.value === 'yes' && r.checked)
+  }))
+
+  // Number of owners -> owner 2 section
+  document.querySelectorAll('input[name="num-owners"]').forEach(r => r.addEventListener('change', () => {
+    const n = parseInt(r.value)
+    document.getElementById('owner2-section').classList.toggle('visible', n >= 2)
+    document.getElementById('owner3-section').classList.toggle('visible', n >= 3)
+    document.getElementById('owner4-section').classList.toggle('visible', n >= 4)
+  }))
+
+  // Referral source
+  document.querySelectorAll('input[name="referral-source"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('referral-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
+    document.getElementById('referral-name-wrap').classList.toggle('visible', (r.value === 'realtor' || r.value === 'current_client') && r.checked)
+  }))
+
+  document.getElementById('btn-save-q').addEventListener('click', submitStep2)
+}
+
+async function submitStep2() {
+  const btn   = document.getElementById('btn-save-q')
+  const units = parseInt(state.units) || 1
+
+  btn.disabled    = true
+  btn.textContent = 'Saving...'
+
+  // Collect per-unit occupancy; track whether any tenant is staying (gates step 7)
+  const unitOccupancy = []
+  let   anyStaying    = false
+  for (let u = 1; u <= units; u++) {
+    const occ = document.querySelector(`input[name="occ-unit-${u}"]:checked`)?.value || 'vacant'
+    if (occ === 'staying') anyStaying = true
+    unitOccupancy.push({
+      unit:           u,
+      occupancy:      occ,
+      tenantName:     document.getElementById(`unit-${u}-tenant-name`)?.value?.trim()  || '',
+      tenantPhone:    document.getElementById(`unit-${u}-tenant-phone`)?.value?.trim() || '',
+      tenantEmail:    document.getElementById(`unit-${u}-tenant-email`)?.value?.trim() || '',
+      moveOutDate:    document.getElementById(`unit-${u}-move-out`)?.value             || '',
+      securityDeposit: document.getElementById(`unit-${u}-deposit`)?.value            || '',
+      rent:           document.getElementById(`unit-${u}-rent`)?.value                || '',
+    })
+  }
+
+  // Collect checkbox groups
+  function checkedIds(ids) {
+    return ids.filter(id => document.getElementById(id)?.checked).map(id => id)
+  }
+  const applianceIds  = ['appl-fridge-kitchen','appl-fridge-garage','appl-single-oven','appl-double-oven','appl-dishwasher','appl-trash-compactor','appl-washer','appl-dryer','appl-stackable','appl-water-softener','appl-wine-fridge','appl-microwave','appl-stove','appl-garbage-disposal','appl-range-hood','appl-gas-range','appl-electric-range','appl-microwave-hood-combo','appl-chest-freezer','appl-instant-hot-water','appl-water-filter']
+  const amenityIds    = ['amen-ss-appliances','amen-laundry-room','amen-laundry-garage','amen-vaulted-ceilings','amen-open-floor','amen-dual-pane','amen-shutters','amen-granite','amen-upgraded-kitchen','amen-upgraded-fixtures','amen-fireplace-electric','amen-fireplace-wood','amen-enclosed-backyard','amen-patio','amen-balcony','amen-deck','amen-dual-master','amen-jack-jill','amen-office','amen-den','amen-formal-dining','amen-breakfast-nook','amen-drought-landscaping','amen-living-room','amen-bonus-room','amen-loft','amen-backyard-pool','amen-backyard-spa','amen-rv-parking','amen-washer-electric','amen-washer-gas','amen-central-ac','amen-quartz','amen-attic-fan','amen-sprinklers','amen-smart-thermo','amen-smart-doorbell','amen-ev-charging','amen-walk-in-closet','amen-hardwood-floors','amen-tile-floors','amen-carpet','amen-ceiling-fans','amen-recessed-lighting','amen-crown-molding','amen-adu','amen-solar-owned','amen-outdoor-kitchen','amen-storage-room']
+  const communityIds  = ['comm-pool','comm-spa','comm-sauna','comm-clubhouse','comm-fitness','comm-gated','comm-bbq','comm-dog-run','comm-tot-lot','comm-tennis','comm-racquetball','comm-pickleball','comm-package-lockers','comm-laundry-facility','comm-bike-storage','comm-controlled-access','comm-elevator','comm-visitor-parking']
+  const parkingIds    = ['park-driveway-1','park-driveway-2','park-driveway-3','park-driveway-4','park-garage-attached-1','park-garage-attached-2','park-garage-attached-3','park-carport-1','park-carport-2','park-street','park-garage-detached-1','park-garage-detached-2','park-assigned-1','park-assigned-2']
+  const tenantPaysIds = ['electricity','gas','water','sewer','trash','cable','internet','gardener','pool','solar']
+  const ownerPaysIds  = ['electricity','gas','water','sewer','trash','cable','internet','gardener','pool','solar','hoa','security']
+
+  const appliances = checkedIds(applianceIds)
+  if (document.getElementById('appl-other-check')?.checked) {
+    const v = document.getElementById('appl-other-text')?.value?.trim()
+    if (v) appliances.push('other: ' + v)
+  }
+  const amenities = checkedIds(amenityIds)
+  if (document.getElementById('amen-other-check')?.checked) {
+    const v = document.getElementById('amen-other-text')?.value?.trim()
+    if (v) amenities.push('other: ' + v)
+  }
+  const communityFeatures = checkedIds(communityIds)
+  if (document.getElementById('comm-other-check')?.checked) {
+    const v = document.getElementById('comm-other-text')?.value?.trim()
+    if (v) communityFeatures.push('other: ' + v)
+  }
+  const parking = checkedIds(parkingIds)
+  if (document.getElementById('park-other-check')?.checked) {
+    const v = document.getElementById('park-other-text')?.value?.trim()
+    if (v) parking.push('other: ' + v)
+  }
+  const tenantPays = tenantPaysIds.filter(u => document.getElementById('tenant-pays-' + u)?.checked)
+  const ownerPays  = ownerPaysIds.filter(u => document.getElementById('owner-pays-' + u)?.checked)
+  if (document.getElementById('owner-pays-other-check')?.checked) {
+    const v = document.getElementById('owner-pays-other-text')?.value?.trim()
+    if (v) ownerPays.push('other: ' + v)
+  }
+
+  // Heater filter sizes
+  const filterCountVal = document.querySelector('input[name="heater-filter-count"]:checked')?.value || ''
+  let filterSizes = []
+  if (filterCountVal === 'other') {
+    filterSizes = [document.getElementById('filter-size-other')?.value?.trim() || '']
+  } else if (filterCountVal) {
+    const count = parseInt(filterCountVal)
+    for (let i = 1; i <= count; i++) filterSizes.push(document.getElementById('filter-size-' + i)?.value?.trim() || '')
+  }
+
+  // Sensitive ACH fields — collected into local vars, passed to server for PDF only, never stored in DB
+  let ownerRoutingNumber  = document.getElementById('owner-routing')?.value?.trim()  || ''
+  let ownerAccountNumber  = document.getElementById('owner-account')?.value?.trim()  || ''
+  let owner2RoutingNumber = document.getElementById('owner2-routing')?.value?.trim() || ''
+  let owner2AccountNumber = document.getElementById('owner2-account')?.value?.trim() || ''
+  let owner3RoutingNumber = document.getElementById('owner3-routing')?.value?.trim() || ''
+  let owner3AccountNumber = document.getElementById('owner3-account')?.value?.trim() || ''
+  let owner4RoutingNumber = document.getElementById('owner4-routing')?.value?.trim() || ''
+  let owner4AccountNumber = document.getElementById('owner4-account')?.value?.trim() || ''
+
+  const payload = {
+    // RENTAL DETAILS
+    leaseTerm:            document.querySelector('input[name="lease-term"]:checked')?.value       || '',
+    rentType:             document.querySelector('input[name="rent-type"]:checked')?.value        || 'tbd',
+    rentAmount:           document.getElementById('rent-amount')?.value?.trim()                   || '',
+    depositType:          document.querySelector('input[name="deposit-type"]:checked')?.value     || '25_less',
+    depositAmountCustom:  document.getElementById('deposit-amount-custom')?.value?.trim()         || '',
+    furnished:            document.querySelector('input[name="furnished"]:checked')?.value        || '',
+    // PROPERTY DETAILS
+    propertyType:         document.querySelector('input[name="prop-type"]:checked')?.value        || '',
+    propertyTypeOther:    document.getElementById('prop-type-other')?.value?.trim()               || '',
+    yearBuilt:            document.getElementById('year-built')?.value                            || '',
+    squareFootage:        document.getElementById('sq-footage')?.value                            || '',
+    bedrooms:             document.querySelector('input[name="bedrooms"]:checked')?.value         || '',
+    fullBaths:            document.querySelector('input[name="full-baths"]:checked')?.value       || '',
+    halfBaths:            document.querySelector('input[name="half-baths"]:checked')?.value       || '',
+    neighborhood:         document.getElementById('neighborhood')?.value?.trim()                  || '',
+    deathOnProperty:      document.querySelector('input[name="death-on-property"]:checked')?.value || '',
+    deathDetail:          document.getElementById('death-detail')?.value?.trim()                   || '',
+    // OCCUPANCY — anyTenantStaying drives step 7 status on server
+    unitOccupancy,
+    anyTenantStaying:     anyStaying,
+    // APPLIANCES / AMENITIES
+    appliances, amenities, communityFeatures,
+    // ACCESS & KEYS
+    mailboxLocation:      document.getElementById('mailbox-location')?.value?.trim()              || '',
+    mailboxNumber:        document.getElementById('mailbox-number')?.value?.trim()                || '',
+    keysFrontDoor:        document.getElementById('keys-front-door')?.value                       || '',
+    keysCommon:           document.getElementById('keys-common')?.value                           || '',
+    keysMailbox:          document.getElementById('keys-mailbox')?.value                          || '',
+    keysParking:          document.getElementById('keys-parking')?.value                          || '',
+    keysGarageRemote:     document.getElementById('keys-garage-remote')?.value                    || '',
+    garageKeypadCode:     document.getElementById('garage-keypad-code')?.value?.trim()            || '',
+    gateCode:             document.getElementById('gate-code')?.value?.trim()                     || '',
+    alarmCode:            document.getElementById('alarm-code')?.value?.trim()                    || '',
+    keysOtherCount:       document.getElementById('keys-other-count')?.value                      || '',
+    keysOtherDesc:        document.getElementById('keys-other-desc')?.value?.trim()               || '',
+    // PARKING
+    parking,
+    parkingRestrictions:  document.getElementById('parking-restrictions')?.value?.trim()          || '',
+    garageSpaceNumbers:   document.getElementById('garage-space-numbers')?.value?.trim()          || '',
+    garageLocation:       document.getElementById('garage-location')?.value?.trim()               || '',
+    // HOA
+    hasHoa:               document.querySelector('input[name="has-hoa"]:checked')?.value          || '',
+    hoaName:              document.getElementById('hoa-name')?.value?.trim()                      || '',
+    hoaCompany:           document.getElementById('hoa-company')?.value?.trim()                   || '',
+    hoaPhone:             document.getElementById('hoa-phone')?.value?.trim()                     || '',
+    hoaEmail:             document.getElementById('hoa-email')?.value?.trim()                     || '',
+    hoaWebsite:           document.getElementById('hoa-website')?.value?.trim()                   || '',
+    hoaLoginName:         document.getElementById('hoa-login-name')?.value?.trim()                || '',
+    hoaLoginPassword:     document.getElementById('hoa-login-password')?.value?.trim()            || '',
+
+    // UTILITIES
+    tenantPays, ownerPays,
+    waterCompanyName:     document.getElementById('water-company-name')?.value?.trim()            || '',
+    waterWebsite:         document.getElementById('water-website')?.value?.trim()                 || '',
+    waterLoginName:       document.getElementById('water-login-name')?.value?.trim()              || '',
+    waterLoginPassword:   document.getElementById('water-login-password')?.value?.trim()          || '',
+    sewerType:            document.querySelector('input[name="sewer-type"]:checked')?.value       || '',
+    trashCompany:         document.querySelector('input[name="trash-company"]:checked')?.value    || '',
+    trashCompanyOther:    document.getElementById('trash-other-text')?.value?.trim()              || '',
+    trashWebsite:         document.getElementById('trash-website')?.value?.trim()                 || '',
+    trashLoginName:       document.getElementById('trash-login-name')?.value?.trim()              || '',
+    trashLoginPassword:   document.getElementById('trash-login-password')?.value?.trim()          || '',
+    poolCompany:          document.getElementById('pool-company')?.value?.trim()                  || '',
+    // DISCLOSURES
+    leadPaint:            document.querySelector('input[name="lead-paint"]:checked')?.value       || '',
+    floodZone:            document.querySelector('input[name="flood-zone"]:checked')?.value       || '',
+    asbestos:             document.querySelector('input[name="asbestos"]:checked')?.value         || '',
+    bedBugs:              document.querySelector('input[name="bed-bugs"]:checked')?.value         || '',
+    mold:                 document.querySelector('input[name="mold"]:checked')?.value             || '',
+    moldOther:            document.getElementById('mold-other-text')?.value?.trim()               || '',
+    tanklessWaterHeater:  document.querySelector('input[name="tankless-wh"]:checked')?.value      || '',
+    tanklessServiceDate:  document.getElementById('tankless-wh-service-date')?.value              || '',
+    tanklessOther:        document.getElementById('tankless-wh-other-text')?.value?.trim()        || '',
+    heatSource:           document.querySelector('input[name="heat-source"]:checked')?.value      || '',
+    heatSourceOther:      document.getElementById('heat-source-other-text')?.value?.trim()        || '',
+    heaterFilterCount:    filterCountVal,
+    heaterFilterSizes:    filterSizes,
+    homeWarranty:         document.querySelector('input[name="home-warranty"]:checked')?.value    || '',
+    warrantyCompany:      document.getElementById('warranty-company')?.value?.trim()              || '',
+    warrantyPhone:        document.getElementById('warranty-phone')?.value?.trim()                || '',
+    warrantyPolicy:       document.getElementById('warranty-policy')?.value?.trim()               || '',
+    warrantyExpiry:       document.getElementById('warranty-expiry')?.value                       || '',
+    warrantyUrl:          document.getElementById('warranty-url')?.value?.trim()                  || '',
+    // OWNER INFO — draw method/type only; routing+account go to PDF path below, never stored
+    numOwners:            document.querySelector('input[name="num-owners"]:checked')?.value       || '1',
+    owner1First:          document.getElementById('owner1-first')?.value?.trim()                  || '',
+    owner1Last:           document.getElementById('owner1-last')?.value?.trim()                   || '',
+    owner1Email:          document.getElementById('owner1-email')?.value?.trim()                  || '',
+    owner1Phone:          document.getElementById('owner1-phone')?.value?.trim()                  || '',
+    owner1Street:         document.getElementById('owner1-street')?.value?.trim()                 || '',
+    owner1City:           document.getElementById('owner1-city')?.value?.trim()                   || '',
+    owner1State:          document.getElementById('owner1-state')?.value?.trim()                  || '',
+    owner1Zip:            document.getElementById('owner1-zip')?.value?.trim()                    || '',
+    ownerDrawMethod:      'ach',
+    ownerDrawAccountType: document.querySelector('input[name="draw-account-type"]:checked')?.value || 'checking',
+    owner2First:          document.getElementById('owner2-first')?.value?.trim()                  || '',
+    owner2Last:           document.getElementById('owner2-last')?.value?.trim()                   || '',
+    owner2Email:          document.getElementById('owner2-email')?.value?.trim()                  || '',
+    owner2Phone:          document.getElementById('owner2-phone')?.value?.trim()                  || '',
+    owner2Street:         document.getElementById('owner2-street')?.value?.trim()                 || '',
+    owner2City:           document.getElementById('owner2-city')?.value?.trim()                   || '',
+    owner2State:          document.getElementById('owner2-state')?.value?.trim()                  || '',
+    owner2Zip:            document.getElementById('owner2-zip')?.value?.trim()                    || '',
+    owner2DrawAccountType: document.querySelector('input[name="draw-account-type-2"]:checked')?.value || 'checking',
+    owner3First:          document.getElementById('owner3-first')?.value?.trim()                  || '',
+    owner3Last:           document.getElementById('owner3-last')?.value?.trim()                   || '',
+    owner3Email:          document.getElementById('owner3-email')?.value?.trim()                  || '',
+    owner3Phone:          document.getElementById('owner3-phone')?.value?.trim()                  || '',
+    owner3Street:         document.getElementById('owner3-street')?.value?.trim()                 || '',
+    owner3City:           document.getElementById('owner3-city')?.value?.trim()                   || '',
+    owner3State:          document.getElementById('owner3-state')?.value?.trim()                  || '',
+    owner3Zip:            document.getElementById('owner3-zip')?.value?.trim()                    || '',
+    owner3DrawAccountType: document.querySelector('input[name="draw-account-type-3"]:checked')?.value || 'checking',
+    owner4First:          document.getElementById('owner4-first')?.value?.trim()                  || '',
+    owner4Last:           document.getElementById('owner4-last')?.value?.trim()                   || '',
+    owner4Email:          document.getElementById('owner4-email')?.value?.trim()                  || '',
+    owner4Phone:          document.getElementById('owner4-phone')?.value?.trim()                  || '',
+    owner4Street:         document.getElementById('owner4-street')?.value?.trim()                 || '',
+    owner4City:           document.getElementById('owner4-city')?.value?.trim()                   || '',
+    owner4State:          document.getElementById('owner4-state')?.value?.trim()                  || '',
+    owner4Zip:            document.getElementById('owner4-zip')?.value?.trim()                    || '',
+    owner4DrawAccountType: document.querySelector('input[name="draw-account-type-4"]:checked')?.value || 'checking',
+    referralSource:       document.querySelector('input[name="referral-source"]:checked')?.value  || '',
+    referralOther:        document.getElementById('referral-other-text')?.value?.trim()            || '',
+    referralContact:      document.getElementById('referral-contact')?.value?.trim()              || '',
+    // ADDITIONAL
+    preferredVendors:     document.getElementById('preferred-vendors')?.value?.trim()             || '',
+    additionalNotes:      document.getElementById('additional-notes')?.value?.trim()              || '',
+    // CURRENT MANAGEMENT
+    currentlyManaged:     document.querySelector('input[name="currently-managed"]:checked')?.value || '',
+    mgmtCompanyName:      document.getElementById('mgmt-company-name')?.value?.trim()             || '',
+    mgmtCompanyUrl:       document.getElementById('mgmt-company-url')?.value?.trim()              || '',
+    mgmtCompanyPhone:     document.getElementById('mgmt-company-phone')?.value?.trim()            || '',
+    mgmtContactName:      document.getElementById('mgmt-contact-name')?.value?.trim()             || '',
+    mgmtCompanyEmail:     document.getElementById('mgmt-company-email')?.value?.trim()            || '',
+    // ELECTRICITY
+    elecCompanyName:      document.getElementById('elec-company-name')?.value?.trim()             || '',
+    elecWebsite:          document.getElementById('elec-website')?.value?.trim()                  || '',
+    elecLoginName:        document.getElementById('elec-login-name')?.value?.trim()               || '',
+    elecLoginPassword:    document.getElementById('elec-login-password')?.value?.trim()           || '',
+    // SOLAR
+    solarCompanyName:     document.getElementById('solar-company-name')?.value?.trim()            || '',
+    solarCompanyUrl:      document.getElementById('solar-company-url')?.value?.trim()             || '',
+    solarLoginName:       document.getElementById('solar-login-name')?.value?.trim()              || '',
+    solarLoginPassword:   document.getElementById('solar-login-password')?.value?.trim()          || '',
+    solarStatus:          document.querySelector('input[name="solar-status"]:checked')?.value     || '',
+    gardenerBpmBid:       document.getElementById('gardener-bpm-bid')?.checked                    || false,
+    gardenerName:         document.getElementById('gardener-name')?.value?.trim()                 || '',
+    gardenerPhone:        document.getElementById('gardener-phone')?.value?.trim()                || '',
+    gardenerEmail:        document.getElementById('gardener-email')?.value?.trim()                || '',
+    gardenerUrl:          document.getElementById('gardener-url')?.value?.trim()                  || '',
+    // WARRANTY PORTAL LOGIN
+    warrantyLoginName:    document.getElementById('warranty-login-name')?.value?.trim()           || '',
+    warrantyLoginPassword: document.getElementById('warranty-login-password')?.value?.trim()      || '',
+  }
+
+  // Routing and account number are included in the POST body so the server can generate the
+  // AppFolio Entry Sheet PDF in memory. The server MUST NOT write these values to Supabase.
+  // They are prefixed with _ to signal their transient nature to the server handler.
+  const postBody = {
+    ...payload,
+    _ownerRoutingNumber:  ownerRoutingNumber,   // FOR PDF GENERATION ONLY — do not store
+    _ownerAccountNumber:  ownerAccountNumber,   // FOR PDF GENERATION ONLY — do not store
+    _owner2RoutingNumber: owner2RoutingNumber,  // FOR PDF GENERATION ONLY — do not store
+    _owner2AccountNumber: owner2AccountNumber,  // FOR PDF GENERATION ONLY — do not store
+    _owner3RoutingNumber: owner3RoutingNumber,  // FOR PDF GENERATION ONLY — do not store
+    _owner3AccountNumber: owner3AccountNumber,  // FOR PDF GENERATION ONLY — do not store
+    _owner4RoutingNumber: owner4RoutingNumber,  // FOR PDF GENERATION ONLY — do not store
+    _owner4AccountNumber: owner4AccountNumber,  // FOR PDF GENERATION ONLY — do not store
+  }
+
+  // Clear sensitive local vars immediately after use
+  ownerRoutingNumber = '' ; ownerAccountNumber  = ''
+  owner2RoutingNumber = ''; owner2AccountNumber = ''
+  owner3RoutingNumber = ''; owner3AccountNumber = ''
+  owner4RoutingNumber = ''; owner4AccountNumber = ''
+
+  try {
+    const result = await submitStep(2, postBody)
+
+    // Upload tenant documents separately — these are NOT part of the main JSON POST
+    const docFields = [
+      { id: 'doc-lease',              type: 'current_lease' },
+      { id: 'doc-application',        type: 'tenant_application' },
+      { id: 'doc-move-in-inspection', type: 'move_in_inspection' },
+      { id: 'doc-lease-addenda',      type: 'lease_addenda' },
+      { id: 'doc-driver-license',     type: 'driver_license' },
+    ]
+    const uploadToken = getToken()
+    for (const { id, type } of docFields) {
+      const input = document.getElementById(id)
+      if (!input || !input.files || input.files.length === 0) continue
+      for (const file of Array.from(input.files)) {
+        try {
+          const fd = new FormData()
+          fd.append('file', file)
+          fd.append('documentType', type)
+          const r = await fetch(`${API}/api/onboard/${uploadToken}/upload-document`, { method: 'POST', body: fd })
+          if (!r.ok) console.warn(`[Doc upload] ${type} failed:`, r.status)
+        } catch (e) {
+          console.warn(`[Doc upload] ${type} error:`, e.message)
+          // Non-fatal — warn but do not block step completion
+          showStepError('Warning: One or more tenant documents failed to upload. Please contact help@bpmsd.com.')
+        }
+      }
+    }
+
+    await advanceAfterStep(result)
+  } catch (err) {
+    showStepError(err.message)
+    btn.disabled    = false
+    btn.textContent = 'Save & Continue'
+  }
+}
+
+// =============================================================================
+// STEP 3 — Tax Forms
+// =============================================================================
+
+function renderStep3() {
+  // Determine ownership structure from step 2 data
+  const s2          = state.step2Owners || {}
+  const numOwners   = s2.numOwners || '1'
+  const owner1Last  = (s2.owner1Last || '').trim().toLowerCase()
+  const owner2Last  = (s2.owner2Last || '').trim().toLowerCase()
+  const sameLastName = numOwners === '2' && owner1Last && owner2Last && owner1Last === owner2Last
+  const twoSets      = numOwners === '2' && !sameLastName
+  const combinedName = sameLastName
+    ? `${s2.owner1First} & ${s2.owner2First} ${s2.owner1Last}`
+    : ''
+
+  // Pre-fill legal name: individual/LLC-single-member → person's name; everything else → entity name
+  function nameForOwner(first, last) {
+    const isIndividual = state.entityType === 'individual' || !state.entityType
+    if (isIndividual) {
+      return (first && last) ? `${first} ${last}` : (state.ownerName || '')
+    }
+    return state.ownerName || ''
+  }
+
+  const nameA = sameLastName ? combinedName : nameForOwner(s2.owner1First, s2.owner1Last)
+  const nameB = twoSets      ? nameForOwner(s2.owner2First, s2.owner2Last) : ''
+
+  // Pre-select classification based on entity type
+  let preselect = ''
+  if      (state.entityType === 'individual') preselect = 'individual_sole_prop'
+  else if (state.entityType === 'trust')      preselect = 'trust_estate'
+
+  // Build classification <option> list with optional pre-selection
+  function classificationOptions(selectedVal) {
+    const opts = [
+      ['',                  'Select your tax classification...'],
+      ['individual_sole_prop', 'Individual / Sole Proprietor'],
+      ['llc_single_member', 'LLC — Single Member (not taxed as C/S/P)'],
+      ['c_corp',            'C Corporation'],
+      ['s_corp',            'S Corporation'],
+      ['partnership',       'Partnership'],
+      ['trust_estate',      'Trust / Estate'],
+      ['llc_c',             'LLC taxed as C Corporation'],
+      ['llc_s',             'LLC taxed as S Corporation'],
+      ['llc_p',             'LLC taxed as Partnership'],
+      ['llc_multi_member',  'LLC — Multi Member (not taxed as C/S/P)'],
+    ]
+    return opts.map(([v, l]) =>
+      `<option value="${v}"${v === selectedVal ? ' selected' : ''}>${l}</option>`
+    ).join('')
+  }
+
+  // Build one W-9 block (prefix distinguishes w9a_ from w9b_)
+  function w9Block(prefix, heading, prefilledName, addr, caName) {
+    const headingHtml = heading
+      ? `<div class="form-section-title" style="margin-top:24px">${escHtml(heading)}</div>`
+      : ''
+    return `
+      ${headingHtml}
+      <div class="field-group">
+        <label class="required">Legal name as it appears on your income tax return</label>
+        <input type="text" id="${prefix}legal-name" value="${escHtml(prefilledName)}" placeholder="Full legal name" />
+        <div id="${prefix}name-hint" style="font-size:0.8rem;color:var(--bpm-muted);margin-top:4px"></div>
+      </div>
+      <div class="field-group">
+        <label>Business name / DBA (if different from above)</label>
+        <input type="text" id="${prefix}biz-name" placeholder="DBA or entity name" />
+      </div>
+      <div class="field-group">
+        <label class="required">Federal tax classification</label>
+        <select id="${prefix}tax-class">
+          ${classificationOptions(preselect)}
+        </select>
+        <div id="${prefix}class-hint" style="font-size:0.8rem;color:var(--bpm-muted);margin-top:4px"></div>
+      </div>
+      <div class="field-group">
+        <label class="required">TIN type</label>
+        <div class="radio-stack" style="flex-direction:row;gap:16px">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+            <input type="radio" name="${prefix}tin-type" value="ssn" id="${prefix}tin-ssn" checked onchange="updateTinFormat('${prefix}')" /> Social Security Number (SSN)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+            <input type="radio" name="${prefix}tin-type" value="ein" id="${prefix}tin-ein" onchange="updateTinFormat('${prefix}')" /> Employer Identification Number (EIN)
+          </label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="required">SSN / TIN <span style="font-weight:400;color:var(--bpm-muted)">(never stored — used only to fill your W-9 PDF)</span></label>
+        <input type="text" id="${prefix}tin" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" oninput="formatTin(this, '${prefix}')" />
+      </div>
+      <div class="field-group">
+        <label class="required">Street address</label>
+        <input type="text" id="${prefix}address" value="${escHtml(addr.street || '')}" placeholder="123 Main St" />
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="required">City</label>
+          <input type="text" id="${prefix}city" value="${escHtml(addr.city || '')}" />
+        </div>
+        <div class="field-group" style="max-width:80px">
+          <label class="required">State</label>
+          <input type="text" id="${prefix}state" value="${escHtml(addr.state || '')}" placeholder="CA" maxlength="2" />
+        </div>
+        <div class="field-group" style="max-width:120px">
+          <label class="required">ZIP</label>
+          <input type="text" id="${prefix}zip" value="${escHtml(addr.zip || '')}" placeholder="92103" maxlength="10" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Exempt payee code <span style="font-weight:400;color:var(--bpm-muted)">Usually blank — leave empty if unsure</span></label>
+        <input type="text" id="${prefix}exempt" placeholder="Leave blank if unsure" style="max-width:200px" />
+      </div>
+
+      <div class="form-section-title" style="margin-top:24px">California Tax Withholding</div>
+      <div class="field-group">
+        <label class="required">Are you a California resident for income tax purposes?</label>
+        <div class="radio-stack">
+          <label class="radio-option" id="${prefix}opt-ca-yes">
+            <input type="radio" name="${caName}" value="yes" />
+            <div>
+              <div class="radio-option-label">Yes — I am a California resident</div>
+              <div class="radio-option-desc">Form 590 — certifies CA residency, no withholding required</div>
+            </div>
+          </label>
+          <label class="radio-option" id="${prefix}opt-ca-no">
+            <input type="radio" name="${caName}" value="no" />
+            <div>
+              <div class="radio-option-label">No — I am not a California resident</div>
+              <div class="radio-option-desc">Form 588 — BPM will request an FTB waiver on your behalf (typically 21 business days)</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="info-box" id="${prefix}ca-no-notice" style="display:none">
+        As a non-CA resident, we are required to withhold a portion of owner distributions until the Franchise Tax Board approves a waiver. We will fax Form 588 to the FTB and notify you when your waiver is approved. This typically takes 21 business days.
+      </div>
+    `
+  }
+
+  const addrA = { street: s2.owner1Street, city: s2.owner1City, state: s2.owner1State, zip: s2.owner1Zip }
+  const addrB = { street: s2.owner2Street, city: s2.owner2City, state: s2.owner2State, zip: s2.owner2Zip }
+
+  let w9Html = ''
+  if (twoSets) {
+    const o1Label = `${s2.owner1First || ''} ${s2.owner1Last || ''}`.trim()
+    const o2Label = `${s2.owner2First || ''} ${s2.owner2Last || ''}`.trim()
+    w9Html = w9Block('w9a_', `W-9 — ${o1Label}`, nameA, addrA, 'ca-resident-a')
+           + w9Block('w9b_', `W-9 — ${o2Label}`, nameB, addrB, 'ca-resident-b')
+  } else {
+    w9Html = w9Block('w9a_', null, nameA, addrA, 'ca-resident-a')
+  }
+
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card">
+      <div class="step-label">Step 3 of 7</div>
+      <div class="step-title">Tax Forms</div>
+      <div class="step-subtitle">Required by the IRS and California FTB. Your TIN is used only to generate your W-9 and is never stored on our servers.</div>
+
+      <!-- Classification reference guide — collapsed by default -->
+      <details style="margin-bottom:20px;border:1px solid var(--bpm-border);border-radius:var(--bpm-radius);padding:0 12px">
+        <summary style="cursor:pointer;font-weight:600;color:var(--bpm-blue);padding:12px 0;list-style:none;display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.85rem">&#9654;</span> Not sure which to choose? View the W-9 Classification Guide
+        </summary>
+        <div style="overflow-x:auto;margin-bottom:12px">
+          <table style="width:100%;border-collapse:collapse;font-size:0.8rem;white-space:nowrap">
+            <thead>
+              <tr style="background:var(--bpm-bg);text-align:left">
+                <th style="padding:6px 10px;border-bottom:1px solid var(--bpm-border)">TYPE</th>
+                <th style="padding:6px 10px;border-bottom:1px solid var(--bpm-border)">NAME ON W-9</th>
+                <th style="padding:6px 10px;border-bottom:1px solid var(--bpm-border)">TIN</th>
+                <th style="padding:6px 10px;border-bottom:1px solid var(--bpm-border)">1099?</th>
+                <th style="padding:6px 10px;border-bottom:1px solid var(--bpm-border)">EXCEPTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Individual / Sole Proprietor</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Person's Name Only (not business name)</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">SSN preferred, or EIN</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Yes</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">—</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">C Corp</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Business Name Only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">EIN only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">No (unless exception)</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Lawyer / Legal / Medical / Health</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">S Corp</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Business Name Only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">EIN only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">No (unless exception)</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Lawyer / Legal / Medical / Health</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Partnership</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Partnership Name</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">EIN (if SSN — call BPM)</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Yes</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">—</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Trust / Estate</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Trust Name (if person's name — call BPM)</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">EIN (if SSN — call BPM)</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Yes</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">—</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">LLC — C</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Business Name Only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">EIN only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">No</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">—</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">LLC — S</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Business Name Only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">EIN only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">No</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">—</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">LLC — P</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">LLC Name</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">EIN</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Yes</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">—</td></tr>
+              <tr><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">LLC — Single Member</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Person's Name Only</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">SSN or EIN</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">Yes</td><td style="padding:5px 10px;border-bottom:1px solid var(--bpm-border)">—</td></tr>
+              <tr><td style="padding:5px 10px">LLC — Multi Member</td><td style="padding:5px 10px">LLC Name</td><td style="padding:5px 10px">EIN</td><td style="padding:5px 10px">Yes</td><td style="padding:5px 10px">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- W-9 Section(s) -->
+      <div class="form-section-title">W-9 — Taxpayer Identification</div>
+      ${w9Html}
+
+      <!-- Signature (shared for all W-9s) -->
+      <div class="form-section-title" style="margin-top:24px">Signature</div>
+      <div class="sig-declaration">
+        Under penalties of perjury, I certify that all information provided above is accurate and complete.
+        Today: <strong>${new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</strong>
+      </div>
+      <div id="sig-widget-3"></div>
+
+      <div class="error-msg"></div>
+
+      <div class="btn-row" style="justify-content:space-between">
+        <button class="btn-back" onclick="goBack(3)">&#8592; Back</button>
+        <button class="btn-primary" id="btn-submit-tax">Submit Tax Forms &amp; Continue</button>
+      </div>
+    </div>
+  `
+
+  buildSignatureWidget('sig-widget-3')
+
+  // CA notice toggle — one per W-9 block
+  function setupCaToggle(prefix, caName) {
+    document.querySelectorAll(`input[name="${caName}"]`).forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.getElementById(`${prefix}ca-no-notice`).style.display =
+          radio.value === 'no' ? 'block' : 'none'
+        document.querySelectorAll(`input[name="${caName}"]`).forEach(r =>
+          r.closest('.radio-option')?.classList.remove('selected')
+        )
+        radio.closest('.radio-option')?.classList.add('selected')
+      })
+    })
+  }
+
+  setupCaToggle('w9a_', 'ca-resident-a')
+  if (twoSets) setupCaToggle('w9b_', 'ca-resident-b')
+
+  // Classification hints and TIN type auto-selection
+  const CLASS_HINTS = {
+    individual_sole_prop: "Legal name: person's name only. TIN: SSN preferred.",
+    c_corp:               'Legal name: business name only. TIN: EIN required.',
+    s_corp:               'Legal name: business name only. TIN: EIN required.',
+    partnership:          'Legal name: partnership name. TIN: EIN required (if SSN — call BPM).',
+    trust_estate:         'Legal name: trust name. TIN: EIN required (if SSN — call BPM).',
+    llc_c:                'Legal name: business name only. TIN: EIN required.',
+    llc_s:                'Legal name: business name only. TIN: EIN required.',
+    llc_p:                'Legal name: LLC name. TIN: EIN required.',
+    llc_single_member:    "Legal name: person's name only. TIN: SSN or EIN.",
+    llc_multi_member:     'Legal name: LLC name. TIN: EIN required.',
+  }
+  const EIN_ONLY = new Set(['c_corp', 's_corp', 'partnership', 'trust_estate', 'llc_c', 'llc_s', 'llc_p', 'llc_multi_member'])
+
+  function setupClassificationHandler(prefix) {
+    const sel = document.getElementById(`${prefix}tax-class`)
+    if (!sel) return
+
+    function applyClassification(val) {
+      const hint = document.getElementById(`${prefix}class-hint`)
+      if (hint) hint.textContent = CLASS_HINTS[val] || ''
+      if (EIN_ONLY.has(val)) {
+        const einRadio = document.getElementById(`${prefix}tin-ein`)
+        if (einRadio) { einRadio.checked = true }
+        const tinInput = document.getElementById(`${prefix}tin`)
+        if (tinInput) tinInput.placeholder = 'XX-XXXXXXX'
+      }
+    }
+
+    sel.addEventListener('change', () => applyClassification(sel.value))
+
+    // TIN type changes update placeholder
+    document.querySelectorAll(`input[name="${prefix}tin-type"]`).forEach(r => {
+      r.addEventListener('change', () => {
+        const tinInput = document.getElementById(`${prefix}tin`)
+        if (tinInput) tinInput.placeholder = r.value === 'ssn' ? 'XXX-XX-XXXX' : 'XX-XXXXXXX'
+      })
+    })
+
+    // Apply initial state for pre-selected classification
+    if (preselect) applyClassification(preselect)
+  }
+
+  setupClassificationHandler('w9a_')
+  if (twoSets) setupClassificationHandler('w9b_')
+
+  document.getElementById('btn-submit-tax').addEventListener('click', submitStep3)
+}
+
+async function submitStep3() {
+  const btn = document.getElementById('btn-submit-tax')
+
+  // Recalculate ownership structure (same logic as renderStep3)
+  const s2          = state.step2Owners || {}
+  const numOwners   = s2.numOwners || '1'
+  const owner1Last  = (s2.owner1Last || '').trim().toLowerCase()
+  const owner2Last  = (s2.owner2Last || '').trim().toLowerCase()
+  const sameLastName = numOwners === '2' && owner1Last && owner2Last && owner1Last === owner2Last
+  const twoSets      = numOwners === '2' && !sameLastName
+
+  // Collect all fields for one W-9 block
+  function collectW9(prefix, caName) {
+    return {
+      legalName:         (document.getElementById(`${prefix}legal-name`)?.value || '').trim(),
+      businessName:      (document.getElementById(`${prefix}biz-name`)?.value   || '').trim(),
+      taxClassification:  document.getElementById(`${prefix}tax-class`)?.value   || '',
+      tinType:            document.querySelector(`input[name="${prefix}tin-type"]:checked`)?.value || '',
+      exemptPayeeCode:   (document.getElementById(`${prefix}exempt`)?.value     || '').trim(),
+      address:           (document.getElementById(`${prefix}address`)?.value    || '').trim(),
+      city:              (document.getElementById(`${prefix}city`)?.value       || '').trim(),
+      state:             (document.getElementById(`${prefix}state`)?.value      || '').trim(),
+      zip:               (document.getElementById(`${prefix}zip`)?.value        || '').trim(),
+      caResident:         document.querySelector(`input[name="${caName}"]:checked`)?.value === 'yes',
+      _caAnswered:       !!document.querySelector(`input[name="${caName}"]:checked`),
+    }
+  }
+
+  const w9a = collectW9('w9a_', 'ca-resident-a')
+  const w9b = twoSets ? collectW9('w9b_', 'ca-resident-b') : null
+
+  // TIN values stay in local vars — never written to state
+  let tinA = (document.getElementById('w9a_tin')?.value || '').trim()
+  let tinB = twoSets ? (document.getElementById('w9b_tin')?.value || '').trim() : ''
+
+  // Validate owner 1
+  if (!w9a.legalName)          return showStepError('Legal name is required.')
+  if (!w9a.taxClassification)  return showStepError('Tax classification is required.')
+  if (!w9a.tinType)            return showStepError('Please select SSN or EIN.')
+  if (!tinA)                   return showStepError('SSN/TIN is required.')
+  if (!w9a.address || !w9a.city || !w9a.state || !w9a.zip)
+                               return showStepError('Full address is required.')
+  if (!w9a._caAnswered)        return showStepError('Please answer the California residency question.')
+
+  // Validate owner 2 if separate W-9
+  if (twoSets && w9b) {
+    if (!w9b.legalName)         return showStepError('Legal name is required for Owner 2.')
+    if (!w9b.taxClassification) return showStepError('Tax classification is required for Owner 2.')
+    if (!w9b.tinType)           return showStepError('Please select SSN or EIN for Owner 2.')
+    if (!tinB)                  return showStepError('SSN/TIN is required for Owner 2.')
+    if (!w9b.address || !w9b.city || !w9b.state || !w9b.zip)
+                                return showStepError('Full address is required for Owner 2.')
+    if (!w9b._caAnswered)       return showStepError('Please answer the California residency question for Owner 2.')
+  }
+
+  const sig = getSignatureData('sig-widget-3')
+  if (!sig) return showStepError('Please sign the tax forms before continuing.')
+
+  // Danyel flags — do not block the form, just flag for review
+  const NEEDS_EIN = new Set(['partnership', 'trust_estate'])
+  w9a.tinMismatch = NEEDS_EIN.has(w9a.taxClassification) && w9a.tinType === 'ssn'
+  if (w9b) w9b.tinMismatch = NEEDS_EIN.has(w9b.taxClassification) && w9b.tinType === 'ssn'
+
+  // Remove internal-only fields before sending
+  delete w9a._caAnswered
+  if (w9b) delete w9b._caAnswered
+
+  btn.disabled = true
+  btn.textContent = 'Processing...'
+
+  try {
+    const owners = twoSets && w9b ? [w9a, w9b] : [w9a]
+
+    const result = await submitStep(3, {
+      numW9s:      twoSets ? 2 : 1,
+      sameLastName,
+      owners,
+      _tin_a:      tinA,    // prefixed _ = PDF only, server must not write to Supabase
+      _tin_b:      tinB,
+      w9Signature: sig,
+      timestamp:   new Date().toISOString(),
+      userAgent:   navigator.userAgent,
+    })
+
+    // Zero out TIN references immediately after sending
+    tinA = ''
+    tinB = ''
+
+    await advanceAfterStep(result)
+  } catch (err) {
+    tinA = ''
+    tinB = ''
+    showStepError(err.message)
+    btn.disabled = false
+    btn.textContent = 'Submit Tax Forms & Continue'
+  }
+}
+
+// =============================================================================
+// STEP 4 — Entity Documents
+// =============================================================================
+
+function renderStep4() {
+  const isSkipped = (state.steps || []).find(s => s.stepNumber === 4)?.status === 'skipped'
+  if (isSkipped) { advanceAfterStep({ nextStep: 5 }) ; return }
+
+  const isTrust = state.entityType === 'trust'
+  const docType = isTrust ? 'Trust Signature Page' : 'Entity Document'
+  const desc    = isTrust
+    ? 'Upload the signature page of your trust document — the page showing the trustee\'s name and signature.'
+    : 'Upload the signature page of your LLC operating agreement or corporate documents showing who is authorized to sign on behalf of the entity.'
+
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card">
+      <div class="step-label">Step 4 of 7</div>
+      <div class="step-title">${escHtml(docType)}</div>
+      <div class="step-subtitle">${escHtml(desc)}</div>
+
+      <div class="info-box blue">
+        <strong>Why we need this:</strong> California law requires property management companies to verify the identity and signing authority of entity owners before managing a property on their behalf.
+      </div>
+
+      <div class="file-drop" id="file-drop-4">
+        <input type="file" id="file-input-4" accept=".pdf" />
+        <div class="file-drop-icon">&#128196;</div>
+        <div class="file-drop-label">Click or drag to upload PDF</div>
+        <div class="file-drop-hint">PDF only &bull; Max 15 MB</div>
+      </div>
+      <div id="file-selected-4" style="display:none" class="file-selected">
+        <span>&#9989;</span>
+        <span class="file-selected-name" id="file-name-4"></span>
+        <span class="file-remove" id="file-remove-4">Remove</span>
+      </div>
+
+      <p style="margin-top:16px;font-size:0.82rem;color:var(--bpm-muted)">
+        Don't have it handy? <a href="#" id="skip-step-4" style="color:var(--bpm-blue)">Skip for now</a> — our team will follow up.
+      </p>
+
+      <div class="error-msg"></div>
+
+      <div class="btn-row" style="justify-content:space-between">
+        <button class="btn-back" onclick="goBack(4)">&#8592; Back</button>
+        <button class="btn-primary" id="btn-upload-4" disabled>Upload &amp; Continue</button>
+      </div>
+    </div>
+  `
+
+  setupFileUpload('file-input-4', 'file-drop-4', 'file-selected-4', 'file-name-4', 'file-remove-4', 'btn-upload-4')
+
+  document.getElementById('btn-upload-4').addEventListener('click', () => submitFileStep(4, 'file-input-4'))
+
+  document.getElementById('skip-step-4').addEventListener('click', async e => {
+    e.preventDefault()
+    // Mark skipped via a flag — send empty confirmation
+    try {
+      const token = getToken()
+      // Create a flag via a workaround: send a marker in the questionnaire
+      // For skip: just advance — staff will follow up based on entity type in onboarding record
+      await fetch(`/api/onboard/${token}/step/4`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skipped: true })
+      })
+    } catch {}
+    // Regardless of response, advance to step 5
+    state.currentStep = 5
+    const stateRes = await fetch(`/api/onboard/${getToken()}`)
+    if (stateRes.ok) state = await stateRes.json()
+    renderProgress()
+    renderCurrentStep()
+  })
+}
+
+// =============================================================================
+// STEP 5 — Insurance Verification
+// =============================================================================
+
+function renderStep5() {
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card">
+      <div class="step-label">Step 5 of 7</div>
+      <div class="step-title">Insurance Verification</div>
+
+      <div id="ins-upload-view">
+        <p class="step-subtitle" style="margin-bottom:20px">Please upload your property insurance declaration page or certificate. We&rsquo;ll scan it to verify that Beyond Property Management is properly listed on your policy.</p>
+        <div class="file-drop" id="file-drop-5">
+          <input type="file" id="file-input-5" accept=".pdf,.jpg,.jpeg,.png" />
+          <div class="file-drop-icon">&#128196;</div>
+          <div class="file-drop-label">Click or drag to upload</div>
+          <div class="file-drop-hint">PDF, JPG, or PNG &bull; Max 15 MB</div>
+        </div>
+        <div id="file-selected-5" style="display:none" class="file-selected">
+          <span>&#9989;</span>
+          <span class="file-selected-name" id="file-name-5"></span>
+          <span class="file-remove" id="file-remove-5">Remove</span>
+        </div>
+        <div class="error-msg"></div>
+        <div class="btn-row" style="justify-content:space-between;margin-top:20px">
+          <button class="btn-back" onclick="goBack(5)">&#8592; Back</button>
+          <button class="btn-primary" id="btn-scan-5" disabled>Scan My Policy</button>
+        </div>
+      </div>
+
+      <div id="ins-scanning-view" style="display:none;text-align:center;padding:48px 0">
+        <div class="spinner"></div>
+        <p style="font-size:1rem;color:var(--bpm-muted)">Reviewing your policy&hellip; this takes about 10 seconds.</p>
+      </div>
+
+      <div id="ins-result-view" style="display:none"></div>
+    </div>
+  `
+
+  setupFileUpload('file-input-5', 'file-drop-5', 'file-selected-5', 'file-name-5', 'file-remove-5', 'btn-scan-5')
+
+  document.getElementById('btn-scan-5').addEventListener('click', async () => {
+    const input = document.getElementById('file-input-5')
+    if (!input.files[0]) return showStepError('Please select a file before continuing.')
+
+    document.getElementById('ins-upload-view').style.display   = 'none'
+    document.getElementById('ins-scanning-view').style.display = 'block'
+
+    try {
+      const formData = new FormData()
+      formData.append('insuranceDoc', input.files[0])
+
+      const res    = await fetch(`${API}/api/onboard/${getToken()}/step/5`, { method: 'POST', body: formData })
+      const result = await res.json()
+
+      document.getElementById('ins-scanning-view').style.display = 'none'
+      document.getElementById('ins-result-view').style.display   = 'block'
+      renderInsResult(res.ok ? (result.scanResult || 'SCAN_ERROR') : 'SCAN_ERROR', result)
+    } catch (err) {
+      console.error('[Step 5]', err)
+      document.getElementById('ins-scanning-view').style.display = 'none'
+      document.getElementById('ins-upload-view').style.display   = 'block'
+      showStepError('Something went wrong uploading your document. Please try again.')
+    }
+  })
+}
+
+function renderInsResult(scanResult, serverResult) {
+  const el = document.getElementById('ins-result-view')
+
+  if (scanResult === 'ADDITIONALLY_INSURED') {
+    el.innerHTML = `
+      <div class="info-box" style="background:#f0fdf4;border-color:#86efac;color:#166534">
+        <strong>You&rsquo;re all set!</strong><br>
+        Your policy shows Beyond Property Management listed as an Additionally Insured party. No action needed.
+      </div>
+      <div class="btn-row" style="justify-content:flex-end;margin-top:24px">
+        <button class="btn-primary" id="btn-ins-continue">Continue &#8594;</button>
+      </div>
+    `
+    document.getElementById('btn-ins-continue').addEventListener('click', () => advanceAfterStep(serverResult))
+
+  } else if (scanResult === 'CERTIFICATE_HOLDER') {
+    el.innerHTML = `
+      <div class="info-box" style="background:#fffbeb;border-color:#fcd34d;color:#92400e;margin-bottom:20px">
+        <strong>BPM is listed as Certificate Holder only.</strong><br>
+        To fully protect both you and BPM, we need to be listed as Additionally Insured. You have two options:
+      </div>
+      <div id="ins-cert-options">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <button class="btn-primary" id="btn-surevestor-yes">Yes &mdash; enroll me in Surevestor protection ($25/mo)</button>
+          <button class="btn-secondary" id="btn-surevestor-no">No &mdash; I&rsquo;ll update my policy instead</button>
+        </div>
+      </div>
+      <div id="ins-cert-deadline" style="display:none;margin-top:20px">
+        <div class="info-box" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b">
+          Please ask your insurance agent to add Beyond Property Management as Additionally Insured and send us the updated certificate by <strong>${escHtml(serverResult.deadline || '')}</strong>.
+        </div>
+        <div class="btn-row" style="justify-content:flex-end;margin-top:16px">
+          <button class="btn-primary" id="btn-ins-continue-ch">Continue &#8594;</button>
+        </div>
+      </div>
+    `
+    document.getElementById('btn-surevestor-yes').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-surevestor-yes')
+      btn.disabled = true ; btn.textContent = 'Enrolling…'
+      try {
+        const res = await fetch(`${API}/api/onboard/${getToken()}/step/5/surevestor`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ approved: true }),
+        })
+        if (!res.ok) throw new Error('Request failed')
+        advanceAfterStep(await res.json())
+      } catch {
+        btn.disabled = false
+        btn.textContent = 'Yes — enroll me in Surevestor protection ($25/mo)'
+        document.getElementById('ins-result-view').insertAdjacentHTML('beforeend',
+          '<p style="color:#dc2626;font-size:0.85rem;margin-top:8px">Something went wrong. Please try again.</p>')
+      }
+    })
+    document.getElementById('btn-surevestor-no').addEventListener('click', () => {
+      document.getElementById('ins-cert-options').style.display  = 'none'
+      document.getElementById('ins-cert-deadline').style.display = 'block'
+    })
+    document.getElementById('btn-ins-continue-ch').addEventListener('click', () => advanceAfterStep(serverResult))
+
+  } else if (scanResult === 'NOT_FOUND') {
+    el.innerHTML = `
+      <div class="info-box" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;margin-bottom:20px">
+        <strong>BPM was not found on your policy.</strong><br>
+        Beyond Property Management must be listed as Additionally Insured. Please contact your insurance agent and ask them to add us:<br><br>
+        <strong>${escHtml(serverResult.bpmAddress || 'Beyond Property Management, Inc.')}</strong><br><br>
+        Please send us the updated certificate by <strong>${escHtml(serverResult.deadline || '')}</strong>.
+      </div>
+      <div class="btn-row" style="justify-content:flex-end;margin-top:24px">
+        <button class="btn-primary" id="btn-ins-continue">Continue &#8594;</button>
+      </div>
+    `
+    document.getElementById('btn-ins-continue').addEventListener('click', () => advanceAfterStep(serverResult))
+
+  } else {
+    // SCAN_ERROR
+    el.innerHTML = `
+      <div class="info-box" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;margin-bottom:20px">
+        <strong>We couldn&rsquo;t read your document.</strong><br>
+        Something went wrong while scanning your insurance file. Please make sure you uploaded a clear PDF, JPG, or PNG and try again. If the issue continues, contact <a href="mailto:help@bpmsd.com" style="color:inherit">help@bpmsd.com</a>.
+      </div>
+      <div class="btn-row" style="justify-content:flex-end;margin-top:24px">
+        <button class="btn-primary" id="btn-ins-retry">Try Again</button>
+      </div>
+    `
+    document.getElementById('btn-ins-retry').addEventListener('click', () => renderStep5())
+  }
+}
+
+// =============================================================================
+// STEP 6 — Reserve Deposit
+// =============================================================================
+
+function renderStep6() {
+  const amount = state.depositAmount || (state.units * 750)
+  const units  = state.units || 1
+
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card">
+      <div class="step-label">Step 6 of 7</div>
+      <div class="step-title">Reserve Deposit</div>
+
+      <div class="deposit-amount">$${amount.toLocaleString()}</div>
+
+      <p style="text-align:center;color:var(--bpm-muted);margin-bottom:20px">
+        ${units} unit${units !== 1 ? 's' : ''} &times; $750 per unit
+      </p>
+
+      <div class="info-box blue" style="margin-bottom:20px">
+        <strong>What is the reserve deposit?</strong> This amount stays in your owner account and is used to pay bills and invoices on your behalf — maintenance, vendors, and other operating expenses. It is always yours and is returned if you end management.
+      </div>
+
+      <div class="info-box" style="margin-bottom:20px">
+        <strong>How to pay:</strong> Log in to the AppFolio Owner Portal and make a payment of <strong>$${amount.toLocaleString()}</strong>. Use the button below to open the portal.
+      </div>
+
+      <div style="text-align:center;margin-bottom:24px">
+        <a href="https://app.appfolio.com" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;display:inline-flex">
+          Open AppFolio Owner Portal &#8599;
+        </a>
+      </div>
+
+      <label class="consent-check" style="justify-content:center;gap:10px;margin-bottom:16px">
+        <input type="checkbox" id="deposit-confirm-check" />
+        <span>I have made my reserve deposit payment of $${amount.toLocaleString()}</span>
+      </label>
+      <p style="text-align:center;font-size:0.78rem;color:var(--bpm-muted)">Our team will verify the payment before your management begins.</p>
+
+      <div class="error-msg"></div>
+
+      <div class="btn-row" style="justify-content:space-between">
+        <button class="btn-back" onclick="goBack(6)">&#8592; Back</button>
+        <button class="btn-primary" id="btn-deposit-confirm" disabled>Continue</button>
+      </div>
+    </div>
+  `
+
+  document.getElementById('deposit-confirm-check').addEventListener('change', e => {
+    document.getElementById('btn-deposit-confirm').disabled = !e.target.checked
+  })
+
+  document.getElementById('btn-deposit-confirm').addEventListener('click', submitStep6)
+}
+
+async function submitStep6() {
+  const btn = document.getElementById('btn-deposit-confirm')
+  btn.disabled = true
+  btn.textContent = 'Saving...'
+
+  try {
+    const result = await submitStep(6, { confirmed: true })
+    await advanceAfterStep(result)
+  } catch (err) {
+    showStepError(err.message)
+    btn.disabled = false
+    btn.textContent = 'Continue'
+  }
+}
+
+// =============================================================================
+// STEP 7 — Occupied Units Addendum
+// =============================================================================
+
+function renderStep7() {
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card">
+      <div class="step-label">Step 7 of 7</div>
+      <div class="step-title">Occupied Units Addendum</div>
+      <div class="step-subtitle">Because your property has an existing tenant who is staying, please review and sign the Occupied Units Addendum.</div>
+
+      <div id="addendum-content" style="border:1px solid var(--bpm-border);border-radius:6px;padding:20px;background:#f8fafc;min-height:100px;margin-bottom:20px;">
+        <p style="color:var(--bpm-muted);font-style:italic;font-size:0.875rem;text-align:center;padding:16px 0;">
+          <strong>Occupied Units Addendum</strong><br><br>
+          Property: ${escHtml(state.propertyAddress)}<br>
+          Owner: ${escHtml(state.ownerName)}<br><br>
+          Your addendum document will appear here once your management team configures the template.
+        </p>
+      </div>
+
+      <div class="consent-box">
+        <h4>Electronic Signature Consent</h4>
+        <p>By signing, you agree to the terms of the Occupied Units Addendum electronically under California UETA.</p>
+        <label class="consent-check">
+          <input type="checkbox" id="consent-check-7" />
+          I have read and agree to the Occupied Units Addendum
+        </label>
+      </div>
+
+      <div class="form-section-title">Your Signature</div>
+      <div class="sig-declaration">
+        I, <strong>${escHtml(state.ownerName)}</strong>, agree to the terms of the Occupied Units Addendum.
+        Today's date: <strong>${new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</strong>
+      </div>
+      <div id="sig-widget-7"></div>
+
+      <div class="error-msg"></div>
+
+      <div class="btn-row" style="justify-content:space-between">
+        <button class="btn-back" onclick="goBack(7)">&#8592; Back</button>
+        <button class="btn-primary" id="btn-sign-7" disabled>Sign &amp; Complete Onboarding</button>
+      </div>
+    </div>
+  `
+
+  buildSignatureWidget('sig-widget-7')
+
+  document.getElementById('consent-check-7').addEventListener('change', e => {
+    document.getElementById('btn-sign-7').disabled = !e.target.checked
+  })
+
+  document.getElementById('btn-sign-7').addEventListener('click', submitStep7)
+}
+
+async function submitStep7() {
+  const btn = document.getElementById('btn-sign-7')
+  const sig = getSignatureData('sig-widget-7')
+  if (!sig) return showStepError('Please draw or type your signature before completing.')
+
+  btn.disabled = true
+  btn.textContent = 'Completing...'
+
+  try {
+    const docHash = await hashDocument('Occupied Units Addendum:' + state.propertyAddress + ':' + state.ownerName)
+    const result  = await submitStep(7, {
+      signature:    sig,
+      consentGiven: true,
+      timestamp:    new Date().toISOString(),
+      userAgent:    navigator.userAgent,
+      documentHash: docHash,
+    })
+    if (result.complete || result.success) {
+      renderComplete()
+    }
+  } catch (err) {
+    showStepError(err.message)
+    btn.disabled = false
+    btn.textContent = 'Sign & Complete Onboarding'
+  }
+}
+
+// =============================================================================
+// FILE UPLOAD HELPER
+// =============================================================================
+
+function setupFileUpload(inputId, dropId, selectedId, nameId, removeId, btnId, onSelected) {
+  const input    = document.getElementById(inputId)
+  const dropZone = document.getElementById(dropId)
+  const selectedDiv = document.getElementById(selectedId)
+  const nameSpan = document.getElementById(nameId)
+  const btn      = document.getElementById(btnId)
+
+  function selectFile(file) {
+    if (!file) return
+    nameSpan.textContent = file.name
+    selectedDiv.style.display = 'flex'
+    btn.disabled = false
+    if (onSelected) onSelected(file)
+  }
+
+  input.addEventListener('change', () => { if (input.files[0]) selectFile(input.files[0]) })
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault() ; dropZone.classList.add('drag-over') })
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault()
+    dropZone.classList.remove('drag-over')
+    if (e.dataTransfer.files[0]) {
+      const dt = new DataTransfer()
+      dt.items.add(e.dataTransfer.files[0])
+      input.files = dt.files
+      selectFile(e.dataTransfer.files[0])
+    }
+  })
+
+  document.getElementById(removeId).addEventListener('click', () => {
+    input.value = ''
+    selectedDiv.style.display = 'none'
+    btn.disabled = true
+  })
+}
+
+async function submitFileStep(stepNumber, inputId, extraFields = {}) {
+  const input = document.getElementById(inputId)
+  const file  = input.files[0]
+  if (!file) return showStepError('Please select a file before continuing.')
+
+  const btn = document.querySelector(`#btn-upload-${stepNumber}`)
+  if (btn) { btn.disabled = true ; btn.textContent = 'Uploading...' }
+
+  try {
+    const formData = new FormData()
+    formData.append('document', file)
+    Object.entries(extraFields).forEach(([k, v]) => formData.append(k, v))
+
+    const result = await submitStep(stepNumber, formData, true)
+    await advanceAfterStep(result)
+  } catch (err) {
+    showStepError(err.message)
+    if (btn) { btn.disabled = false ; btn.textContent = 'Upload & Continue' }
+  }
+}
+
+// =============================================================================
+// COMPLETION SCREEN
+// =============================================================================
+
+function renderComplete() {
+  const name        = state.ownerFirstName || state.ownerName?.split(' ')[0] || 'there'
+  const occupancy   = state.tenantOccupancy || 'none'
+
+  const roadmaps = {
+    none: [
+      'Your property will be listed for rent within 5 business days',
+      'Our leasing team will send you showing activity updates weekly',
+      'You\'ll receive your first owner statement within 30 days',
+    ],
+    leaving: [
+      'We\'ll coordinate the move-out inspection with your tenant',
+      'The property will be listed for rent immediately after move-out',
+      'You\'ll receive a summary of move-out costs within 5 days',
+    ],
+    staying: [
+      'We\'ll introduce ourselves to your tenant within 48 hours',
+      'Rent collection will transition to AppFolio on the next payment cycle',
+      'You\'ll receive your first owner statement within 30 days',
+    ],
+  }
+
+  const roadmapItems = roadmaps[occupancy] || roadmaps.none
+
+  document.getElementById('portal-content').innerHTML = `
+    <div class="step-card complete-screen">
+      <div class="checkmark">&#127881;</div>
+      <h2>You're all set, ${escHtml(name)}!</h2>
+      <p>Your onboarding with Beyond Property Management is complete. We're excited to work with you.</p>
+
+      <div class="roadmap">
+        <h4>What happens next</h4>
+        <ul>${roadmapItems.map(item => `<li>${escHtml(item)}</li>`).join('')}</ul>
+      </div>
+
+      <p class="contact-footer">
+        Questions? Email <a href="mailto:help@bpmsd.com">help@bpmsd.com</a>
+      </p>
+    </div>
+  `
+
+  // Update progress bar to show all complete
+  if (state.steps) {
+    state.steps.forEach(s => {
+      if (s.status !== 'skipped') s.status = 'complete'
+    })
+    state.currentStep = null
+    renderProgress()
+  }
+
+  launchConfetti()
+}
+
+function launchConfetti() {
+  const colors = ['#1a56db', '#16a34a', '#f59e0b', '#ec4899', '#8b5cf6']
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div')
+    el.className = 'confetti-piece'
+    el.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      animation-duration: ${1.5 + Math.random() * 2}s;
+      animation-delay: ${Math.random() * 0.8}s;
+      transform: rotate(${Math.random() * 360}deg);
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+    `
+    document.body.appendChild(el)
+    el.addEventListener('animationend', () => el.remove())
+  }
+}
+
+// =============================================================================
+// START
+// =============================================================================
+
+init()
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: bpm-onboarding-portal
+    runtime: node
+    buildCommand: npm install
+    startCommand: node src/onboarding/server.js
+    healthCheckPath: /api/health
+
+    # Non-secret values — hardcoded here, no manual entry needed
+    envVars:
+      - key: ONBOARDING_PORT
+        value: "3006"
+
+      - key: PORTAL_BASE_URL
+        value: https://portal.beyondpropertymanagement.com
+
+      - key: BPM_MAILING_ADDRESS
+        value: "Beyond Property Management, 1220 N Coast Hwy 101 #120, Encinitas CA 92024"
+
+      # Secrets — Render will prompt you to enter these during setup.
+      # Never put the actual values in this file.
+
+      - key: SUPABASE_URL
+        sync: false
+
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      - key: GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY
+        sync: false
+
+      - key: GOOGLE_DRIVE_ONBOARDING_FOLDER_ID
+        sync: false
+
+      - key: APPFOLIO_STACK_CLIENT_ID
+        sync: false
+
+      - key: APPFOLIO_STACK_CLIENT_SECRET
+        sync: false

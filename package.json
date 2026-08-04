@@ -4,16 +4,38 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start":          "npx serve src/command-center -l 3000",
-    "test:db":        "node src/db/test-connection.js",
+    "start": "npx serve src/command-center -l 3000",
+    "start:api": "node src/api/server.js",
+    "test:db": "node src/db/test-connection.js",
     "sync:portfolio": "node src/portfolio/sync-units.js",
-    "sync:owners":    "node src/portfolio/sync-owners.js",
-    "sync:turnovers":     "node src/turnover-board/sync-turnovers.js",
-    "import:rent-roll":  "node src/portfolio/import-rent-roll.js"
+    "sync:owners": "node src/portfolio/sync-owners.js",
+    "sync:turnovers": "node src/turnover-board/sync-turnovers.js",
+    "import:rent-roll": "node src/portfolio/import-rent-roll.js",
+    "auth:gmail": "node src/email/gmail-auth.js",
+    "sync:email": "node src/email/sync.js",
+    "import:notion": "node src/import/notion-import.js",
+    "import:owners-csv": "node src/portfolio/import-owners-csv.js",
+    "score:owners": "node src/owners/score-owners.js",
+    "import:start-dates": "node src/portfolio/import-owner-start-dates.js",
+    "sync:residents": "node src/residents/sync-residents.js",
+    "score:residents": "node src/residents/score-residents.js",
+    "sync:calls": "node src/calls/sync-calls.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.4",
+    "@notionhq/client": "^5.23.0",
     "@supabase/supabase-js": "^2.50.0",
+    "cors": "^2.8.6",
     "dotenv": "^16.4.7",
-    "node-fetch": "^3.3.2"
+    "express": "^4.22.2",
+    "express-rate-limit": "^8.6.1",
+    "googleapis": "^144.0.0",
+    "multer": "^2.2.0",
+    "node-fetch": "^3.3.2",
+    "pdfkit": "^0.19.1",
+    "plaid": "^45.0.0"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
   }
 }

@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "turnover-board",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "src/turnover-board", "-p", "3001", "--no-clipboard"],
+      "port": 3001
+    },
+    {
+      "name": "command-center",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "src/command-center", "-p", "3002", "--no-clipboard"],
+      "port": 3002
+    }
+    ,{
+      "name": "owner-portal",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "src/owner-portal", "-p", "3003", "--no-clipboard"],
+      "port": 3003
+    }
+    ,{
+      "name": "onboarding-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["src/onboarding/server.js"],
+      "port": 3006
+    }
+  ]
+}
