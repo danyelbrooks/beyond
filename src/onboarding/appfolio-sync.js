@@ -113,7 +113,7 @@ function parseAddress(shortAddress) {
  * Returns the new property's AppFolio PropertyId string, or null on failure.
  */
 async function createAppFolioProperty(authHeader, onboarding, propType) {
-  const { address1, city, state, zip } = parseAddress(onboarding.short_address || onboarding.property_address)
+  const { address1, city, state, zip } = parseAddress(onboarding.property_address || onboarding.short_address)
 
   if (!address1) throw new Error('No address available for property creation')
 
