@@ -11,7 +11,7 @@
  * Does NOT store SSN, EIN, routing numbers, or bank account numbers.
  */
 
-const AF_BASE = 'https://beyondpm.appfolio.com/api/v1'
+const AF_BASE = 'https://api.appfolio.com/api/v0'
 
 // Build the Basic auth header once at module load.
 // Returns null if credentials are missing (will be caught and flagged).
