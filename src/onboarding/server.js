@@ -599,8 +599,12 @@ app.post('/api/onboard/:token/step/1', requireToken, async (req, res) => {
 
     let fileId = null
     if (ob.google_drive_folder_id) {
-      const result = await uploadBuffer(certBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
-      fileId = result.fileId
+      try {
+        const result = await uploadBuffer(certBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
+        fileId = result.fileId
+      } catch (driveErr) {
+        console.error('[Step 1] Drive upload failed (non-fatal):', driveErr.message)
+      }
     }
 
     await supabase.from('onboarding_documents').insert({
