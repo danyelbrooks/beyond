@@ -30,8 +30,9 @@ async function createAppFolioOwner(authHeader, payload) {
   const res = await fetch(`${AF_BASE}/owners`, {
     method:  'POST',
     headers: {
-      'Authorization': authHeader,
-      'Content-Type':  'application/json',
+      'Authorization':          authHeader,
+      'Content-Type':           'application/json',
+      'X-AppFolio-Developer-ID': process.env.APPFOLIO_DEVELOPER_ID || '',
     },
     body: JSON.stringify(payload),
   })
