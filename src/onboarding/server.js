@@ -474,6 +474,18 @@ app.get('/api/onboarding/:id', requireAuth, async (req, res) => {
   })
 })
 
+// GET /api/onboarding/:id/flags
+app.get('/api/onboarding/:id/flags', requireAuth, async (req, res) => {
+  const { id } = req.params
+  const { data, error } = await supabase
+    .from('onboarding_flags')
+    .select('id, flag_type, message, created_at, resolved_at')
+    .eq('onboarding_id', id)
+    .order('created_at', { ascending: true })
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data || [])
+})
+
 // PATCH /api/onboarding/:id/notes
 app.patch('/api/onboarding/:id/notes', requireAuth, async (req, res) => {
   const { id } = req.params
