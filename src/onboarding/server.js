@@ -29,6 +29,7 @@ import {
   generateCA588,
   generateAppFolioEntrySheet,
   generateQuestionnairePDF,
+  generateIntakeSummary,
 } from './pdf-generator.js'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -206,7 +207,24 @@ async function completeOnboarding(onboardingId) {
     }
   } catch (err) {
     console.error('[Onboarding] Entry sheet generation error:', err.message)
-    // Non-fatal — continue to mark complete
+  }
+
+  // Intake summary — full snapshot of everything the owner submitted
+  try {
+    const summaryBuffer = await generateIntakeSummary(onboarding, steps || [])
+    const summaryFilename = `${onboarding.short_address} Intake Summary.pdf`
+    if (onboarding.google_drive_folder_id) {
+      const fileId = await safeUpload(summaryBuffer, summaryFilename, 'application/pdf', onboarding.google_drive_folder_id)
+      await supabase.from('onboarding_documents').insert({
+        onboarding_id:        onboardingId,
+        document_type:        'intake_summary',
+        filename:             summaryFilename,
+        google_drive_file_id: fileId,
+        uploaded_by_owner:    false,
+      })
+    }
+  } catch (err) {
+    console.error('[Onboarding] Intake summary generation error:', err.message)
   }
 
   await supabase
@@ -472,6 +490,33 @@ app.get('/api/onboarding/:id', requireAuth, async (req, res) => {
     ...data,
     portalLink: `${PORTAL_BASE}/onboard/${data.token}`,
   })
+})
+
+// GET /api/onboarding/:id/intake-pdf  — download intake summary on demand
+app.get('/api/onboarding/:id/intake-pdf', requireAuth, async (req, res) => {
+  const { id } = req.params
+  const { data: onboarding, error: obErr } = await supabase
+    .from('onboardings')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (obErr || !onboarding) return res.status(404).json({ error: 'Not found' })
+
+  const { data: steps } = await supabase
+    .from('onboarding_steps')
+    .select('*')
+    .eq('onboarding_id', id)
+
+  try {
+    const buffer   = await generateIntakeSummary(onboarding, steps || [])
+    const filename = `${onboarding.short_address} Intake Summary.pdf`
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.send(buffer)
+  } catch (err) {
+    console.error('[intake-pdf] Generation error:', err.message)
+    res.status(500).json({ error: 'Failed to generate PDF' })
+  }
 })
 
 // GET /api/onboarding/:id/flags
@@ -1232,6 +1277,36 @@ app.post('/api/onboard/:token/step/7', requireToken, async (req, res) => {
   } catch (err) {
     console.error('[Step 7] Error:', err.message)
     res.status(500).json({ error: 'Failed to process signature' })
+  }
+})
+
+// POST /api/onboard/:token/step/7/skip — owner skips addendum, completes onboarding
+app.post('/api/onboard/:token/step/7/skip', requireToken, async (req, res) => {
+  const ob = req.onboarding
+  try {
+    await supabase
+      .from('onboarding_steps')
+      .update({ status: 'skipped' })
+      .eq('onboarding_id', ob.id)
+      .eq('step_number', 7)
+
+    await supabase.from('onboarding_flags').insert({
+      onboarding_id: ob.id,
+      flag_type:     'addendum_not_signed',
+      message:       `${ob.owner_name} (${ob.short_address}) skipped the Occupied Units Addendum — send the document and collect signature separately.`,
+    })
+
+    await touchActivity(ob.id)
+
+    const allDone = await checkAllComplete(ob.id)
+    if (allDone) {
+      await completeOnboarding(ob.id)
+    }
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[Step 7 skip] Error:', err.message)
+    res.status(500).json({ error: 'Failed to skip step' })
   }
 })
 

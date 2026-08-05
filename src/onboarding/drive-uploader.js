@@ -12,8 +12,8 @@ import { readFile }  from 'fs/promises'
 import { Readable }  from 'stream'
 import { google }    from 'googleapis'
 
-const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.file'
-const DEFAULT_FOLDER  = '1hoKrpHYdBprM7V3tDmENJhzCgmA6Djh7'
+const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive'
+const DEFAULT_FOLDER  = '0AIFTYoJhulNLUk9PVA'
 
 // =============================================================================
 // AUTH
@@ -71,6 +71,7 @@ export async function createSubfolder(folderName) {
   const parentId = process.env.GOOGLE_DRIVE_ONBOARDING_FOLDER_ID || DEFAULT_FOLDER
 
   const response = await drive.files.create({
+    supportsAllDrives: true,
     requestBody: {
       name:     folderName,
       mimeType: 'application/vnd.google-apps.folder',
@@ -101,6 +102,7 @@ export async function uploadBuffer(buffer, filename, mimeType, folderId) {
   stream.push(null)
 
   const response = await drive.files.create({
+    supportsAllDrives: true,
     requestBody: {
       name:    filename,
       parents: [folderId],

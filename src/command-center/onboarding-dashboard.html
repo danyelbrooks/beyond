@@ -421,6 +421,7 @@
             <div class="actions-cell">
               <button class="action-btn" onclick="copyLink('${escHtml(r.portalLink)}')">Copy Link</button>
               <button class="action-btn" onclick="openNote('${escHtml(r.id)}')">Note</button>
+              <button class="action-btn" onclick="downloadIntakePDF('${escHtml(r.id)}', '${escHtml(r.shortAddress)}')">Intake PDF</button>
               ${r.status !== 'revoked' && r.status !== 'complete'
                 ? `<button class="action-btn danger" onclick="revokeOnboarding('${escHtml(r.id)}', '${escHtml(r.ownerName)}')">Revoke</button>`
                 : ''}
@@ -455,6 +456,24 @@
   // Exposed to inline onclick handlers
   window.copyLink = function(link) {
     navigator.clipboard.writeText(link).then(() => alert('Portal link copied to clipboard!'))
+  }
+
+  window.downloadIntakePDF = async function(id, shortAddress) {
+    try {
+      const res = await fetch(`${API}/api/onboarding/${id}/intake-pdf`, {
+        headers: authHeaders()
+      })
+      if (!res.ok) { alert('Could not generate PDF. Try again.'); return }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `${shortAddress} Intake Summary.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert('Download failed. Make sure the onboarding server is running.')
+    }
   }
 
   const FLAG_LABELS = {

@@ -2966,7 +2966,7 @@ function renderStep6() {
       </div>
 
       <div style="text-align:center;margin-bottom:24px">
-        <a href="https://app.appfolio.com" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;display:inline-flex">
+        <a href="https://www.appfolio.com/login-owner" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;display:inline-flex">
           Open AppFolio Owner Portal &#8599;
         </a>
       </div>
@@ -3048,7 +3048,10 @@ function renderStep7() {
 
       <div class="btn-row" style="justify-content:space-between">
         <button class="btn-back" onclick="goBack(7)">&#8592; Back</button>
-        <button class="btn-primary" id="btn-sign-7" disabled>Sign &amp; Complete Onboarding</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn-secondary" id="btn-skip-7">Skip for now</button>
+          <button class="btn-primary" id="btn-sign-7" disabled>Sign &amp; Complete Onboarding</button>
+        </div>
       </div>
     </div>
   `
@@ -3060,6 +3063,8 @@ function renderStep7() {
   })
 
   document.getElementById('btn-sign-7').addEventListener('click', submitStep7)
+
+  document.getElementById('btn-skip-7').addEventListener('click', skipStep7)
 }
 
 async function submitStep7() {
@@ -3086,6 +3091,22 @@ async function submitStep7() {
     showStepError(err.message)
     btn.disabled = false
     btn.textContent = 'Sign & Complete Onboarding'
+  }
+}
+
+async function skipStep7() {
+  const btn = document.getElementById('btn-skip-7')
+  btn.disabled = true
+  btn.textContent = 'Skipping...'
+  try {
+    const res = await fetch(`${API}/api/onboard/${getToken()}/step/7/skip`, { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to skip')
+    renderComplete()
+  } catch (err) {
+    showStepError(err.message)
+    btn.disabled = false
+    btn.textContent = 'Skip for now'
   }
 }
 

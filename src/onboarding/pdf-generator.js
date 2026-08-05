@@ -422,3 +422,321 @@ export function generateAppFolioEntrySheet(onboarding, steps) {
       )
   })
 }
+
+// =============================================================================
+// EXPORT 7: Onboarding Intake Summary
+// Full snapshot of every field submitted — for BPM files and reference.
+// NOTE: Routing/account numbers are never stored in the DB (they go to the
+//       Questionnaire PDF in memory only). TIN is never stored either.
+// =============================================================================
+
+/**
+ * @param {object} onboarding   Full onboardings row from DB
+ * @param {Array}  steps        All onboarding_steps rows for this onboarding
+ * @returns {Promise<Buffer>}
+ */
+export function generateIntakeSummary(onboarding, steps) {
+  const s2 = steps.find(s => s.step_number === 2)?.data_json || {}
+  const s3 = steps.find(s => s.step_number === 3)?.data_json || {}
+  const s5 = steps.find(s => s.step_number === 5)?.data_json || {}
+
+  const numOwners = parseInt(s2.numOwners) || 1
+  const insuranceTypeLabel = s5.insuranceType === 'interest_only'
+    ? 'Interest Only (Surevestor required)'
+    : s5.insuranceType === 'additionally_insured' ? 'Additionally Insured' : 'Not provided'
+
+  function listField(doc, label, arr) {
+    if (!Array.isArray(arr) || arr.length === 0) return
+    const clean = arr.map(v => v.replace(/^(appl-|amen-|comm-|park-)/, '').replace(/-/g, ' '))
+    doc.font('Helvetica-Bold').text(`${label}: `, { continued: true })
+      .font('Helvetica').text(clean.join(', '))
+  }
+
+  return buildPDF(doc => {
+    // ── Header ────────────────────────────────────────────────────────────────
+    doc.fontSize(9).font('Helvetica').fillColor('#555')
+      .text('Beyond Property Management', { align: 'right' })
+    doc.moveDown(0.3)
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#000')
+      .text('Onboarding Intake Summary', { align: 'center' })
+    doc.fontSize(10).font('Helvetica').fillColor('#555')
+      .text(onboarding.property_address, { align: 'center' })
+    doc.fontSize(9).fillColor('#888')
+      .text(`Generated ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, { align: 'center' })
+
+    // ── Property & Agreement ──────────────────────────────────────────────────
+    sectionHeader(doc, 'Property & Agreement')
+    field(doc, 'Address',         onboarding.property_address)
+    field(doc, 'APN',             onboarding.apn || 'Not provided')
+    field(doc, 'Property Type',   s2.propertyType || s2.propertyTypeOther || 'Not specified')
+    field(doc, 'Year Built',      s2.yearBuilt)
+    field(doc, 'Square Footage',  s2.squareFootage)
+    field(doc, 'Bedrooms',        s2.bedrooms)
+    field(doc, 'Full Baths',      s2.fullBaths)
+    field(doc, 'Half Baths',      s2.halfBaths)
+    field(doc, 'Neighborhood',    s2.neighborhood)
+    field(doc, 'Units',           onboarding.units)
+    field(doc, 'Agreement Type',
+      onboarding.agreement_type === 'full_management'
+        ? 'Full Management Agreement'
+        : 'Tenant Placement / Lease Listing')
+    field(doc, 'Entity Type',     onboarding.entity_type)
+    field(doc, 'Reserve Deposit', onboarding.deposit_amount ? `$${onboarding.deposit_amount}` : null)
+
+    // ── Rental Terms ──────────────────────────────────────────────────────────
+    sectionHeader(doc, 'Rental Terms')
+    field(doc, 'Lease Term',      s2.leaseTerm)
+    field(doc, 'Rent Type',       s2.rentType)
+    field(doc, 'Rent Amount',     s2.rentAmount ? `$${s2.rentAmount}` : null)
+    field(doc, 'Deposit Type',    s2.depositType)
+    if (s2.depositType === 'custom') field(doc, 'Custom Deposit Amount', s2.depositAmountCustom ? `$${s2.depositAmountCustom}` : null)
+    field(doc, 'Furnished',       s2.furnished)
+
+    // ── Occupancy (per unit) ──────────────────────────────────────────────────
+    const units = Array.isArray(s2.unitOccupancy) ? s2.unitOccupancy : []
+    if (units.length > 0) {
+      sectionHeader(doc, 'Unit Occupancy')
+      units.forEach(u => {
+        const unitLabel = units.length > 1 ? `Unit ${u.unit}` : 'Occupancy'
+        field(doc, `${unitLabel} Status`, u.occupancy)
+        if (u.occupancy === 'staying' || u.occupancy === 'leaving') {
+          if (u.tenantName)      field(doc, `${unitLabel} Tenant Name`,     u.tenantName)
+          if (u.tenantPhone)     field(doc, `${unitLabel} Tenant Phone`,    u.tenantPhone)
+          if (u.tenantEmail)     field(doc, `${unitLabel} Tenant Email`,    u.tenantEmail)
+          if (u.rent)            field(doc, `${unitLabel} Monthly Rent`,    `$${u.rent}`)
+          if (u.securityDeposit) field(doc, `${unitLabel} Security Deposit`, `$${u.securityDeposit}`)
+          if (u.moveOutDate)     field(doc, `${unitLabel} Move-Out Date`,   u.moveOutDate)
+        }
+      })
+    }
+
+    // ── Appliances & Features ─────────────────────────────────────────────────
+    if ((s2.appliances?.length || s2.amenities?.length || s2.communityFeatures?.length)) {
+      sectionHeader(doc, 'Appliances & Features')
+      listField(doc, 'Appliances',          s2.appliances)
+      listField(doc, 'Amenities',           s2.amenities)
+      listField(doc, 'Community Features',  s2.communityFeatures)
+    }
+
+    // ── Access & Keys ─────────────────────────────────────────────────────────
+    sectionHeader(doc, 'Access & Keys')
+    field(doc, 'Front Door Keys',   s2.keysFrontDoor)
+    field(doc, 'Common Area Keys',  s2.keysCommon)
+    field(doc, 'Mailbox Keys',      s2.keysMailbox)
+    field(doc, 'Parking Keys',      s2.keysParking)
+    field(doc, 'Garage Remotes',    s2.keysGarageRemote)
+    field(doc, 'Garage Keypad Code', s2.garageKeypadCode)
+    field(doc, 'Gate Code',         s2.gateCode)
+    field(doc, 'Alarm Code',        s2.alarmCode)
+    field(doc, 'Mailbox Location',  s2.mailboxLocation)
+    field(doc, 'Mailbox Number',    s2.mailboxNumber)
+    if (s2.keysOtherCount) {
+      field(doc, 'Other Keys Count', s2.keysOtherCount)
+      field(doc, 'Other Keys Desc',  s2.keysOtherDesc)
+    }
+
+    // ── Parking ───────────────────────────────────────────────────────────────
+    if (s2.parking?.length || s2.parkingRestrictions) {
+      sectionHeader(doc, 'Parking')
+      listField(doc, 'Parking Types', s2.parking)
+      field(doc, 'Restrictions',      s2.parkingRestrictions)
+      field(doc, 'Garage Space #s',   s2.garageSpaceNumbers)
+      field(doc, 'Garage Location',   s2.garageLocation)
+    }
+
+    // ── HOA ───────────────────────────────────────────────────────────────────
+    if (s2.hasHoa === 'yes' || s2.hoaName) {
+      sectionHeader(doc, 'HOA')
+      field(doc, 'HOA Name',          s2.hoaName)
+      field(doc, 'Management Company', s2.hoaCompany)
+      field(doc, 'Phone',             s2.hoaPhone)
+      field(doc, 'Email',             s2.hoaEmail)
+      field(doc, 'Website',           s2.hoaWebsite)
+      field(doc, 'Portal Login',      s2.hoaLoginName)
+      field(doc, 'Portal Password',   s2.hoaLoginPassword)
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+    sectionHeader(doc, 'Utilities')
+    if (s2.tenantPays?.length) field(doc, 'Tenant Pays',   s2.tenantPays.join(', '))
+    if (s2.ownerPays?.length)  field(doc, 'Owner Pays',    s2.ownerPays.join(', '))
+    field(doc, 'Sewer Type',    s2.sewerType)
+    if (s2.waterCompanyName) {
+      field(doc, 'Water Company',       s2.waterCompanyName)
+      field(doc, 'Water Website',       s2.waterWebsite)
+      field(doc, 'Water Login',         s2.waterLoginName)
+      field(doc, 'Water Password',      s2.waterLoginPassword)
+    }
+    const trashCo = s2.trashCompany === 'other' ? s2.trashCompanyOther : s2.trashCompany
+    if (trashCo) {
+      field(doc, 'Trash Company',       trashCo)
+      field(doc, 'Trash Website',       s2.trashWebsite)
+      field(doc, 'Trash Login',         s2.trashLoginName)
+      field(doc, 'Trash Password',      s2.trashLoginPassword)
+    }
+    if (s2.elecCompanyName) {
+      field(doc, 'Electric Company',    s2.elecCompanyName)
+      field(doc, 'Electric Website',    s2.elecWebsite)
+      field(doc, 'Electric Login',      s2.elecLoginName)
+      field(doc, 'Electric Password',   s2.elecLoginPassword)
+    }
+    if (s2.solarCompanyName || s2.solarStatus) {
+      field(doc, 'Solar Status',        s2.solarStatus)
+      field(doc, 'Solar Company',       s2.solarCompanyName)
+      field(doc, 'Solar URL',           s2.solarCompanyUrl)
+      field(doc, 'Solar Login',         s2.solarLoginName)
+      field(doc, 'Solar Password',      s2.solarLoginPassword)
+    }
+    if (s2.poolCompany) field(doc, 'Pool Company', s2.poolCompany)
+    if (s2.gardenerName || s2.gardenerBpmBid) {
+      field(doc, 'Gardener',            s2.gardenerBpmBid ? 'BPM to bid' : s2.gardenerName)
+      field(doc, 'Gardener Phone',      s2.gardenerPhone)
+      field(doc, 'Gardener Email',      s2.gardenerEmail)
+      field(doc, 'Gardener URL',        s2.gardenerUrl)
+    }
+
+    // ── Disclosures ───────────────────────────────────────────────────────────
+    sectionHeader(doc, 'Disclosures')
+    field(doc, 'Lead Paint',        s2.leadPaint)
+    field(doc, 'Flood Zone',        s2.floodZone)
+    field(doc, 'Asbestos',          s2.asbestos)
+    field(doc, 'Bed Bugs',          s2.bedBugs)
+    field(doc, 'Mold',              s2.mold)
+    if (s2.moldOther)               field(doc, 'Mold Detail', s2.moldOther)
+    field(doc, 'Death on Property', s2.deathOnProperty)
+    if (s2.deathDetail)             field(doc, 'Death Detail', s2.deathDetail)
+    field(doc, 'Tankless Water Heater', s2.tanklessWaterHeater)
+    if (s2.tanklessServiceDate)     field(doc, 'Tankless Service Date', s2.tanklessServiceDate)
+    if (s2.tanklessOther)           field(doc, 'Tankless Notes', s2.tanklessOther)
+    field(doc, 'Heat Source',       s2.heatSource || s2.heatSourceOther)
+    if (s2.heaterFilterCount) {
+      field(doc, 'Heater Filter Count', s2.heaterFilterCount)
+      if (s2.heaterFilterSizes?.length) field(doc, 'Filter Sizes', s2.heaterFilterSizes.join(', '))
+    }
+    if (s2.homeWarranty === 'yes') {
+      field(doc, 'Home Warranty',     'Yes')
+      field(doc, 'Warranty Company',  s2.warrantyCompany)
+      field(doc, 'Warranty Phone',    s2.warrantyPhone)
+      field(doc, 'Warranty Policy #', s2.warrantyPolicy)
+      field(doc, 'Warranty Expires',  s2.warrantyExpiry)
+      field(doc, 'Warranty URL',      s2.warrantyUrl)
+      field(doc, 'Warranty Login',    s2.warrantyLoginName)
+      field(doc, 'Warranty Password', s2.warrantyLoginPassword)
+    } else {
+      field(doc, 'Home Warranty', 'No')
+    }
+
+    // ── Current Management ────────────────────────────────────────────────────
+    if (s2.currentlyManaged === 'yes') {
+      sectionHeader(doc, 'Current Management Company')
+      field(doc, 'Company Name',   s2.mgmtCompanyName)
+      field(doc, 'Website',        s2.mgmtCompanyUrl)
+      field(doc, 'Phone',          s2.mgmtCompanyPhone)
+      field(doc, 'Contact Name',   s2.mgmtContactName)
+      field(doc, 'Email',          s2.mgmtCompanyEmail)
+    }
+
+    // ── Owner Draw & Banking ──────────────────────────────────────────────────
+    sectionHeader(doc, 'Owner Draw & Banking Setup')
+    doc.fontSize(9).font('Helvetica').fillColor('#888')
+      .text('Routing and account numbers are not stored — see Questionnaire PDF in this Drive folder.')
+      .fillColor('#000').fontSize(10)
+    doc.moveDown(0.3)
+    field(doc, 'Draw Method', s2.ownerDrawMethod || 'ACH')
+    for (let i = 1; i <= numOwners; i++) {
+      const prefix  = i === 1 ? 'owner' : `owner${i}`
+      const first   = s2[`${prefix}First`]  || (i === 1 ? onboarding.owner_name?.split(' ')[0] : '')
+      const last    = s2[`${prefix}Last`]   || ''
+      const name    = [first, last].filter(Boolean).join(' ')
+      const acctKey = i === 1 ? 'ownerDrawAccountType' : `owner${i}DrawAccountType`
+      const label   = numOwners > 1 ? `Owner ${i}` : 'Owner'
+      if (name) field(doc, `${label} Name`,         name)
+      field(doc, `${label} Account Type`, s2[acctKey] || 'checking')
+      field(doc, `${label} Routing/Account`, 'On file in Questionnaire PDF')
+    }
+
+    // ── Tax & W-9 ─────────────────────────────────────────────────────────────
+    sectionHeader(doc, 'Tax & W-9')
+    doc.fontSize(9).font('Helvetica').fillColor('#888')
+      .text('TIN (SSN/EIN) is not stored in the database — see W-9 PDF and CA 590/588 PDF in this Drive folder.')
+      .fillColor('#000').fontSize(10)
+    doc.moveDown(0.3)
+    field(doc, 'Number of W-9s', s3.numW9s)
+    field(doc, 'Same Last Name', s3.sameLastName === true ? 'Yes' : s3.sameLastName === false ? 'No' : null)
+    const s3owners = Array.isArray(s3.owners) ? s3.owners : []
+    if (s3owners.length > 0) {
+      s3owners.forEach((o, i) => {
+        const label = s3owners.length > 1 ? `Owner ${i + 1}` : 'Owner'
+        field(doc, `${label} Legal Name`,         o.legalName)
+        if (o.businessName)    field(doc, `${label} Business Name`,    o.businessName)
+        field(doc, `${label} Tax Classification`, o.taxClassification)
+        if (o.exemptPayeeCode) field(doc, `${label} Exempt Payee Code`, o.exemptPayeeCode)
+        field(doc, `${label} TIN Type`,           o.tinType === 'ssn' ? 'SSN' : o.tinType === 'ein' ? 'EIN' : o.tinType)
+        field(doc, `${label} CA Resident`,        o.caResident === true ? 'Yes (Form 590)' : o.caResident === false ? 'No (Form 588)' : 'TBD')
+        if (o.tinMismatch)     field(doc, `${label} TIN Mismatch Flag`, 'Yes — review needed')
+        const addr = [o.address, o.city, o.state, o.zip].filter(Boolean).join(', ')
+        if (addr) field(doc, `${label} Mailing Address`, addr)
+      })
+    }
+
+    // ── Insurance ─────────────────────────────────────────────────────────────
+    sectionHeader(doc, 'Insurance')
+    field(doc, 'Coverage Type',       insuranceTypeLabel)
+    field(doc, 'Coverage Status',     onboarding.insurance_coverage_status)
+    field(doc, 'Insurance Company',   onboarding.insurance_company)
+    field(doc, 'Policy Number',       onboarding.insurance_policy_number)
+    field(doc, 'Expiration Date',     onboarding.insurance_expiration_date)
+    if (onboarding.insurance_deadline) field(doc, 'Correction Deadline', onboarding.insurance_deadline)
+    if (onboarding.insurance_surevestor_approved !== null && onboarding.insurance_surevestor_approved !== undefined) {
+      field(doc, 'Surevestor Enrolled', onboarding.insurance_surevestor_approved ? 'Yes' : 'No')
+    }
+
+    // ── Referral Source ───────────────────────────────────────────────────────
+    if (s2.referralSource) {
+      sectionHeader(doc, 'Referral Source')
+      const refLabel = s2.referralSource === 'other' ? s2.referralOther : s2.referralSource
+      field(doc, 'How They Found Us', refLabel)
+      field(doc, 'Referral Contact',  s2.referralContact)
+    }
+
+    // ── Additional Notes ──────────────────────────────────────────────────────
+    if (s2.preferredVendors || s2.additionalNotes) {
+      sectionHeader(doc, 'Additional Notes')
+      if (s2.preferredVendors) field(doc, 'Preferred Vendors', s2.preferredVendors)
+      if (s2.additionalNotes)  field(doc, 'Additional Notes',  s2.additionalNotes)
+    }
+
+    // ── Signatures & Completion Timeline ─────────────────────────────────────
+    sectionHeader(doc, 'Signatures & Completion Timeline')
+    const fmt = iso => iso ? new Date(iso).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' PT' : null
+    const step1 = steps.find(s => s.step_number === 1)
+    const step6 = steps.find(s => s.step_number === 6)
+    const step7 = steps.find(s => s.step_number === 7)
+    const s6data = step6?.data_json || {}
+    field(doc, 'Management Agreement Signed', fmt(step1?.completed_at))
+    field(doc, 'Questionnaire Submitted',     fmt(steps.find(s => s.step_number === 2)?.completed_at))
+    field(doc, 'W-9 / Tax Forms Submitted',   fmt(steps.find(s => s.step_number === 3)?.completed_at))
+    field(doc, 'Insurance Uploaded',          fmt(steps.find(s => s.step_number === 5)?.completed_at))
+    field(doc, 'Reserve Deposit Confirmed',   s6data.depositConfirmedByOwner ? fmt(s6data.confirmedAt) : null)
+    if (step7?.status === 'complete') {
+      field(doc, 'Occupied Units Addendum Signed', fmt(step7.completed_at))
+    }
+    field(doc, 'Onboarding Completed',        fmt(onboarding.completed_at))
+
+    hr(doc)
+    doc.fontSize(8).fillColor('#888')
+      .text(
+        `Generated via BPM Onboarding Portal on ${new Date().toLocaleDateString('en-US')}. ` +
+        'Internal reference document — do not distribute.',
+        { align: 'center' }
+      )
+  })
+}
+
+function ordinal(n) {
+  const num = parseInt(n, 10)
+  if (num === 1 || num === 21 || num === 31) return 'st'
+  if (num === 2 || num === 22) return 'nd'
+  if (num === 3 || num === 23) return 'rd'
+  return 'th'
+}
