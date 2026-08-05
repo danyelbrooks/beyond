@@ -544,6 +544,54 @@ async function addToAppFolioPropertyGroups(authHeader, propertyId, onboarding, s
 }
 
 /**
+ * Create an HOA vendor record in AppFolio using HOA details from step 2.
+ * Only fires when hasHoa is true and a company name is available.
+ * Returns the new vendor Id, or null if skipped/failed.
+ */
+async function createAppFolioHoaVendor(authHeader, s2) {
+  const companyName = (s2.hoaCompany || s2.hoaName || '').trim()
+  if (!companyName) return null
+
+  const payload = {
+    IsCompany:                    true,
+    UseCompanyNameAsTaxpayerName: true,
+    CompanyName:                  companyName,
+    Send1099:                     false,
+  }
+
+  if (s2.hoaPhone) {
+    payload.PhoneNumbers = [{ Number: s2.hoaPhone, IsPrimary: true, Label: 'Office' }]
+  }
+
+  if (s2.hoaEmail) {
+    payload.Emails = [{ EmailAddress: s2.hoaEmail, IsPrimary: true }]
+  }
+
+  if (s2.hoaWebsite) {
+    const url = s2.hoaWebsite.startsWith('http') ? s2.hoaWebsite : `https://${s2.hoaWebsite}`
+    payload.CompanyURL = url
+  }
+
+  const res = await fetch(`${AF_BASE}/vendors`, {
+    method:  'POST',
+    headers: {
+      'Authorization':           authHeader,
+      'Content-Type':            'application/json',
+      'X-AppFolio-Developer-ID': process.env.APPFOLIO_DEVELOPER_ID || '',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`AppFolio HOA vendor create failed (${res.status}): ${text.slice(0, 300)}`)
+  }
+
+  const data = await res.json()
+  return data?.Id || null
+}
+
+/**
  * Create tenant records for occupied units via POST /tenants/bulk.
  * Only fires for units with occupancy status 'staying' or 'move_out'.
  * unitIds is the array returned by createAppFolioUnits() — index 0 = unit 1.
@@ -767,6 +815,22 @@ export async function syncToAppFolio(onboarding, supabase) {
               flag_type:     'appfolio_sync_error',
               message:       `AppFolio property group assignment failed for ${onboarding.short_address}: ${err.message}`,
             })
+          }
+
+          // Create HOA vendor if HOA is present
+          const hasHoa = !!(s2.hoaName || s2.hoaCompany)
+          if (hasHoa) {
+            try {
+              const vendorId = await createAppFolioHoaVendor(authHeader, s2)
+              if (vendorId) console.log(`[AppFolio sync] HOA vendor created: ${vendorId} for ${onboarding.short_address}`)
+            } catch (err) {
+              console.error('[AppFolio sync] HOA vendor create failed:', err.message)
+              await supabase.from('onboarding_flags').insert({
+                onboarding_id: onboarding.id,
+                flag_type:     'appfolio_sync_error',
+                message:       `AppFolio HOA vendor create failed for ${onboarding.short_address}: ${err.message}`,
+              })
+            }
           }
 
           // Create tenants for occupied units
