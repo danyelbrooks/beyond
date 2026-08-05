@@ -838,7 +838,7 @@ export async function syncToAppFolio(onboarding, supabase) {
 
     if (authHeader) {
       try {
-        const propType = s2.propType || s2['prop-type'] || ''
+        const propType = s2.propertyType || s2.propType || s2['prop-type'] || ''
         appfolioPropertyId = await createAppFolioProperty(authHeader, onboarding, propType)
         if (appfolioPropertyId) {
           appfolioPropertyLink = await getAppFolioPropertyLink(authHeader, appfolioPropertyId)
