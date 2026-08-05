@@ -59,22 +59,20 @@ async function createAppFolioOwner(authHeader, payload) {
 
 /**
  * Build an owner payload from flat field values.
- * Omits MailingAddress entirely if no street is available.
+ * Uses AppFolio's expected top-level address fields.
  */
-function buildOwnerPayload({ firstName, lastName, email, phone, street, city, state, zip }) {
+function buildOwnerPayload({ firstName, lastName, email, phone, street, city, state, zip, isCompany, companyName }) {
   const payload = {}
-  if (firstName) payload.FirstName = firstName
-  if (lastName)  payload.LastName  = lastName
-  if (email)     payload.Email     = email
-  if (phone)     payload.Phone     = phone
-
-  if (street) {
-    payload.MailingAddress = { Street: street }
-    if (city)  payload.MailingAddress.City  = city
-    if (state) payload.MailingAddress.State = state
-    if (zip)   payload.MailingAddress.Zip   = zip
-  }
-
+  if (firstName)   payload.FirstName   = firstName
+  if (lastName)    payload.LastName    = lastName
+  if (email)       payload.Email       = email
+  if (phone)       payload.PhoneNumber = phone
+  if (isCompany)   payload.IsCompany   = true
+  if (companyName) payload.CompanyName = companyName
+  if (street)      payload.Address1    = street
+  if (city)        payload.City        = city
+  if (state)       payload.State       = state
+  if (zip)         payload.Zip         = zip
   return payload
 }
 
@@ -212,15 +210,21 @@ export async function syncToAppFolio(onboarding, supabase) {
       // --- Primary owner ---
       try {
         const { firstName, lastName } = splitName(onboarding.owner_name)
+        const entityType  = onboarding.entity_type || 'individual'
+        const isCompany   = entityType === 'business'
+        const companyName = isCompany ? onboarding.owner_name : null
+
         const primaryPayload = buildOwnerPayload({
-          firstName,
+          firstName: onboarding.owner_first_name || firstName,
           lastName,
-          email:  onboarding.owner_email  || null,
-          phone:  onboarding.owner_phone  || null,
-          street: onboarding.owner_mailing_address || null, // single string → Street only
-          city:   null,
-          state:  null,
-          zip:    null,
+          email:       onboarding.owner_email || s2.owner1Email  || null,
+          phone:       onboarding.owner_phone || s2.owner1Phone  || null,
+          street:      s2.owner1Street || null,
+          city:        s2.owner1City   || null,
+          state:       s2.owner1State  || null,
+          zip:         s2.owner1Zip    || null,
+          isCompany,
+          companyName,
         })
         primaryOwnerId = await createAppFolioOwner(authHeader, primaryPayload)
         if (primaryOwnerId) {
