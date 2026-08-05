@@ -422,6 +422,191 @@ async function createAppFolioUnits(authHeader, onboarding, s2, propertyId) {
   return (data?.data || []).map(u => u.UnitId).filter(Boolean)
 }
 
+// =============================================================================
+// PROPERTY GROUP IDs  (queried from GET /property_groups 2026-08-05)
+// =============================================================================
+const PG = {
+  surevestor:    '8479aaf6-15c3-11ee-b1b4-064024c5b8e5',
+  tpo:           '900626db-e86f-11ec-aad1-069cac18f164',
+  hoaYes:        '89b6ee27-f3f2-11ef-be47-0e89a8475669',
+  hoaNo:         '95733583-f3f2-11ef-be47-0e89a8475669',
+  poolSpaInUnit: '9982cedf-101e-11ed-9b0a-029486758335',
+
+  // Additionally insured — keyed by lowercase keyword found in insurance company name
+  insurance: {
+    'state farm':          '9d0b7093-15c3-11ee-b1b4-064024c5b8e5',
+    'pacific specialty':   'ab0133ba-15c4-11ee-b1b4-064024c5b8e5',
+    'american banker':     'e8b334b6-15ee-11ee-b1b4-064024c5b8e5',
+    'mercury':             'b925a09e-1c26-11ee-b1b4-064024c5b8e5',
+    'foremost':            'db966d65-2113-11ee-b1b4-064024c5b8e5',
+    'spinnaker':           '5fecc70d-21f4-11ee-b1b4-064024c5b8e5',
+    'usaa':                '97b7d4fa-2279-11ee-b1b4-064024c5b8e5',
+    'liberty mutual':      '3d3708f7-36fb-11ee-b1b4-064024c5b8e5',
+    'mount vernon':        '91e24221-4229-11ee-b1b4-064024c5b8e5',
+    'bamboo':              '4f1754f2-422a-11ee-b1b4-064024c5b8e5',
+    'travelers':           'fe463074-4782-11ee-b1b4-064024c5b8e5',
+    'farmers':             'f539a6f9-4786-11ee-b1b4-064024c5b8e5',
+    'sutton national':     'ab897011-6e6a-11f0-be47-0e89a8475669',
+    'sutton':              'e5ad8a97-4788-11ee-b1b4-064024c5b8e5',
+    'american national':   '2b920f54-4e79-11ee-b1b4-064024c5b8e5',
+    'ken may':             'efac3bfd-64bf-11ee-b1b4-064024c5b8e5',
+    'safeco':              '246e12be-64c0-11ee-b1b4-064024c5b8e5',
+    'allstate':            '1fbcde35-6dd0-11ee-b1b4-064024c5b8e5',
+    'assurant':            'eeaa184c-889b-11ee-b1b4-064024c5b8e5',
+    'first cap':           'ab0a5cc7-9884-11ee-b1b4-064024c5b8e5',
+    'standard fire':       '427e3c95-477f-11ee-b1b4-064024c5b8e5',
+    'kw specialty':        '2935a1e2-c098-11ee-b1b4-064024c5b8e5',
+    'aaa':                 'f655149a-068c-11ef-b1b4-064024c5b8e5',
+    'acord':               '5cfb5c9b-5c17-11ef-b1b4-064024c5b8e5',
+    'evanston':            '79713987-6574-11ef-b1b4-064024c5b8e5',
+    'accelerant':          '5777d38d-70a7-11ef-b1b4-064024c5b8e5',
+    'kirk miller':         '0d8b09fc-f644-11ef-be47-0e89a8475669',
+    'michael kennedy':     'b8ee4744-1670-11f0-be47-0e89a8475669',
+    'amica':               '76ecf4a4-62a6-11f0-be47-0e89a8475669',
+    'stillwater':          'a2c300dc-6987-11f0-be47-0e89a8475669',
+    'california capital':  'd9241958-6dab-11f0-be47-0e89a8475669',
+    'obie':                '50d77f81-88f7-11f0-be47-0e89a8475669',
+    'atlantic casualty':   '7e528008-9a8e-11f0-be47-0e89a8475669',
+  },
+}
+
+/**
+ * Determine which AppFolio property groups this property belongs in,
+ * then add it to each one. Non-fatal per group — a failure on one group
+ * does not stop the others.
+ *
+ * PATCH /property_groups replaces the full PropertyIds array, so we must
+ * read the current list first, append, then write back.
+ */
+async function addToAppFolioPropertyGroups(authHeader, propertyId, onboarding, s2, insuranceStatus, surevestorApproved) {
+  const headers = {
+    'Authorization':           authHeader,
+    'Content-Type':            'application/json',
+    'X-AppFolio-Developer-ID': process.env.APPFOLIO_DEVELOPER_ID || '',
+  }
+
+  // Build the list of group IDs this property should belong to
+  const targets = []
+
+  if (surevestorApproved) targets.push(PG.surevestor)
+
+  if (insuranceStatus === 'ADDITIONALLY_INSURED' && onboarding.insurance_company) {
+    const lower = onboarding.insurance_company.toLowerCase()
+    // Check 'sutton national' before 'sutton' so the longer match wins
+    for (const [keyword, groupId] of Object.entries(PG.insurance)) {
+      if (lower.includes(keyword)) { targets.push(groupId); break }
+    }
+  }
+
+  if (onboarding.agreement_type === 'tenant_placement') targets.push(PG.tpo)
+
+  const hasHoa = !!(s2.hoaName || (Array.isArray(s2.ownerPays) && s2.ownerPays.includes('hoa')))
+  targets.push(hasHoa ? PG.hoaYes : PG.hoaNo)
+
+  const amen = Array.isArray(s2.amenities) ? s2.amenities : []
+  if (amen.includes('amen-backyard-pool') || amen.includes('amen-backyard-spa')) {
+    targets.push(PG.poolSpaInUnit)
+  }
+
+  for (const groupId of targets) {
+    try {
+      // Read current group membership
+      const getRes = await fetch(
+        `${AF_BASE}/property_groups?filters[Id]=${groupId}&page[size]=1`,
+        { headers }
+      )
+      if (!getRes.ok) throw new Error(`GET group failed (${getRes.status})`)
+      const getData = await getRes.json()
+      const group = getData?.data?.[0]
+      if (!group) throw new Error(`Group ${groupId} not found`)
+
+      // PropertyIds comes back as array-of-arrays; flatten and dedupe
+      const current = (group.PropertyIds || []).flat().filter(Boolean)
+      if (current.includes(propertyId)) {
+        console.log(`[AppFolio sync] Property already in group: ${group.Name}`)
+        continue
+      }
+
+      const patchRes = await fetch(`${AF_BASE}/property_groups/${groupId}`, {
+        method:  'PATCH',
+        headers,
+        body: JSON.stringify({ PropertyIds: [...current, propertyId] }),
+      })
+      if (!patchRes.ok) {
+        const text = await patchRes.text().catch(() => '')
+        throw new Error(`PATCH group failed (${patchRes.status}): ${text.slice(0, 200)}`)
+      }
+      console.log(`[AppFolio sync] Added to group: ${group.Name}`)
+    } catch (err) {
+      console.error(`[AppFolio sync] Property group ${groupId} failed:`, err.message)
+    }
+  }
+}
+
+/**
+ * Create tenant records for occupied units via POST /tenants/bulk.
+ * Only fires for units with occupancy status 'staying' or 'move_out'.
+ * unitIds is the array returned by createAppFolioUnits() — index 0 = unit 1.
+ * Returns the JobId string (async 202), or null if nothing to create.
+ */
+async function createAppFolioTenants(authHeader, onboarding, s2, unitIds) {
+  const occupancy = Array.isArray(s2.unitOccupancy) ? s2.unitOccupancy : []
+  const today = new Date().toISOString().split('T')[0]
+
+  const tenants = []
+  for (const entry of occupancy) {
+    const status  = entry.occupancy || ''
+    if (status !== 'staying' && status !== 'move_out') continue
+
+    // unit field is 1-based; map to 0-based unitIds index
+    const unitIndex = (parseInt(entry.unit) || 1) - 1
+    const unitId    = unitIds[unitIndex]
+    if (!unitId) continue
+
+    const { firstName, lastName } = splitName(entry.tenantName || '')
+    const refId = `${onboarding.id}-tenant-${entry.unit}`
+
+    const tenant = {
+      ReferenceId: refId,
+      UnitId:      unitId,
+      MoveInOn:    today,
+    }
+
+    if (firstName) tenant.FirstName = firstName
+    if (lastName)  tenant.LastName  = lastName
+
+    if (entry.tenantPhone) tenant.PhoneNumbers = [{ Number: entry.tenantPhone }]
+    if (entry.tenantEmail) tenant.Emails        = [{ Address: entry.tenantEmail }]
+
+    if (entry.moveOutDate) {
+      tenant.MoveOutOn      = entry.moveOutDate
+      tenant.LeaseEndDate   = entry.moveOutDate
+    }
+
+    tenants.push(tenant)
+  }
+
+  if (!tenants.length) return null
+
+  const res = await fetch(`${AF_BASE}/tenants/bulk`, {
+    method:  'POST',
+    headers: {
+      'Authorization':           authHeader,
+      'Content-Type':            'application/json',
+      'X-AppFolio-Developer-ID': process.env.APPFOLIO_DEVELOPER_ID || '',
+    },
+    body: JSON.stringify({ data: tenants }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`AppFolio tenants create failed (${res.status}): ${text.slice(0, 300)}`)
+  }
+
+  const data = await res.json()
+  return data?.JobId || data?.job_id || null
+}
+
 /**
  * Main export.
  *
@@ -559,8 +744,9 @@ export async function syncToAppFolio(onboarding, supabase) {
           }
 
           // Create units with rental details (one per onboarding.units count)
+          let unitIds = []
           try {
-            const unitIds = await createAppFolioUnits(authHeader, onboarding, s2, appfolioPropertyId)
+            unitIds = await createAppFolioUnits(authHeader, onboarding, s2, appfolioPropertyId)
             if (unitIds.length) console.log(`[AppFolio sync] ${unitIds.length} unit(s) created for ${onboarding.short_address}`)
           } catch (err) {
             console.error('[AppFolio sync] Unit create failed:', err.message)
@@ -569,6 +755,34 @@ export async function syncToAppFolio(onboarding, supabase) {
               flag_type:     'appfolio_sync_error',
               message:       `AppFolio unit create failed for ${onboarding.short_address}: ${err.message}`,
             })
+          }
+
+          // Assign property to the right groups
+          try {
+            await addToAppFolioPropertyGroups(authHeader, appfolioPropertyId, onboarding, s2, insuranceStatus, surevestorApproved)
+          } catch (err) {
+            console.error('[AppFolio sync] Property group assignment failed:', err.message)
+            await supabase.from('onboarding_flags').insert({
+              onboarding_id: onboarding.id,
+              flag_type:     'appfolio_sync_error',
+              message:       `AppFolio property group assignment failed for ${onboarding.short_address}: ${err.message}`,
+            })
+          }
+
+          // Create tenants for occupied units
+          if (unitIds.length) {
+            try {
+              const jobId = await createAppFolioTenants(authHeader, onboarding, s2, unitIds)
+              if (jobId) console.log(`[AppFolio sync] Tenants queued (JobId: ${jobId}) for ${onboarding.short_address}`)
+              else       console.log(`[AppFolio sync] No occupied units — tenants skipped for ${onboarding.short_address}`)
+            } catch (err) {
+              console.error('[AppFolio sync] Tenant create failed:', err.message)
+              await supabase.from('onboarding_flags').insert({
+                onboarding_id: onboarding.id,
+                flag_type:     'appfolio_sync_error',
+                message:       `AppFolio tenant create failed for ${onboarding.short_address}: ${err.message}`,
+              })
+            }
           }
         }
       } catch (err) {
