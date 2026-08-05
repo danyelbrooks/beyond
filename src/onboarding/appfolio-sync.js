@@ -434,6 +434,30 @@ const PG = {
   ftbWithholding:    '900611a1-e86f-11ec-aad1-069cac18f164',
   ftbCa590:          '556a1064-767f-11ed-9b0a-029486758335',
 
+  // Referral source groups
+  referral: {
+    currentClient:   '8f01b353-eca0-11ee-b1b4-064024c5b8e5',
+    realtorOther:    'c065a2a3-eca0-11ee-b1b4-064024c5b8e5',
+    pastResident:    'f32455ca-eca0-11ee-b1b4-064024c5b8e5',
+    onlineOther:     'faae78d9-eca0-11ee-b1b4-064024c5b8e5',
+    google:          '0d00fdc7-eca1-11ee-b1b4-064024c5b8e5',
+    yelp:            '13644ee7-eca1-11ee-b1b4-064024c5b8e5',
+    unknown:         'c0a241fa-eca1-11ee-b1b4-064024c5b8e5',
+    danyelsFriend:   'ec1b82d0-eca3-11ee-b1b4-064024c5b8e5',
+    // Named realtors — keyed by lowercase keyword in referralContact
+    realtors: {
+      'melissa tucci':    '9f64d930-eca0-11ee-b1b4-064024c5b8e5',
+      'greg cummings':    'a7cc96cf-eca0-11ee-b1b4-064024c5b8e5',
+      'jeff sills':       'b1108977-eca0-11ee-b1b4-064024c5b8e5',
+      'tammy robbins':    'b8e9b6e1-eca0-11ee-b1b4-064024c5b8e5',
+      'bryan devore':     'e181530a-eca0-11ee-b1b4-064024c5b8e5',
+      'wendy fleming':    '8130e7b2-21d8-11ef-b1b4-064024c5b8e5',
+      'stephanie rivera': '994c3866-7797-11ef-b1b4-064024c5b8e5',
+      'jennifer anderson':'bf075551-a7b3-11ef-be47-0e89a8475669',
+      'judith slaten':    'e0bb7b36-a948-11ef-be47-0e89a8475669',
+    },
+  },
+
   // Additionally insured — keyed by lowercase keyword found in insurance company name
   insurance: {
     'state farm':          '9d0b7093-15c3-11ee-b1b4-064024c5b8e5',
@@ -508,6 +532,27 @@ async function addToAppFolioPropertyGroups(authHeader, propertyId, onboarding, s
   const amen = Array.isArray(s2.amenities) ? s2.amenities : []
   if (amen.includes('amen-backyard-pool') || amen.includes('amen-backyard-spa')) {
     targets.push(PG.poolSpaInUnit)
+  }
+
+  // Referral source
+  const refSource  = s2.referralSource || ''
+  const refContact = (s2.referralContact || '').toLowerCase()
+  if (refSource === 'current_client') {
+    targets.push(PG.referral.currentClient)
+  } else if (refSource === 'google') {
+    targets.push(PG.referral.google)
+  } else if (refSource === 'yelp') {
+    targets.push(PG.referral.yelp)
+  } else if (refSource === 'realtor') {
+    let matched = false
+    for (const [name, groupId] of Object.entries(PG.referral.realtors)) {
+      if (refContact.includes(name)) { targets.push(groupId); matched = true; break }
+    }
+    if (!matched) targets.push(PG.referral.realtorOther)
+  } else if (refSource === 'other') {
+    targets.push(PG.referral.onlineOther)
+  } else {
+    targets.push(PG.referral.unknown)
   }
 
   // FTB withholding — based on CA residency answers from step 3
