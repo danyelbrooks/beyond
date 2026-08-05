@@ -360,11 +360,13 @@ async function updateAppFolioProperty(authHeader, propertyId, onboarding, s2, in
 }
 
 /**
- * Create one unit for the property via POST /units/bulk.
- * Returns the new UnitId or null on failure.
+ * Create units for the property via POST /units/bulk.
+ * Creates one unit per onboarding.units count.
+ * Single-unit: named after the address. Multi-unit: Unit 1, Unit 2, etc.
  */
-async function createAppFolioUnit(authHeader, onboarding, s2, propertyId) {
+async function createAppFolioUnits(authHeader, onboarding, s2, propertyId) {
   const { address1, city, state, zip } = parseAddress(onboarding.property_address || onboarding.short_address)
+  const unitCount = Math.max(1, parseInt(onboarding.units) || 1)
 
   const bedroomsRaw = s2.bedrooms || ''
   const bedrooms    = bedroomsRaw === '6+' ? 6 : (parseInt(bedroomsRaw) || undefined)
@@ -377,21 +379,30 @@ async function createAppFolioUnit(authHeader, onboarding, s2, propertyId) {
                         ? parseFloat(s2.depositAmountCustom) || undefined
                         : undefined
 
-  const unit = {
-    Name:        onboarding.short_address || address1,
-    ReferenceId: String(onboarding.id) + '-unit',
-    PropertyId:  propertyId,
-    Address1:    address1 || '',
-    City:        city  || '',
-    State:       state || 'CA',
-    Zip:         zip   || '',
-  }
+  const units = []
+  for (let i = 1; i <= unitCount; i++) {
+    const name = unitCount === 1
+      ? (onboarding.short_address || address1)
+      : `Unit ${i}`
 
-  if (bedrooms  !== undefined) unit.Bedrooms   = bedrooms
-  if (bathrooms !== undefined) unit.Bathrooms  = bathrooms
-  if (sqft      !== undefined) unit.SquareFeet = sqft
-  if (marketRent)              unit.MarketRent = marketRent
-  if (deposit   !== undefined) unit.Deposit    = deposit
+    const unit = {
+      Name:        name,
+      ReferenceId: `${onboarding.id}-unit-${i}`,
+      PropertyId:  propertyId,
+      Address1:    address1 || '',
+      City:        city  || '',
+      State:       state || 'CA',
+      Zip:         zip   || '',
+    }
+
+    if (bedrooms  !== undefined) unit.Bedrooms   = bedrooms
+    if (bathrooms !== undefined) unit.Bathrooms  = bathrooms
+    if (sqft      !== undefined) unit.SquareFeet = sqft
+    if (marketRent)              unit.MarketRent = marketRent
+    if (deposit   !== undefined) unit.Deposit    = deposit
+
+    units.push(unit)
+  }
 
   const res = await fetch(`${AF_BASE}/units/bulk`, {
     method:  'POST',
@@ -400,15 +411,15 @@ async function createAppFolioUnit(authHeader, onboarding, s2, propertyId) {
       'Content-Type':            'application/json',
       'X-AppFolio-Developer-ID': process.env.APPFOLIO_DEVELOPER_ID || '',
     },
-    body: JSON.stringify({ data: [unit] }),
+    body: JSON.stringify({ data: units }),
   })
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
-    throw new Error(`AppFolio unit create failed (${res.status}): ${text.slice(0, 300)}`)
+    throw new Error(`AppFolio units create failed (${res.status}): ${text.slice(0, 300)}`)
   }
   const data = await res.json()
-  return data?.data?.[0]?.UnitId || null
+  return (data?.data || []).map(u => u.UnitId).filter(Boolean)
 }
 
 /**
@@ -547,10 +558,10 @@ export async function syncToAppFolio(onboarding, supabase) {
             })
           }
 
-          // Create unit with rental details
+          // Create units with rental details (one per onboarding.units count)
           try {
-            const unitId = await createAppFolioUnit(authHeader, onboarding, s2, appfolioPropertyId)
-            if (unitId) console.log(`[AppFolio sync] Unit created: ${unitId} for ${onboarding.short_address}`)
+            const unitIds = await createAppFolioUnits(authHeader, onboarding, s2, appfolioPropertyId)
+            if (unitIds.length) console.log(`[AppFolio sync] ${unitIds.length} unit(s) created for ${onboarding.short_address}`)
           } catch (err) {
             console.error('[AppFolio sync] Unit create failed:', err.message)
             await supabase.from('onboarding_flags').insert({
