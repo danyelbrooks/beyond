@@ -430,7 +430,9 @@ const PG = {
   tpo:           '900626db-e86f-11ec-aad1-069cac18f164',
   hoaYes:        '89b6ee27-f3f2-11ef-be47-0e89a8475669',
   hoaNo:         '95733583-f3f2-11ef-be47-0e89a8475669',
-  poolSpaInUnit: '9982cedf-101e-11ed-9b0a-029486758335',
+  poolSpaInUnit:     '9982cedf-101e-11ed-9b0a-029486758335',
+  ftbWithholding:    '900611a1-e86f-11ec-aad1-069cac18f164',
+  ftbCa590:          '556a1064-767f-11ed-9b0a-029486758335',
 
   // Additionally insured — keyed by lowercase keyword found in insurance company name
   insurance: {
@@ -478,7 +480,7 @@ const PG = {
  * PATCH /property_groups replaces the full PropertyIds array, so we must
  * read the current list first, append, then write back.
  */
-async function addToAppFolioPropertyGroups(authHeader, propertyId, onboarding, s2, insuranceStatus, surevestorApproved) {
+async function addToAppFolioPropertyGroups(authHeader, propertyId, onboarding, s2, s3, insuranceStatus, surevestorApproved) {
   const headers = {
     'Authorization':           authHeader,
     'Content-Type':            'application/json',
@@ -506,6 +508,17 @@ async function addToAppFolioPropertyGroups(authHeader, propertyId, onboarding, s
   const amen = Array.isArray(s2.amenities) ? s2.amenities : []
   if (amen.includes('amen-backyard-pool') || amen.includes('amen-backyard-spa')) {
     targets.push(PG.poolSpaInUnit)
+  }
+
+  // FTB withholding — based on CA residency answers from step 3
+  const s3owners = Array.isArray(s3?.owners) ? s3.owners : []
+  if (s3owners.length > 0) {
+    const anyNonResident = s3owners.some(o => o.caResident === false)
+    if (anyNonResident) {
+      targets.push(PG.ftbWithholding)
+    } else if (s3owners.every(o => o.caResident === true)) {
+      targets.push(PG.ftbCa590)
+    }
   }
 
   for (const groupId of targets) {
@@ -678,6 +691,18 @@ export async function syncToAppFolio(onboarding, supabase) {
     const s2 = step2Row?.data_json || {}
 
     // -------------------------------------------------------------------------
+    // A2. Fetch step 3 data_json for FTB / CA residency
+    // -------------------------------------------------------------------------
+    const { data: step3Row } = await supabase
+      .from('onboarding_steps')
+      .select('data_json')
+      .eq('onboarding_id', onboarding.id)
+      .eq('step_number', 3)
+      .single()
+
+    const s3 = step3Row?.data_json || {}
+
+    // -------------------------------------------------------------------------
     // B. Fetch step 5 data for insurance status
     // -------------------------------------------------------------------------
     const insuranceStatus   = onboarding.insurance_coverage_status || null
@@ -807,7 +832,7 @@ export async function syncToAppFolio(onboarding, supabase) {
 
           // Assign property to the right groups
           try {
-            await addToAppFolioPropertyGroups(authHeader, appfolioPropertyId, onboarding, s2, insuranceStatus, surevestorApproved)
+            await addToAppFolioPropertyGroups(authHeader, appfolioPropertyId, onboarding, s2, s3, insuranceStatus, surevestorApproved)
           } catch (err) {
             console.error('[AppFolio sync] Property group assignment failed:', err.message)
             await supabase.from('onboarding_flags').insert({
