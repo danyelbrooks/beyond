@@ -108,8 +108,9 @@ export function renderHeader(profile) {
  *
  * @param {string} activeItem  - Key identifying the current page
  * @param {string} role        - The user's role: 'admin', 'manager', or 'staff'
+ * @param {string} [email]     - The current user's email (used for role-gated links)
  */
-export function renderSidebar(activeItem, role) {
+export function renderSidebar(activeItem, role, email) {
   const el = document.getElementById('app-sidebar')
   if (!el) return
 
@@ -117,15 +118,33 @@ export function renderSidebar(activeItem, role) {
     <a href="${href}" class="nav-link${activeItem === key ? ' active' : ''}">${label}</a>
   `
 
-  // Analytics section — admin and manager only
-  let analyticsLinks = ''
+  // KPI Entry — only visible to the data entry user
+  const kpiEntryLink = email === 'care@bpmsd.com'
+    ? link('kpi-entry.html', 'KPI Entry', 'kpi-entry')
+    : ''
+
+  // Analytics section — admin and manager only; KPI tracker visible to all
+  let analyticsLinks = `
+    <div class="nav-divider"></div>
+    <div class="nav-section-label">Analytics</div>
+    ${kpiEntryLink}
+    ${link('team-scorecard.html',  'KPI Dashboard', 'team-scorecard')}
+  `
   if (role === 'admin' || role === 'manager') {
-    analyticsLinks = `
+    analyticsLinks += `
+      ${link('portfolio.html',    'Portfolio',    'portfolio')}
+      ${link('owner-health.html',    'Owner Health',      'owner-health')}
+      ${link('owner-911.html',      '911 Take to 100%',  'owner-911')}
+      ${link('resident-health.html','Resident Health',   'resident-health')}
+    `
+  }
+
+  // Personal CFO — admin only
+  if (role === 'admin') {
+    analyticsLinks += `
       <div class="nav-divider"></div>
-      <div class="nav-section-label">Analytics</div>
-      ${link('kpi-dashboard.html', 'KPI Dashboard', 'kpi-dashboard')}
-      ${link('portfolio.html',     'Portfolio',     'portfolio')}
-      ${link('owner-health.html',  'Owner Health',  'owner-health')}
+      <div class="nav-section-label">Personal</div>
+      ${link('cfo-dashboard.html', 'Personal CFO', 'cfo-dashboard')}
     `
   }
 
@@ -152,8 +171,11 @@ export function renderSidebar(activeItem, role) {
 
   el.innerHTML = `
     <div class="nav-section-label">Navigation</div>
-    ${link('dashboard.html',    'Dashboard',    'dashboard')}
-    ${link('email-triage.html', 'Email Triage', 'email-triage')}
+    ${link('dashboard.html',           'Dashboard',        'dashboard')}
+    ${link('email-triage.html',        'Email Triage',     'email-triage')}
+    ${link('onboarding-dashboard.html','Onboarding',       'onboarding-dashboard')}
+    ${link('sop-library.html',         'Best Practices',   'sop-library')}
+    ${link('insurance-board.html',     'Insurance Board',  'insurance-board')}
     ${analyticsLinks}
     ${toolsSection}
     ${adminSection}
