@@ -819,8 +819,11 @@ function renderStep1() {
 
       <div class="error-msg"></div>
 
-      <div class="btn-row">
-        <button class="btn-primary" id="btn-sign-1" disabled>Sign &amp; Continue</button>
+      <div class="btn-row" style="justify-content:flex-end">
+        <div style="display:flex;gap:10px">
+          <button class="btn-secondary" id="btn-skip-1">Skip for now</button>
+          <button class="btn-primary" id="btn-sign-1" disabled>Sign &amp; Continue</button>
+        </div>
       </div>
     </div>
   `
@@ -833,6 +836,7 @@ function renderStep1() {
   })
 
   document.getElementById('btn-sign-1').addEventListener('click', submitStep1)
+  document.getElementById('btn-skip-1').addEventListener('click', () => skipStep(1))
 }
 
 async function submitStep1() {
@@ -886,6 +890,9 @@ function renderStep2() {
               <label class="radio-option"><input type="radio" name="occ-unit-${u}" value="move_out" /> <div><div class="radio-option-label">Tenant Occupied (Move-Out Scheduled)</div></div></label>
               <label class="radio-option"><input type="radio" name="occ-unit-${u}" value="staying" /> <div><div class="radio-option-label">Tenant Occupied (Tenant is STAYING)</div></div></label>
             </div>
+          </div>
+          <div class="conditional" id="unit-${u}-owner-moveout">
+            <div class="field-group"><label>Estimated Move-Out Date</label><input type="date" id="unit-${u}-owner-moveout-date" /></div>
           </div>
           <div class="conditional" id="unit-${u}-tenant-info">
             <div class="field-row">
@@ -1065,6 +1072,9 @@ function renderStep2() {
             <label class="radio-option"><input type="radio" name="occ-unit-1" value="move_out" /> <div><div class="radio-option-label">Tenant Occupied (Move-Out Scheduled)</div></div></label>
             <label class="radio-option"><input type="radio" name="occ-unit-1" value="staying" /> <div><div class="radio-option-label">Tenant Occupied (Tenant is STAYING)</div></div></label>
           </div>
+        </div>
+        <div class="conditional" id="unit-1-owner-moveout">
+          <div class="field-group"><label>Estimated Move-Out Date</label><input type="date" id="unit-1-owner-moveout-date" /></div>
         </div>
         <div class="conditional" id="unit-1-tenant-info">
           <div class="field-row">
@@ -1498,7 +1508,6 @@ function renderStep2() {
           <div class="radio-stack">
             <label class="radio-option"><input type="radio" name="solar-status" value="paid_off" /> <div><div class="radio-option-label">Paid Off (Owned outright)</div></div></label>
             <label class="radio-option"><input type="radio" name="solar-status" value="leased" /> <div><div class="radio-option-label">Leased</div></div></label>
-            <label class="radio-option"><input type="radio" name="solar-status" value="ppa" /> <div><div class="radio-option-label">Power Purchase Agreement (PPA)</div></div></label>
           </div>
         </div>
       </div>
@@ -1846,7 +1855,10 @@ function renderStep2() {
 
       <div class="btn-row" style="justify-content:space-between">
         <button class="btn-back" onclick="goBack(2)">&#8592; Back</button>
-        <button class="btn-primary" id="btn-save-q" disabled>Save &amp; Continue</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn-secondary" id="btn-skip-2">Skip for now</button>
+          <button class="btn-primary" id="btn-save-q" disabled>Save &amp; Continue</button>
+        </div>
       </div>
     </div>
   `
@@ -1892,6 +1904,7 @@ function renderStep2() {
     document.querySelectorAll(`input[name="occ-unit-${u}"]`).forEach(r => {
       r.addEventListener('change', () => {
         const v = r.value
+        document.getElementById(`unit-${u}-owner-moveout`)?.classList.toggle('visible', v === 'owner_occupied' && r.checked)
         document.getElementById(`unit-${u}-tenant-info`)?.classList.toggle('visible', (v === 'move_out' || v === 'staying') && r.checked)
         document.getElementById(`unit-${u}-move-out-date`)?.classList.toggle('visible', v === 'move_out' && r.checked)
         document.getElementById(`unit-${u}-deposit-field`)?.classList.toggle('visible', v === 'staying' && r.checked)
@@ -2026,6 +2039,7 @@ function renderStep2() {
   }))
 
   document.getElementById('btn-save-q').addEventListener('click', submitStep2)
+  document.getElementById('btn-skip-2').addEventListener('click', () => skipStep(2))
 }
 
 async function submitStep2() {
@@ -2047,6 +2061,7 @@ async function submitStep2() {
       tenantName:     document.getElementById(`unit-${u}-tenant-name`)?.value?.trim()  || '',
       tenantPhone:    document.getElementById(`unit-${u}-tenant-phone`)?.value?.trim() || '',
       tenantEmail:    document.getElementById(`unit-${u}-tenant-email`)?.value?.trim() || '',
+      ownerMoveOutDate: document.getElementById(`unit-${u}-owner-moveout-date`)?.value  || '',
       moveOutDate:    document.getElementById(`unit-${u}-move-out`)?.value             || '',
       securityDeposit: document.getElementById(`unit-${u}-deposit`)?.value            || '',
       rent:           document.getElementById(`unit-${u}-rent`)?.value                || '',
@@ -2360,6 +2375,61 @@ function renderStep3() {
   let preselect = ''
   if      (state.entityType === 'individual') preselect = 'individual_sole_prop'
   else if (state.entityType === 'trust')      preselect = 'trust_estate'
+  else if (state.entityType === 'partnership') preselect = 'partnership'
+  // 'corp' and 'llc' wait for sub-type radio selection below
+
+  // Sub-type selection section for LLC / Corp
+  function entitySubtypeSection() {
+    if (state.entityType === 'llc') {
+      return `
+        <div class="form-section-title">LLC Type</div>
+        <div class="field-group">
+          <label class="required">What type of LLC is this?</label>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="llc-subtype" value="llc_single_member" />
+              <div><div class="radio-option-label">Single Member LLC — not taxed as C/S/P</div>
+              <div class="radio-option-desc">Treated as disregarded entity. Legal name: owner's name. TIN: owner's SSN.</div></div>
+            </label>
+            <label class="radio-option"><input type="radio" name="llc-subtype" value="llc_multi_member" />
+              <div><div class="radio-option-label">Multi-Member LLC — not taxed as C/S/P</div>
+              <div class="radio-option-desc">Treated as partnership. Legal name: LLC name. TIN: EIN.</div></div>
+            </label>
+            <label class="radio-option"><input type="radio" name="llc-subtype" value="llc_c" />
+              <div><div class="radio-option-label">LLC taxed as C Corporation</div>
+              <div class="radio-option-desc">Legal name: LLC name. TIN: EIN.</div></div>
+            </label>
+            <label class="radio-option"><input type="radio" name="llc-subtype" value="llc_s" />
+              <div><div class="radio-option-label">LLC taxed as S Corporation</div>
+              <div class="radio-option-desc">Legal name: LLC name. TIN: EIN.</div></div>
+            </label>
+            <label class="radio-option"><input type="radio" name="llc-subtype" value="llc_p" />
+              <div><div class="radio-option-label">LLC taxed as Partnership</div>
+              <div class="radio-option-desc">Legal name: LLC name. TIN: EIN.</div></div>
+            </label>
+          </div>
+        </div>
+      `
+    }
+    if (state.entityType === 'corp') {
+      return `
+        <div class="form-section-title">Corporation Type</div>
+        <div class="field-group">
+          <label class="required">What type of corporation is this?</label>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="corp-subtype" value="c_corp" />
+              <div><div class="radio-option-label">C Corporation</div>
+              <div class="radio-option-desc">Legal name: corporation name. TIN: EIN.</div></div>
+            </label>
+            <label class="radio-option"><input type="radio" name="corp-subtype" value="s_corp" />
+              <div><div class="radio-option-label">S Corporation</div>
+              <div class="radio-option-desc">Legal name: corporation name. TIN: EIN.</div></div>
+            </label>
+          </div>
+        </div>
+      `
+    }
+    return ''
+  }
 
   // Build classification <option> list with optional pre-selection
   function classificationOptions(selectedVal) {
@@ -2519,6 +2589,9 @@ function renderStep3() {
         </div>
       </details>
 
+      <!-- Entity sub-type (LLC / Corp only) -->
+      ${entitySubtypeSection()}
+
       <!-- W-9 Section(s) -->
       <div class="form-section-title">W-9 — Taxpayer Identification</div>
       ${w9Html}
@@ -2535,7 +2608,10 @@ function renderStep3() {
 
       <div class="btn-row" style="justify-content:space-between">
         <button class="btn-back" onclick="goBack(3)">&#8592; Back</button>
-        <button class="btn-primary" id="btn-submit-tax">Submit Tax Forms &amp; Continue</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn-secondary" id="btn-skip-3">Skip for now</button>
+          <button class="btn-primary" id="btn-submit-tax">Submit Tax Forms &amp; Continue</button>
+        </div>
       </div>
     </div>
   `
@@ -2558,6 +2634,23 @@ function renderStep3() {
 
   setupCaToggle('w9a_', 'ca-resident-a')
   if (twoSets) setupCaToggle('w9b_', 'ca-resident-b')
+
+  // Sub-type → tax-class sync for LLC and Corp
+  function syncSubtype(radioName) {
+    document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
+      r.addEventListener('change', () => {
+        document.querySelectorAll(`input[name="${radioName}"]`).forEach(x =>
+          x.closest('.radio-option')?.classList.remove('selected'))
+        r.closest('.radio-option')?.classList.add('selected')
+        ;['w9a_', 'w9b_'].forEach(pfx => {
+          const sel = document.getElementById(`${pfx}tax-class`)
+          if (sel) { sel.value = r.value; sel.dispatchEvent(new Event('change')) }
+        })
+      })
+    })
+  }
+  if (state.entityType === 'llc')  syncSubtype('llc-subtype')
+  if (state.entityType === 'corp') syncSubtype('corp-subtype')
 
   // Classification hints and TIN type auto-selection
   const CLASS_HINTS = {
@@ -2607,6 +2700,7 @@ function renderStep3() {
   if (twoSets) setupClassificationHandler('w9b_')
 
   document.getElementById('btn-submit-tax').addEventListener('click', submitStep3)
+  document.getElementById('btn-skip-3').addEventListener('click', () => skipStep(3))
 }
 
 async function submitStep3() {
@@ -2743,15 +2837,14 @@ function renderStep4() {
         <span class="file-remove" id="file-remove-4">Remove</span>
       </div>
 
-      <p style="margin-top:16px;font-size:0.82rem;color:var(--bpm-muted)">
-        Don't have it handy? <a href="#" id="skip-step-4" style="color:var(--bpm-blue)">Skip for now</a> — our team will follow up.
-      </p>
-
       <div class="error-msg"></div>
 
       <div class="btn-row" style="justify-content:space-between">
         <button class="btn-back" onclick="goBack(4)">&#8592; Back</button>
-        <button class="btn-primary" id="btn-upload-4" disabled>Upload &amp; Continue</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn-secondary" id="btn-skip-4">Skip for now</button>
+          <button class="btn-primary" id="btn-upload-4" disabled>Upload &amp; Continue</button>
+        </div>
       </div>
     </div>
   `
@@ -2759,27 +2852,7 @@ function renderStep4() {
   setupFileUpload('file-input-4', 'file-drop-4', 'file-selected-4', 'file-name-4', 'file-remove-4', 'btn-upload-4')
 
   document.getElementById('btn-upload-4').addEventListener('click', () => submitFileStep(4, 'file-input-4'))
-
-  document.getElementById('skip-step-4').addEventListener('click', async e => {
-    e.preventDefault()
-    // Mark skipped via a flag — send empty confirmation
-    try {
-      const token = getToken()
-      // Create a flag via a workaround: send a marker in the questionnaire
-      // For skip: just advance — staff will follow up based on entity type in onboarding record
-      await fetch(`/api/onboard/${token}/step/4`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skipped: true })
-      })
-    } catch {}
-    // Regardless of response, advance to step 5
-    state.currentStep = 5
-    const stateRes = await fetch(`/api/onboard/${getToken()}`)
-    if (stateRes.ok) state = await stateRes.json()
-    renderProgress()
-    renderCurrentStep()
-  })
+  document.getElementById('btn-skip-4').addEventListener('click', () => skipStep(4))
 }
 
 // =============================================================================
@@ -2808,7 +2881,10 @@ function renderStep5() {
         <div class="error-msg"></div>
         <div class="btn-row" style="justify-content:space-between;margin-top:20px">
           <button class="btn-back" onclick="goBack(5)">&#8592; Back</button>
-          <button class="btn-primary" id="btn-scan-5" disabled>Scan My Policy</button>
+          <div style="display:flex;gap:10px">
+            <button class="btn-secondary" id="btn-skip-5">Skip for now</button>
+            <button class="btn-primary" id="btn-scan-5" disabled>Scan My Policy</button>
+          </div>
         </div>
       </div>
 
@@ -2936,6 +3012,8 @@ function renderInsResult(scanResult, serverResult) {
     `
     document.getElementById('btn-ins-retry').addEventListener('click', () => renderStep5())
   }
+
+  document.getElementById('btn-skip-5').addEventListener('click', () => skipStep(5))
 }
 
 // =============================================================================
@@ -2981,7 +3059,10 @@ function renderStep6() {
 
       <div class="btn-row" style="justify-content:space-between">
         <button class="btn-back" onclick="goBack(6)">&#8592; Back</button>
-        <button class="btn-primary" id="btn-deposit-confirm" disabled>Continue</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn-secondary" id="btn-skip-6">Skip for now</button>
+          <button class="btn-primary" id="btn-deposit-confirm" disabled>Continue</button>
+        </div>
       </div>
     </div>
   `
@@ -2991,6 +3072,7 @@ function renderStep6() {
   })
 
   document.getElementById('btn-deposit-confirm').addEventListener('click', submitStep6)
+  document.getElementById('btn-skip-6').addEventListener('click', () => skipStep(6))
 }
 
 async function submitStep6() {
@@ -3091,6 +3173,23 @@ async function submitStep7() {
     showStepError(err.message)
     btn.disabled = false
     btn.textContent = 'Sign & Complete Onboarding'
+  }
+}
+
+async function skipStep(n) {
+  const btn = document.getElementById(`btn-skip-${n}`)
+  if (btn) { btn.disabled = true; btn.textContent = 'Skipping...' }
+  try {
+    const res  = await fetch(`${API}/api/onboard/${getToken()}/step/${n}/skip`, { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to skip')
+    const stateRes = await fetch(`${API}/api/onboard/${getToken()}`)
+    if (stateRes.ok) state = await stateRes.json()
+    renderProgress()
+    renderCurrentStep()
+  } catch (err) {
+    showStepError(err.message)
+    if (btn) { btn.disabled = false; btn.textContent = 'Skip for now' }
   }
 }
 

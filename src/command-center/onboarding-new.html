@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Owner Onboarding — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    .onb-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 28px 32px;
+      max-width: 680px;
+    }
+
+    .onb-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-text-muted);
+      margin: 24px 0 10px;
+    }
+
+    .onb-row {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .onb-field {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 5px;
+    }
+
+    .onb-field label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .onb-field input,
+    .onb-field select {
+      padding: 8px 11px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: var(--color-bg);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .onb-field input:focus,
+    .onb-field select:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(52,152,219,.15);
+    }
+
+    .onb-field input[readonly] {
+      background: #f3f4f6;
+      color: var(--color-text-muted);
+    }
+
+    .entity-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .entity-badge-individual { background: #dbeafe; color: #1e40af; }
+    .entity-badge-trust      { background: #fef9c3; color: #854d0e; }
+    .entity-badge-business   { background: #dcfce7; color: #14532d; }
+
+    .radio-group {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      padding: 8px 0;
+    }
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+
+    .deposit-calc {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      color: #14532d;
+      font-weight: 600;
+    }
+
+    .lookup-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .lookup-row input {
+      flex: 1;
+      padding: 8px 11px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: var(--color-bg);
+      color: var(--color-text);
+      outline: none;
+    }
+    .lookup-row input:focus {
+      border-color: var(--color-accent);
+    }
+
+    .lookup-note {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+    }
+
+    .success-box {
+      display: none;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin-top: 20px;
+    }
+    .success-box.visible { display: block; }
+
+    .portal-link-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .portal-link-input {
+      flex: 1;
+      padding: 8px 11px;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      background: #fff;
+      color: #166534;
+      font-family: monospace;
+      outline: none;
+    }
+
+    .error-banner {
+      display: none;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.875rem;
+      color: #991b1b;
+      margin-top: 12px;
+    }
+    .error-banner.visible { display: block; }
+  </style>
+</head>
+<body>
+<div id="app-header" class="app-header"></div>
+<div class="app-layout">
+  <div id="app-sidebar" class="app-sidebar"></div>
+  <main class="app-main">
+
+    <div class="page-header">
+      <h1 class="page-title">New Owner Onboarding</h1>
+      <p class="page-subtitle">Create a portal link for a new property owner</p>
+    </div>
+
+    <div class="onb-card">
+
+      <!-- ArcGIS Lookup -->
+      <div class="onb-section-title">Property Address Lookup</div>
+      <p class="lookup-note">Enter the property address to auto-fill owner info from San Diego County records.</p>
+      <div class="lookup-row">
+        <input type="text" id="lookup-input" placeholder="e.g. 1234 Ash St" />
+        <button class="btn-primary" id="btn-lookup">Look Up</button>
+      </div>
+      <div id="lookup-status" style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:10px;"></div>
+
+      <!-- Owner Info -->
+      <div class="onb-section-title">Owner Information</div>
+      <div class="onb-row">
+        <div class="onb-field">
+          <label for="owner-name">Owner / Entity Name *</label>
+          <input type="text" id="owner-name" placeholder="Full name or entity name" />
+        </div>
+        <div class="onb-field" style="max-width:200px">
+          <label for="entity-type">Entity Type</label>
+          <select id="entity-type">
+            <option value="individual">Individual / Sole Proprietor</option>
+            <option value="corp">Corporation</option>
+            <option value="partnership">Partnership</option>
+            <option value="trust">Trust / Estate</option>
+            <option value="llc">LLC</option>
+          </select>
+        </div>
+      </div>
+      <div class="onb-row">
+        <div class="onb-field">
+          <label for="owner-email">Email Address</label>
+          <input type="email" id="owner-email" placeholder="owner@email.com" />
+        </div>
+        <div class="onb-field">
+          <label for="owner-phone">Phone</label>
+          <input type="tel" id="owner-phone" placeholder="(619) 555-0100" />
+        </div>
+      </div>
+      <div class="onb-row">
+        <div class="onb-field">
+          <label for="owner-first-name">First Name (for Drive folder)</label>
+          <input type="text" id="owner-first-name" placeholder="Sarah" />
+        </div>
+        <div class="onb-field">
+          <label for="apn">APN</label>
+          <input type="text" id="apn" placeholder="Auto-filled from lookup" />
+        </div>
+      </div>
+      <div class="onb-row">
+        <div class="onb-field">
+          <label for="mailing-address">Owner Mailing Address</label>
+          <input type="text" id="mailing-address" placeholder="If different from property" />
+        </div>
+      </div>
+
+      <!-- Property Info -->
+      <div class="onb-section-title">Property</div>
+      <div class="onb-row">
+        <div class="onb-field">
+          <label for="property-address">Full Property Address *</label>
+          <input type="text" id="property-address" placeholder="123 Ash St, San Diego CA 92103" />
+        </div>
+      </div>
+      <div class="onb-row">
+        <div class="onb-field" style="max-width:140px">
+          <label for="units">Number of Units *</label>
+          <input type="number" id="units" min="1" max="500" value="1" />
+        </div>
+      </div>
+      <div class="onb-row">
+        <div class="onb-field">
+          <label for="start-date">Management Start Date</label>
+          <input type="date" id="start-date" />
+        </div>
+        <div class="onb-field">
+          <label for="end-date">Agreement End Date</label>
+          <input type="date" id="end-date" />
+          <small style="font-size:0.75rem;color:var(--color-text-muted)">Default: 1 year from start date</small>
+        </div>
+      </div>
+
+      <!-- Agreement Type -->
+      <div class="onb-section-title">Agreement Type</div>
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="agreement-type" value="full_management" checked />
+          Full Management Agreement
+        </label>
+        <label>
+          <input type="radio" name="agreement-type" value="tenant_placement" />
+          Tenant Placement Only (Lease Listing)
+        </label>
+      </div>
+
+      <!-- Reserve Deposit -->
+      <div class="onb-section-title">Reserve Deposit</div>
+      <div class="deposit-calc">
+        Reserve Deposit: <span id="deposit-amount">$750</span>
+        <span style="font-weight:400;font-size:0.8rem">(units &times; $750)</span>
+      </div>
+
+
+      <!-- Actions -->
+      <div style="margin-top:24px">
+        <button class="btn-primary" id="btn-create" style="min-width:220px">
+          Create Onboarding &amp; Copy Link
+        </button>
+      </div>
+
+      <div id="error-banner" class="error-banner"></div>
+
+      <!-- Success -->
+      <div id="success-box" class="success-box">
+        <div style="font-weight:700;color:#14532d;margin-bottom:8px">
+          Onboarding created! Copy this link and send it to the owner.
+        </div>
+        <div class="portal-link-wrap">
+          <input type="text" class="portal-link-input" id="portal-link-value" readonly />
+          <button class="btn-secondary" id="btn-copy-link">Copy Link</button>
+        </div>
+        <div style="font-size:0.8rem;color:#166534;margin-top:8px">
+          The owner will walk through 7 steps at this link. You can monitor progress in the
+          <a href="onboarding-dashboard.html" style="color:#166534;font-weight:600">Onboarding Dashboard</a>.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+  const API = 'http://localhost:3006'
+
+  let session = null
+
+  async function init() {
+    const auth = await requireAuth()
+    if (!auth) return
+    renderHeader(auth.profile)
+    renderSidebar('onboarding-new', auth.profile.role, auth.user.email)
+    session = auth
+    setupListeners()
+  }
+
+  function setupListeners() {
+    document.getElementById('btn-lookup').addEventListener('click', doLookup)
+    document.getElementById('lookup-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLookup()
+    })
+    document.getElementById('units').addEventListener('input', updateDeposit)
+    document.getElementById('start-date').addEventListener('change', autoFillEndDate)
+    document.getElementById('btn-create').addEventListener('click', doCreate)
+    document.getElementById('btn-copy-link').addEventListener('click', () => {
+      const input = document.getElementById('portal-link-value')
+      navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.getElementById('btn-copy-link')
+        btn.textContent = 'Copied!'
+        setTimeout(() => { btn.textContent = 'Copy Link' }, 2000)
+      })
+    })
+  }
+
+  async function doLookup() {
+    const address = document.getElementById('lookup-input').value.trim()
+    if (!address) return
+
+    const status = document.getElementById('lookup-status')
+    status.textContent = 'Looking up...'
+
+    const { data: { session: sb } } = await window.supabase
+      .createClient(
+        'https://kyekqaxuzpozuhyhibcn.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5ZWtxYXh1enBvenVoeWhpYmNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDE1MjksImV4cCI6MjA5ODA3NzUyOX0.UQp6Inqrvjfxax7AjRRujw6PXId9Whmknv5vkX8DcC8'
+      )
+      .auth.getSession()
+
+    // Re-use the session from requireAuth since supabase client is already initialized
+    const token = session?.user ? (await import('./auth.js')).supabase.auth : null
+
+    try {
+      const res = await fetch(`${API}/api/onboarding/arcgis?address=${encodeURIComponent(address)}`, {
+        headers: authHeaders()
+      })
+      const data = await res.json()
+
+      if (!data.found) {
+        status.textContent = 'No parcel found for that address. Fill fields manually.'
+        return
+      }
+
+      if (data.ownerName)       document.getElementById('owner-name').value       = data.ownerName
+      if (data.propertyAddress) document.getElementById('property-address').value = data.propertyAddress
+      if (data.apn)             document.getElementById('apn').value              = data.apn
+
+      // Owner first name from owner name
+      if (data.ownerName) {
+        const firstName = data.ownerName.split(' ')[0]
+        document.getElementById('owner-first-name').value = firstName
+      }
+
+      status.textContent = 'Parcel found — fields auto-filled. Review and adjust as needed.'
+      status.style.color = '#14532d'
+    } catch (err) {
+      status.textContent = 'Lookup failed — fill fields manually.'
+      status.style.color = '#991b1b'
+    }
+  }
+
+  function generateShortAddress(fullAddress, ownerFirstName, units) {
+    const street = (fullAddress || '').split(',')[0].trim()
+    const parts  = street.split(/\s+/)
+    if (parts.length < 2) return street
+    const num      = parts[0]
+    const rawName  = parts.slice(1).join(' ')
+    const name     = rawName.replace(/\s+(St|Ave|Dr|Blvd|Ct|Ln|Way|Pl|Rd|Cir|Ter|Trl|Hwy|Street|Avenue|Drive|Boulevard|Court|Lane|Place|Road|Circle|Terrace|Trail|Highway)\.?$/i, '').trim()
+    const unitPart = units > 1 ? ` #${units}` : ''
+    const first    = (ownerFirstName || '').trim().split(' ')[0]
+    const namePart = first ? ` (${first})` : ''
+    return `${name} ${num}${unitPart}${namePart}`
+  }
+
+  function autoFillEndDate() {
+    const startVal = document.getElementById('start-date').value
+    if (!startVal) return
+    const start = new Date(startVal + 'T00:00:00')
+    // Add exactly 1 year then subtract 1 day for the end date
+    const end = new Date(start)
+    end.setFullYear(end.getFullYear() + 1)
+    end.setDate(end.getDate() - 1)
+    const yyyy = end.getFullYear()
+    const mm   = String(end.getMonth() + 1).padStart(2, '0')
+    const dd   = String(end.getDate()).padStart(2, '0')
+    document.getElementById('end-date').value = `${yyyy}-${mm}-${dd}`
+  }
+
+  function updateDeposit() {
+    const units   = parseInt(document.getElementById('units').value) || 1
+    const deposit = units * 750
+    document.getElementById('deposit-amount').textContent = `$${deposit.toLocaleString()}`
+  }
+
+  function authHeaders() {
+    return { 'Authorization': `Bearer ${session?.user?.aud ? getToken() : ''}` }
+  }
+
+  function getToken() {
+    // Retrieve current session token from the auth module's supabase instance
+    return sessionStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token')
+      ? JSON.parse(sessionStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token') || '{}')?.access_token
+      : localStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token')
+        ? JSON.parse(localStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token') || '{}')?.access_token
+        : ''
+  }
+
+  async function doCreate() {
+    hideError()
+
+    const propertyAddress = document.getElementById('property-address').value.trim()
+    const ownerName       = document.getElementById('owner-name').value.trim()
+    const ownerEmail      = document.getElementById('owner-email').value.trim()
+    const ownerPhone      = document.getElementById('owner-phone').value.trim()
+    const ownerFirstName  = document.getElementById('owner-first-name').value.trim()
+    const mailingAddress  = document.getElementById('mailing-address').value.trim()
+    const apn             = document.getElementById('apn').value.trim()
+    const units           = parseInt(document.getElementById('units').value) || 1
+    const entityType      = document.getElementById('entity-type').value
+    const agreementType   = document.querySelector('input[name="agreement-type"]:checked').value
+    const startDate       = document.getElementById('start-date').value || null
+    const endDate         = document.getElementById('end-date').value   || null
+    const shortAddress    = generateShortAddress(propertyAddress, ownerFirstName || ownerName, units)
+
+    if (!propertyAddress) return showError('Property address is required.')
+    if (!ownerName)        return showError('Owner name is required.')
+
+    const btn = document.getElementById('btn-create')
+    btn.disabled = true
+    btn.textContent = 'Creating...'
+
+    try {
+      const res = await fetch(`${API}/api/onboarding/create`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          propertyAddress,
+          shortAddress,
+          ownerName,
+          ownerEmail,
+          ownerPhone,
+          ownerFirstName:      ownerFirstName || ownerName.split(' ')[0],
+          ownerMailingAddress: mailingAddress,
+          agreementType,
+          units,
+          entityType,
+          apn,
+          managementStartDate: startDate,
+          agreementTerminationDate: endDate,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) return showError(data.error || 'Failed to create onboarding.')
+
+      document.getElementById('portal-link-value').value = data.portalLink
+      document.getElementById('success-box').classList.add('visible')
+      navigator.clipboard.writeText(data.portalLink).catch(() => {})
+
+    } catch (err) {
+      showError('Network error — is the onboarding server running on port 3006?')
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Create Onboarding & Copy Link'
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-banner')
+    el.textContent = msg
+    el.classList.add('visible')
+  }
+  function hideError() {
+    document.getElementById('error-banner').classList.remove('visible')
+  }
+
+  init()
+</script>
+</body>
+</html>

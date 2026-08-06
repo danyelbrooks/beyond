@@ -1280,6 +1280,39 @@ app.post('/api/onboard/:token/step/7', requireToken, async (req, res) => {
   }
 })
 
+// POST /api/onboard/:token/step/:n/skip — owner skips steps 1-6
+const STEP_SKIP_MESSAGES = {
+  1: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 1 (Management Agreement signature) — collect signature separately.`,
+  2: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 2 (Property Questionnaire) — follow up to collect property details.`,
+  3: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 3 (Tax Forms / W-9) — collect W-9 and CA withholding forms separately.`,
+  4: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 4 (Entity Documents) — collect trust/operating agreement/articles separately.`,
+  5: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 5 (Insurance Verification) — request insurance certificate separately.`,
+  6: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 6 (Reserve Deposit) — confirm deposit payment separately.`,
+}
+
+app.post('/api/onboard/:token/step/:n/skip', requireToken, async (req, res) => {
+  const ob = req.onboarding
+  const n  = parseInt(req.params.n)
+  if (n < 1 || n > 6) return res.status(400).json({ error: 'Invalid step number' })
+  try {
+    await supabase.from('onboarding_steps').update({ status: 'skipped' })
+      .eq('onboarding_id', ob.id).eq('step_number', n)
+    const msgFn = STEP_SKIP_MESSAGES[n]
+    await supabase.from('onboarding_flags').insert({
+      onboarding_id: ob.id,
+      flag_type:     `step_${n}_skipped`,
+      message:       msgFn ? msgFn(ob) : `${ob.owner_name} (${ob.short_address}) skipped step ${n}.`,
+    })
+    await touchActivity(ob.id)
+    const allDone = await checkAllComplete(ob.id)
+    if (allDone) await completeOnboarding(ob.id)
+    res.json({ success: true })
+  } catch (err) {
+    console.error(`[Step ${n} skip] Error:`, err.message)
+    res.status(500).json({ error: 'Failed to skip step' })
+  }
+})
+
 // POST /api/onboard/:token/step/7/skip — owner skips addendum, completes onboarding
 app.post('/api/onboard/:token/step/7/skip', requireToken, async (req, res) => {
   const ob = req.onboarding
