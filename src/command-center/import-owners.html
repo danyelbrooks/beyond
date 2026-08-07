@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Owners — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    .import-wrap        { max-width: 780px; margin: 0 auto; }
+
+    .drop-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: 12px;
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      background: var(--color-surface);
+    }
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--color-primary);
+      background: rgba(30,90,172,.04);
+    }
+    .drop-zone-icon  { font-size: 2.5rem; margin-bottom: 12px; }
+    .drop-zone-title { font-weight: 700; font-size: 1.05rem; margin-bottom: 6px; }
+    .drop-zone-sub   { font-size: 0.85rem; color: var(--color-text-muted); }
+
+    #fileInput { display: none; }
+
+    .preview-table-wrap { overflow-x: auto; margin: 20px 0; }
+    .preview-table {
+      width: 100%; border-collapse: collapse; font-size: 0.82rem;
+    }
+    .preview-table th {
+      background: var(--color-surface-alt);
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    .preview-table td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--color-border-light, #eee);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .preview-table tr:last-child td { border-bottom: none; }
+
+    .import-summary {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    .import-stat {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 14px 20px;
+      min-width: 110px;
+      text-align: center;
+    }
+    .import-stat-num   { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .import-stat-label { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; }
+
+    .progress-bar-track {
+      height: 8px;
+      background: var(--color-border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--color-primary);
+      border-radius: 4px;
+      transition: width .2s;
+      width: 0%;
+    }
+
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--color-border-light, #f0f0f0);
+    }
+    .result-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .result-dot-ok  { background: var(--color-success); }
+    .result-dot-err { background: var(--color-danger); }
+    .result-log {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-top: 12px;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+      <div class="import-wrap">
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="page-title">Import Owners from AppFolio</div>
+          <div class="page-subtitle">
+            Export an owner report from AppFolio as CSV and drop it here.
+            No API connection required.
+          </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="alert alert-info" style="margin-bottom:24px;">
+          <strong>How to export from AppFolio:</strong>
+          In AppFolio, go to <strong>Reports &rarr; Owner Reports &rarr; Owner Directory</strong>
+          (or similar). Click <strong>Export to CSV / Excel</strong> and save the file.
+          Then drop it below.
+        </div>
+
+        <!-- Step 1: Drop zone -->
+        <div id="step1">
+          <div class="card">
+            <div class="card-header">Step 1 — Choose your CSV file</div>
+            <div class="card-body">
+              <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">📂</div>
+                <div class="drop-zone-title">Drag &amp; drop your AppFolio owner CSV here</div>
+                <div class="drop-zone-sub">or <a href="#" id="browseLink">click to browse</a></div>
+              </div>
+              <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Preview -->
+        <div id="step2" style="display:none;">
+          <div class="card">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <span>Step 2 — Preview</span>
+              <button class="btn btn-secondary btn-sm" id="btnReset">Choose different file</button>
+            </div>
+            <div class="card-body">
+              <div class="import-summary" id="importSummary"></div>
+              <div class="preview-table-wrap" id="previewWrap"></div>
+              <button class="btn btn-primary" id="btnImport" style="margin-top:8px;">
+                Import All Owners
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Progress -->
+        <div id="step3" style="display:none;">
+          <div class="card">
+            <div class="card-header">Step 3 — Importing&hellip;</div>
+            <div class="card-body">
+              <div id="progressLabel" style="font-size:0.9rem;margin-bottom:6px;">Starting&hellip;</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progressFill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Done -->
+        <div id="step4" style="display:none;">
+          <div class="card">
+            <div class="card-header">Import Complete</div>
+            <div class="card-body">
+              <div class="import-summary" id="resultSummary"></div>
+              <div class="result-log" id="resultLog"></div>
+              <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+                <a href="owner-health.html" class="btn btn-primary">View Owner Health Dashboard</a>
+                <button class="btn btn-secondary" id="btnImportAnother">Import Another File</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    // =========================================================================
+    // BOOT
+    // =========================================================================
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+    renderHeader(auth.profile)
+    renderSidebar('owner-health', auth.profile.role)
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
+    let parsedRows = []  // array of row objects after CSV parse
+
+    // =========================================================================
+    // DRAG / DROP / FILE PICK
+    // =========================================================================
+    const dropZone  = document.getElementById('dropZone')
+    const fileInput = document.getElementById('fileInput')
+
+    document.getElementById('browseLink').addEventListener('click', e => {
+      e.preventDefault()
+      fileInput.click()
+    })
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault()
+      dropZone.classList.add('drag-over')
+    })
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault()
+      dropZone.classList.remove('drag-over')
+      const file = e.dataTransfer.files[0]
+      if (file) handleFile(file)
+    })
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleFile(fileInput.files[0])
+    })
+
+    document.getElementById('btnReset').addEventListener('click', resetToStep1)
+    document.getElementById('btnImport').addEventListener('click', runImport)
+    document.getElementById('btnImportAnother').addEventListener('click', resetToStep1)
+
+    // =========================================================================
+    // FILE HANDLER
+    // =========================================================================
+    function handleFile(file) {
+      const reader = new FileReader()
+      reader.onload = e => {
+        const text = e.target.result
+        parsedRows = parseCSV(text)
+        if (parsedRows.length === 0) {
+          alert('Could not read any rows from that file. Make sure it is a CSV.')
+          return
+        }
+        showPreview()
+      }
+      reader.readAsText(file)
+    }
+
+    // =========================================================================
+    // CSV PARSER — handles quoted fields, commas inside quotes, CRLF/LF
+    // =========================================================================
+    function parseCSV(text) {
+      // Normalise line endings
+      const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
+      if (lines.length < 2) return []
+
+      const headers = splitCSVLine(lines[0]).map(h => h.trim())
+      const rows = []
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim()
+        if (!line) continue
+        const values = splitCSVLine(line)
+        const obj = {}
+        headers.forEach((h, idx) => { obj[h] = (values[idx] ?? '').trim() })
+        rows.push(obj)
+      }
+      return rows
+    }
+
+    function splitCSVLine(line) {
+      const fields = []
+      let cur = '', inQuote = false
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i]
+        if (ch === '"') {
+          if (inQuote && line[i + 1] === '"') { cur += '"'; i++ }
+          else inQuote = !inQuote
+        } else if (ch === ',' && !inQuote) {
+          fields.push(cur); cur = ''
+        } else {
+          cur += ch
+        }
+      }
+      fields.push(cur)
+      return fields
+    }
+
+    // =========================================================================
+    // COLUMN MAPPING — handles slight variations in AppFolio export headers
+    // =========================================================================
+    const COL_MAP = {
+      name:       ['name', 'owner name', 'full name', 'display name'],
+      phone:      ['phone numbers', 'phone', 'phone number', 'cell phone', 'mobile'],
+      email:      ['email', 'email address', 'primary email'],
+      properties: ['properties owned', 'properties', 'managed properties', 'property'],
+      last_payment: ['last payment date', 'last payment'],
+      last_packet:  ['last packet sent', 'packet sent'],
+      ftb_type:     ['ftb type', 'ftb'],
+      last_update:  ['owner last personalized update', 'last personalized update', 'last update'],
+      last_call:    ['owner last phone call', 'last phone call', 'last call'],
+      referred_by:  ['referred by', 'referral'],
+    }
+
+    function findCol(headers, key) {
+      const candidates = COL_MAP[key] || []
+      return headers.find(h => candidates.includes(h.toLowerCase())) || null
+    }
+
+    // =========================================================================
+    // SHOW PREVIEW
+    // =========================================================================
+    function showPreview() {
+      const headers  = Object.keys(parsedRows[0] || {})
+      const colName  = findCol(headers, 'name')
+      const colEmail = findCol(headers, 'email')
+      const colPhone = findCol(headers, 'phone')
+      const colProps = findCol(headers, 'properties')
+
+      // Stats
+      const withEmail = parsedRows.filter(r => r[colEmail]?.trim()).length
+      const withProps = parsedRows.filter(r => r[colProps]?.trim()).length
+
+      document.getElementById('importSummary').innerHTML = `
+        <div class="import-stat">
+          <div class="import-stat-num">${parsedRows.length}</div>
+          <div class="import-stat-label">Owners Found</div>
+        </div>
+        <div class="import-stat">
+          <div class="import-stat-num">${withEmail}</div>
+          <div class="import-stat-label">Have Email</div>
+        </div>
+        <div class="import-stat">
+          <div class="import-stat-num">${withProps}</div>
+          <div class="import-stat-label">Have Properties</div>
+        </div>
+      `
+
+      // Preview table — first 5 rows, key columns only
+      const previewCols = [colName, colEmail, colPhone, colProps].filter(Boolean)
+      const previewRows = parsedRows.slice(0, 5)
+
+      const thead = `<tr>${previewCols.map(c => `<th>${escHtml(c)}</th>`).join('')}</tr>`
+      const tbody = previewRows.map(r =>
+        `<tr>${previewCols.map(c => `<td title="${escHtml(r[c] || '')}">${escHtml(truncate(r[c] || '—', 40))}</td>`).join('')}</tr>`
+      ).join('')
+
+      document.getElementById('previewWrap').innerHTML = `
+        <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:8px;">
+          Showing first ${previewRows.length} of ${parsedRows.length} rows &mdash;
+          key columns only.
+          ${!colName  ? '<strong style="color:var(--color-danger)"> No "Name" column found.</strong>' : ''}
+        </p>
+        <table class="preview-table">
+          <thead>${thead}</thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      `
+
+      document.getElementById('step1').style.display = 'none'
+      document.getElementById('step2').style.display = ''
+    }
+
+    // =========================================================================
+    // IMPORT
+    // =========================================================================
+    async function runImport() {
+      document.getElementById('step2').style.display = 'none'
+      document.getElementById('step3').style.display = ''
+
+      const headers       = Object.keys(parsedRows[0] || {})
+      const colName       = findCol(headers, 'name')
+      const colEmail      = findCol(headers, 'email')
+      const colPhone      = findCol(headers, 'phone')
+      const colProps      = findCol(headers, 'properties')
+      const colLastPay    = findCol(headers, 'last_payment')
+      const colLastPkt    = findCol(headers, 'last_packet')
+      const colFtb        = findCol(headers, 'ftb_type')
+      const colLastUpd    = findCol(headers, 'last_update')
+      const colLastCall   = findCol(headers, 'last_call')
+      const colReferred   = findCol(headers, 'referred_by')
+
+      const fill  = document.getElementById('progressFill')
+      const label = document.getElementById('progressLabel')
+
+      let imported = 0, skipped = 0, propLinked = 0
+      const log = []
+
+      for (let i = 0; i < parsedRows.length; i++) {
+        const row  = parsedRows[i]
+        const name = colName ? row[colName]?.trim() : null
+
+        // Update progress
+        const pct = Math.round(((i + 1) / parsedRows.length) * 100)
+        fill.style.width  = pct + '%'
+        label.textContent = `Importing ${i + 1} of ${parsedRows.length}${name ? ` — ${name}` : ''}…`
+
+        if (!name) {
+          skipped++
+          log.push({ ok: false, msg: `Row ${i + 2}: skipped — no name` })
+          continue
+        }
+
+        const email = colEmail  ? (row[colEmail]?.trim().toLowerCase()  || null) : null
+        const phone = colPhone  ? (row[colPhone]?.trim()                || null) : null
+
+        // Stable ID: prefer email, fall back to slugified name
+        const stableKey = email || name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+        const appfolioId = `csv_import_${stableKey}`
+
+        // Extra fields → raw_payload
+        const rawPayload = {}
+        if (colLastPay  && row[colLastPay])   rawPayload.last_payment_date         = row[colLastPay]
+        if (colLastPkt  && row[colLastPkt])   rawPayload.last_packet_sent          = row[colLastPkt]
+        if (colFtb      && row[colFtb])       rawPayload.ftb_type                  = row[colFtb]
+        if (colLastUpd  && row[colLastUpd])   rawPayload.owner_last_personalized_update = row[colLastUpd]
+        if (colLastCall && row[colLastCall])  rawPayload.owner_last_phone_call     = row[colLastCall]
+        if (colReferred && row[colReferred])  rawPayload.referred_by               = row[colReferred]
+
+        // Upsert owner
+        const { data: upserted, error: ownerErr } = await supabase
+          .from('owners')
+          .upsert(
+            { appfolio_owner_id: appfolioId, name, email, phone,
+              raw_payload: Object.keys(rawPayload).length ? rawPayload : null,
+              last_synced_at: new Date().toISOString() },
+            { onConflict: 'appfolio_owner_id' }
+          )
+          .select('id')
+          .single()
+
+        if (ownerErr) {
+          skipped++
+          log.push({ ok: false, msg: `${name}: ${ownerErr.message}` })
+          continue
+        }
+
+        imported++
+        const ownerId = upserted.id
+
+        // Parse properties — may be comma, semicolon, or newline separated
+        const propsRaw = colProps ? (row[colProps]?.trim() || '') : ''
+        const propNames = propsRaw
+          .split(/[,;\n]+/)
+          .map(p => p.trim())
+          .filter(p => p.length > 0)
+
+        for (const propName of propNames) {
+          const { error: propErr } = await supabase
+            .from('owner_properties')
+            .upsert(
+              { owner_id: ownerId, property_name: propName },
+              { ignoreDuplicates: true }
+            )
+          if (!propErr) propLinked++
+        }
+
+        log.push({ ok: true, msg: `${name}${propNames.length ? ` (${propNames.length} propert${propNames.length !== 1 ? 'ies' : 'y'})` : ''}` })
+      }
+
+      // Done
+      showResults(imported, skipped, propLinked, log)
+    }
+
+    // =========================================================================
+    // RESULTS
+    // =========================================================================
+    function showResults(imported, skipped, propLinked, log) {
+      document.getElementById('step3').style.display = 'none'
+      document.getElementById('step4').style.display = ''
+
+      document.getElementById('resultSummary').innerHTML = `
+        <div class="import-stat">
+          <div class="import-stat-num" style="color:var(--color-success)">${imported}</div>
+          <div class="import-stat-label">Owners Imported</div>
+        </div>
+        <div class="import-stat">
+          <div class="import-stat-num">${propLinked}</div>
+          <div class="import-stat-label">Property Links</div>
+        </div>
+        ${skipped > 0 ? `
+        <div class="import-stat">
+          <div class="import-stat-num" style="color:var(--color-warning)">${skipped}</div>
+          <div class="import-stat-label">Skipped</div>
+        </div>` : ''}
+      `
+
+      document.getElementById('resultLog').innerHTML = log.map(entry => `
+        <div class="result-row">
+          <div class="result-dot ${entry.ok ? 'result-dot-ok' : 'result-dot-err'}"></div>
+          <span>${escHtml(entry.msg)}</span>
+        </div>
+      `).join('')
+    }
+
+    // =========================================================================
+    // RESET
+    // =========================================================================
+    function resetToStep1() {
+      parsedRows = []
+      fileInput.value = ''
+      document.getElementById('step1').style.display = ''
+      document.getElementById('step2').style.display = 'none'
+      document.getElementById('step3').style.display = 'none'
+      document.getElementById('step4').style.display = 'none'
+    }
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+    function escHtml(str) {
+      if (str == null) return ''
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+    function truncate(str, n) {
+      return str.length > n ? str.slice(0, n) + '…' : str
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOP Editor — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    /* ── Back link ───────────────────────────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--color-accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .back-link:hover { color: var(--color-accent-hover); text-decoration: underline; }
+
+    /* ── Form shell ──────────────────────────────────────── */
+    .editor-form {
+      max-width: 780px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .form-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 20px 24px;
+    }
+
+    .form-section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* Textarea override for content body */
+    .content-textarea {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.85rem;
+      min-height: 300px;
+      resize: vertical;
+    }
+
+    /* Preview area */
+    .content-preview {
+      min-height: 300px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      background: #fafbfc;
+      display: none;
+    }
+
+    .content-preview img { max-width: 100%; height: auto; }
+    .content-preview h1, .content-preview h2, .content-preview h3 {
+      margin: 16px 0 8px;
+      color: var(--color-primary);
+    }
+    .content-preview p { margin-bottom: 10px; }
+    .content-preview ul, .content-preview ol { margin: 0 0 10px 18px; }
+
+    .preview-toggle {
+      margin-bottom: 8px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .preview-toggle:hover { background: var(--color-bg); }
+
+    /* ── Checklist items ─────────────────────────────────── */
+    .checklist-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .checklist-item-row {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      gap: 8px;
+      align-items: start;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .drag-handle {
+      color: var(--color-text-muted);
+      font-size: 1rem;
+      cursor: grab;
+      padding-top: 8px;
+      user-select: none;
+    }
+
+    .checklist-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .checklist-subfields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    @media (max-width: 600px) {
+      .checklist-subfields { grid-template-columns: 1fr; }
+    }
+
+    .checklist-sublabel {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+
+    .btn-remove-item {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color .12s, background .12s;
+      align-self: flex-start;
+    }
+    .btn-remove-item:hover { background: #fee2e2; color: var(--color-danger); }
+
+    /* ── Form actions ────────────────────────────────────── */
+    .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .error-box {
+      background: #fff0f0;
+      border: 1px solid var(--color-danger);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--color-danger);
+      font-size: 0.875rem;
+      display: none;
+    }
+    .error-box.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <div id="page-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading&hellip;</p>
+      </div>
+
+      <div id="page-content" style="display:none;"></div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    ;(async () => {
+
+    const auth = await requireAuth()
+    if (!auth) return
+    const { user, profile } = auth
+    renderHeader(profile)
+    renderSidebar('sop-library', profile.role)
+
+    // Admin gate
+    if (profile.role !== 'admin') {
+      location.href = '/command-center/sop-library.html'
+      return
+    }
+
+    const editId   = sessionStorage.getItem('bpm_sop_edit_id')
+    const isEdit   = !!editId
+    const pageTitle = isEdit ? 'Edit SOP' : 'New SOP'
+
+    // ── Load categories ─────────────────────────────────────
+    const { data: cats, error: catErr } = await supabase
+      .from('sop_categories')
+      .select('id, name')
+      .order('name')
+
+    if (catErr) { showBootError('Could not load categories: ' + catErr.message); return }
+
+    const catOptions = (cats || []).map(c =>
+      `<option value="${esc(c.id)}">${esc(c.name)}</option>`
+    ).join('')
+
+    // ── Load existing SOP if editing ─────────────────────────
+    let existingSop  = null
+    let existingItems = []
+
+    if (isEdit) {
+      const { data: sop, error: sopErr } = await supabase
+        .from('sops')
+        .select('*')
+        .eq('id', editId)
+        .single()
+
+      if (sopErr || !sop) {
+        showBootError('Could not load SOP: ' + (sopErr ? sopErr.message : 'Not found'))
+        return
+      }
+      existingSop = sop
+
+      const { data: items } = await supabase
+        .from('sop_checklist_items')
+        .select('*')
+        .eq('sop_id', editId)
+        .order('sort_order')
+      existingItems = items || []
+    }
+
+    // ── Build page ───────────────────────────────────────────
+    document.getElementById('page-loading').style.display = 'none'
+    const pc = document.getElementById('page-content')
+    pc.style.display = 'block'
+
+    const catSelectHtml = `
+      <select class="form-select" id="f-category">
+        <option value="">-- Select category --</option>
+        ${catOptions}
+      </select>`
+
+    pc.innerHTML = `
+      <a class="back-link" href="/command-center/sop-library.html">&#8592; Back to Best Practices</a>
+      <div class="page-header" style="margin-bottom:20px;">
+        <div class="page-title">${esc(pageTitle)}</div>
+      </div>
+
+      <div class="editor-form" id="editor-form">
+
+        <!-- Section 1: Basics -->
+        <div class="form-section">
+          <div class="form-section-title">Basics</div>
+
+          <div class="form-group">
+            <label class="form-label" for="f-title">Title <span style="color:var(--color-danger)">*</span></label>
+            <input type="text" class="form-input" id="f-title"
+              placeholder="e.g. Move-In Inspection Process"
+              value="${esc(existingSop ? existingSop.title : '')}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="f-category">Category</label>
+            ${catSelectHtml}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="f-description">Description</label>
+            <textarea class="form-input" id="f-description" rows="2"
+              placeholder="Brief summary shown on library cards (optional)">${esc(existingSop ? (existingSop.description || '') : '')}</textarea>
+          </div>
+        </div>
+
+        <!-- Section 2: Content -->
+        <div class="form-section">
+          <div class="form-section-title">Body</div>
+          <p class="form-hint" style="margin-bottom:10px;">
+            Paste your steps, Scribe links, notes, or any text here. You can include HTML.
+          </p>
+          <button type="button" class="preview-toggle" id="btn-preview-toggle">Preview</button>
+          <textarea class="form-input content-textarea" id="f-content"
+            placeholder="Paste SOP content here...">${esc(existingSop ? (existingSop.content || '') : '')}</textarea>
+          <div class="content-preview" id="content-preview"></div>
+        </div>
+
+        <!-- Section 3: Checklist -->
+        <div class="form-section">
+          <div class="form-section-title">Checklist Items</div>
+          <p class="form-hint" style="margin-bottom:12px;">
+            Add steps with optional if/then guidance.
+          </p>
+          <div class="checklist-items-list" id="checklist-items-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-add-item">+ Add Checklist Item</button>
+        </div>
+
+        <!-- Error -->
+        <div class="error-box" id="save-error"></div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" id="btn-save">Save SOP</button>
+          ${isEdit ? `<button type="button" class="btn btn-danger" id="btn-delete">Delete SOP</button>` : ''}
+        </div>
+
+      </div>`
+
+    // Pre-select category
+    if (existingSop && existingSop.category_id) {
+      document.getElementById('f-category').value = existingSop.category_id
+    }
+
+    // ── Checklist state ──────────────────────────────────────
+    let checklistItems = existingItems.map(item => ({
+      label: item.label || '',
+      if_yes: item.if_yes || '',
+      if_no:  item.if_no  || '',
+    }))
+
+    renderChecklistItems()
+
+    document.getElementById('btn-add-item').addEventListener('click', () => {
+      checklistItems.push({ label: '', if_yes: '', if_no: '' })
+      renderChecklistItems()
+    })
+
+    function renderChecklistItems() {
+      const list = document.getElementById('checklist-items-list')
+      list.innerHTML = checklistItems.length === 0
+        ? `<p class="form-hint">No checklist items yet. Click "+ Add Checklist Item" to add one.</p>`
+        : checklistItems.map((item, i) => `
+            <div class="checklist-item-row" data-index="${i}">
+              <span class="drag-handle">&#9776;</span>
+              <div class="checklist-fields">
+                <input type="text" class="form-input" placeholder="Step label (required)"
+                  value="${esc(item.label)}" data-field="label" data-index="${i}">
+                <div class="checklist-subfields">
+                  <div>
+                    <div class="checklist-sublabel">If YES &rarr;</div>
+                    <input type="text" class="form-input" placeholder="What to do if checked (optional)"
+                      value="${esc(item.if_yes)}" data-field="if_yes" data-index="${i}">
+                  </div>
+                  <div>
+                    <div class="checklist-sublabel">If NO &rarr;</div>
+                    <input type="text" class="form-input" placeholder="What to do if not checked (optional)"
+                      value="${esc(item.if_no)}" data-field="if_no" data-index="${i}">
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn-remove-item" data-remove="${i}" title="Remove">&times;</button>
+            </div>`).join('')
+
+      // Wire input changes
+      list.querySelectorAll('[data-field]').forEach(input => {
+        input.addEventListener('input', e => {
+          const idx   = parseInt(e.target.dataset.index)
+          const field = e.target.dataset.field
+          checklistItems[idx][field] = e.target.value
+        })
+      })
+
+      // Wire remove buttons
+      list.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = parseInt(e.target.dataset.remove)
+          checklistItems.splice(idx, 1)
+          renderChecklistItems()
+        })
+      })
+    }
+
+    // ── Preview toggle ───────────────────────────────────────
+    let previewing = false
+    document.getElementById('btn-preview-toggle').addEventListener('click', () => {
+      previewing = !previewing
+      const btn      = document.getElementById('btn-preview-toggle')
+      const textarea = document.getElementById('f-content')
+      const preview  = document.getElementById('content-preview')
+      if (previewing) {
+        preview.innerHTML = sanitizeHtml(textarea.value)
+        preview.style.display = 'block'
+        textarea.style.display = 'none'
+        btn.textContent = 'Edit'
+      } else {
+        preview.style.display = 'none'
+        textarea.style.display = 'block'
+        btn.textContent = 'Preview'
+      }
+    })
+
+    // ── Save ─────────────────────────────────────────────────
+    document.getElementById('btn-save').addEventListener('click', async () => {
+      const btn   = document.getElementById('btn-save')
+      const errEl = document.getElementById('save-error')
+
+      const title      = document.getElementById('f-title').value.trim()
+      const categoryId = document.getElementById('f-category').value || null
+      const description = document.getElementById('f-description').value.trim() || null
+      const content    = document.getElementById('f-content').value
+
+      if (!title) {
+        showSaveError('Title is required.')
+        return
+      }
+
+      // Validate checklist: every item must have a label
+      for (let i = 0; i < checklistItems.length; i++) {
+        if (!checklistItems[i].label.trim()) {
+          showSaveError(`Checklist item ${i + 1} is missing a label.`)
+          return
+        }
+      }
+
+      btn.disabled = true
+      btn.textContent = 'Saving…'
+      errEl.classList.remove('visible')
+
+      const sopPayload = {
+        title,
+        description,
+        category_id: categoryId,
+        content,
+        updated_at: new Date().toISOString(),
+      }
+
+      let sopId = editId
+
+      if (isEdit) {
+        const { error } = await supabase
+          .from('sops')
+          .update(sopPayload)
+          .eq('id', editId)
+
+        if (error) {
+          showSaveError('Could not save SOP: ' + error.message)
+          btn.disabled = false; btn.textContent = 'Save SOP'
+          return
+        }
+      } else {
+        sopPayload.created_by = profile.display_name || user.email
+        const { data, error } = await supabase
+          .from('sops')
+          .insert(sopPayload)
+          .select('id')
+          .single()
+
+        if (error || !data) {
+          showSaveError('Could not create SOP: ' + (error ? error.message : 'Unknown error'))
+          btn.disabled = false; btn.textContent = 'Save SOP'
+          return
+        }
+        sopId = data.id
+      }
+
+      // Delete existing checklist items (edit mode) and re-insert
+      if (isEdit) {
+        await supabase.from('sop_checklist_items').delete().eq('sop_id', sopId)
+      }
+
+      if (checklistItems.length > 0) {
+        const rows = checklistItems.map((item, i) => ({
+          sop_id:     sopId,
+          sort_order: i + 1,
+          label:      item.label.trim(),
+          if_yes:     item.if_yes.trim() || null,
+          if_no:      item.if_no.trim()  || null,
+        }))
+        const { error: clErr } = await supabase.from('sop_checklist_items').insert(rows)
+        if (clErr) {
+          showSaveError('SOP saved but checklist items failed: ' + clErr.message)
+          btn.disabled = false; btn.textContent = 'Save SOP'
+          return
+        }
+      }
+
+      // Navigate to detail
+      sessionStorage.setItem('bpm_sop_id', sopId)
+      if (isEdit) sessionStorage.removeItem('bpm_sop_edit_id')
+      location.href = '/command-center/sop-detail.html'
+    })
+
+    // ── Delete ───────────────────────────────────────────────
+    if (isEdit) {
+      document.getElementById('btn-delete').addEventListener('click', async () => {
+        if (!confirm('Delete this SOP? This cannot be undone.')) return
+        const { error } = await supabase.from('sops').delete().eq('id', editId)
+        if (error) {
+          showSaveError('Could not delete SOP: ' + error.message)
+          return
+        }
+        sessionStorage.removeItem('bpm_sop_edit_id')
+        sessionStorage.removeItem('bpm_sop_id')
+        location.href = '/command-center/sop-library.html'
+      })
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    function showBootError(msg) {
+      document.getElementById('page-loading').style.display = 'none'
+      document.getElementById('page-content').style.display = 'block'
+      document.getElementById('page-content').innerHTML =
+        `<div class="error-box visible">${esc(msg)}</div>`
+    }
+
+    function showSaveError(msg) {
+      const el = document.getElementById('save-error')
+      el.textContent = msg
+      el.classList.add('visible')
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+
+    function sanitizeHtml(html) {
+      if (!html) return ''
+      return html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+        .replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '')
+        .replace(/javascript\s*:/gi, 'nojavascript:')
+    }
+
+    function esc(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    })()
+  </script>
+
+</body>
+</html>

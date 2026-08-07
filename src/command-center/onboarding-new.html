@@ -130,6 +130,22 @@
       margin-bottom: 12px;
     }
 
+    .lookup-tab {
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-bg);
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .lookup-tab.active {
+      background: var(--color-accent);
+      color: #fff;
+      border-color: var(--color-accent);
+    }
+
     .success-box {
       display: none;
       background: #f0fdf4;
@@ -186,13 +202,36 @@
     <div class="onb-card">
 
       <!-- ArcGIS Lookup -->
-      <div class="onb-section-title">Property Address Lookup</div>
-      <p class="lookup-note">Enter the property address to auto-fill owner info from San Diego County records.</p>
+      <div class="onb-section-title">Property Lookup</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="lookup-tab active" id="tab-address">By Address</button>
+        <button class="lookup-tab" id="tab-apn">By APN</button>
+      </div>
+      <p class="lookup-note" id="lookup-note-address">Enter the property address to auto-fill owner info from San Diego County records.</p>
+      <p class="lookup-note" id="lookup-note-apn" style="display:none">Enter the Assessor Parcel Number (APN) to auto-fill owner info — e.g. 530-431-08.</p>
       <div class="lookup-row">
         <input type="text" id="lookup-input" placeholder="e.g. 1234 Ash St" />
         <button class="btn-primary" id="btn-lookup">Look Up</button>
       </div>
       <div id="lookup-status" style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:10px;"></div>
+
+      <!-- Existing Owner -->
+      <div class="onb-section-title">Existing BPM Owner?</div>
+      <div style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:10px;font-size:0.875rem;cursor:pointer">
+          <input type="checkbox" id="existing-owner" style="width:16px;height:16px;cursor:pointer" />
+          This is an existing BPM owner adding a new property
+        </label>
+      </div>
+      <div id="existing-owner-wrap" style="display:none;margin-bottom:14px">
+        <div class="onb-field">
+          <label for="appfolio-owner-id">AppFolio Owner ID</label>
+          <input type="text" id="appfolio-owner-id" placeholder="e.g. 12345 — find in AppFolio under Owners" />
+        </div>
+        <p style="font-size:0.78rem;color:var(--color-text-muted);margin-top:6px">
+          BPM will link the new property to this owner's existing AppFolio record. No duplicate owner will be created.
+        </p>
+      </div>
 
       <!-- Owner Info -->
       <div class="onb-section-title">Owner Information</div>
@@ -318,7 +357,9 @@
 <script type="module">
   import { requireAuth, renderHeader, renderSidebar } from './auth.js'
 
-  const API = 'http://localhost:3006'
+  const API = window.location.hostname === 'localhost'
+    ? 'http://localhost:3006'
+    : 'https://bpm-onboarding-portal.onrender.com'
 
   let session = null
 
@@ -332,6 +373,11 @@
   }
 
   function setupListeners() {
+    document.getElementById('existing-owner').addEventListener('change', e => {
+      document.getElementById('existing-owner-wrap').style.display = e.target.checked ? 'block' : 'none'
+    })
+    document.getElementById('tab-address').addEventListener('click', () => setLookupMode('address'))
+    document.getElementById('tab-apn').addEventListener('click', () => setLookupMode('apn'))
     document.getElementById('btn-lookup').addEventListener('click', doLookup)
     document.getElementById('lookup-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') doLookup()
@@ -349,31 +395,42 @@
     })
   }
 
+  let lookupMode = 'address'
+
+  function setLookupMode(mode) {
+    lookupMode = mode
+    document.getElementById('tab-address').classList.toggle('active', mode === 'address')
+    document.getElementById('tab-apn').classList.toggle('active', mode === 'apn')
+    document.getElementById('lookup-note-address').style.display = mode === 'address' ? '' : 'none'
+    document.getElementById('lookup-note-apn').style.display     = mode === 'apn'     ? '' : 'none'
+    const input = document.getElementById('lookup-input')
+    input.placeholder = mode === 'apn' ? 'e.g. 530-431-08' : 'e.g. 1234 Ash St'
+    input.value = ''
+    document.getElementById('lookup-status').textContent = ''
+  }
+
   async function doLookup() {
-    const address = document.getElementById('lookup-input').value.trim()
-    if (!address) return
+    const value = document.getElementById('lookup-input').value.trim()
+    if (!value) return
 
     const status = document.getElementById('lookup-status')
+    status.style.color = 'var(--color-text-muted)'
     status.textContent = 'Looking up...'
 
-    const { data: { session: sb } } = await window.supabase
-      .createClient(
-        'https://kyekqaxuzpozuhyhibcn.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5ZWtxYXh1enBvenVoeWhpYmNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDE1MjksImV4cCI6MjA5ODA3NzUyOX0.UQp6Inqrvjfxax7AjRRujw6PXId9Whmknv5vkX8DcC8'
-      )
-      .auth.getSession()
-
-    // Re-use the session from requireAuth since supabase client is already initialized
-    const token = session?.user ? (await import('./auth.js')).supabase.auth : null
-
     try {
-      const res = await fetch(`${API}/api/onboarding/arcgis?address=${encodeURIComponent(address)}`, {
+      const param = lookupMode === 'apn'
+        ? `apn=${encodeURIComponent(value)}`
+        : `address=${encodeURIComponent(value)}`
+
+      const res = await fetch(`${API}/api/onboarding/arcgis?${param}`, {
         headers: authHeaders()
       })
       const data = await res.json()
 
       if (!data.found) {
-        status.textContent = 'No parcel found for that address. Fill fields manually.'
+        status.textContent = lookupMode === 'apn'
+          ? 'No parcel found for that APN. Fill fields manually.'
+          : 'No parcel found for that address. Fill fields manually.'
         return
       }
 
@@ -381,10 +438,8 @@
       if (data.propertyAddress) document.getElementById('property-address').value = data.propertyAddress
       if (data.apn)             document.getElementById('apn').value              = data.apn
 
-      // Owner first name from owner name
       if (data.ownerName) {
-        const firstName = data.ownerName.split(' ')[0]
-        document.getElementById('owner-first-name').value = firstName
+        document.getElementById('owner-first-name').value = data.ownerName.split(' ')[0]
       }
 
       status.textContent = 'Parcel found — fields auto-filled. Review and adjust as needed.'
@@ -450,8 +505,10 @@
     const ownerPhone      = document.getElementById('owner-phone').value.trim()
     const ownerFirstName  = document.getElementById('owner-first-name').value.trim()
     const mailingAddress  = document.getElementById('mailing-address').value.trim()
-    const apn             = document.getElementById('apn').value.trim()
-    const units           = parseInt(document.getElementById('units').value) || 1
+    const apn              = document.getElementById('apn').value.trim()
+    const existingOwner    = document.getElementById('existing-owner').checked
+    const appfolioOwnerId  = existingOwner ? document.getElementById('appfolio-owner-id').value.trim() : null
+    const units            = parseInt(document.getElementById('units').value) || 1
     const entityType      = document.getElementById('entity-type').value
     const agreementType   = document.querySelector('input[name="agreement-type"]:checked').value
     const startDate       = document.getElementById('start-date').value || null
@@ -483,6 +540,7 @@
           apn,
           managementStartDate: startDate,
           agreementTerminationDate: endDate,
+          appfolioOwnerId: appfolioOwnerId || undefined,
         }),
       })
 

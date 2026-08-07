@@ -6,6 +6,437 @@
   <title>Owner Health — BPM Command Center</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    /* ── Tier color tokens ───────────────────────────────────────── */
+    :root {
+      --tier-at-risk:  #E04444;
+      --tier-watch:    #E87A30;
+      --tier-healthy:  #3B82F6;
+      --tier-champion: #22C55E;
+    }
+
+    /* ── Tier summary pills ──────────────────────────────────────── */
+    .tier-pill-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tier-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: border-color 0.15s, opacity 0.15s;
+      user-select: none;
+    }
+
+    .tier-pill:hover { opacity: 0.85; }
+
+    .tier-pill[data-tier="at_risk"]  { background: #fff1f1; border-color: #fca5a5; color: var(--tier-at-risk); }
+    .tier-pill[data-tier="watch"]    { background: #fff7ed; border-color: #fdba74; color: var(--tier-watch); }
+    .tier-pill[data-tier="healthy"]  { background: #eff6ff; border-color: #93c5fd; color: var(--tier-healthy); }
+    .tier-pill[data-tier="champion"] { background: #f0fdf4; border-color: #86efac; color: var(--tier-champion); }
+
+    .tier-pill.active[data-tier="at_risk"]  { border-color: var(--tier-at-risk); }
+    .tier-pill.active[data-tier="watch"]    { border-color: var(--tier-watch); }
+    .tier-pill.active[data-tier="healthy"]  { border-color: var(--tier-healthy); }
+    .tier-pill.active[data-tier="champion"] { border-color: var(--tier-champion); }
+
+    .tier-pill-count { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+    .tier-pill-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── Filter row ──────────────────────────────────────────────── */
+    .oh-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .oh-search {
+      flex: 1;
+      min-width: 180px;
+      max-width: 280px;
+      padding: 7px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+    }
+
+    .oh-search:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(52,152,219,.15);
+    }
+
+    /* ── Owner table ─────────────────────────────────────────────── */
+    .owner-table-wrap {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow-x: auto;
+      background: var(--color-surface);
+      margin-bottom: 8px;
+    }
+
+    .owner-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+
+    .owner-table th {
+      background: #f8f9fa;
+      color: var(--color-text-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+
+    .owner-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+      font-size: 0.875rem;
+    }
+
+    .owner-table tr:last-child td { border-bottom: none; }
+    .owner-table tr:hover td { background: #f8f9fa; }
+    .owner-table tr.row-null-score td { opacity: 0.55; }
+
+    .oh-score-val {
+      font-size: 1.2rem;
+      font-weight: 800;
+      line-height: 1;
+      display: block;
+    }
+
+    .oh-score-bar {
+      width: 52px;
+      height: 4px;
+      background: var(--color-bg);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .oh-score-bar-fill { height: 100%; border-radius: 2px; }
+
+    /* ── Tier badge ──────────────────────────────────────────────── */
+    .tier-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tier-badge-at_risk  { background: #fee2e2; color: #991b1b; }
+    .tier-badge-watch    { background: #ffedd5; color: #9a3412; }
+    .tier-badge-healthy  { background: #dbeafe; color: #1e40af; }
+    .tier-badge-champion { background: #dcfce7; color: #14532d; }
+
+    /* ── Table misc ──────────────────────────────────────────────── */
+    .days-red   { color: var(--tier-at-risk); font-weight: 700; }
+    .days-amber { color: var(--tier-watch);   font-weight: 700; }
+
+    .segment-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: #f3f4f6;
+      color: var(--color-text-muted);
+    }
+
+    .signal-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #fee2e2;
+      color: #991b1b;
+      margin-right: 4px;
+    }
+
+    .table-footer-note {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+
+    /* ── Detail drawer ───────────────────────────────────────────── */
+    .drawer-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+    }
+    .drawer-overlay.open { display: block; }
+
+    .owner-drawer {
+      position: fixed;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 500px;
+      max-width: 90vw;
+      background: var(--color-surface);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.16);
+      z-index: 201;
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+    }
+    .owner-drawer.open { transform: translateX(0); }
+
+    .drawer-inner { padding: 24px; position: relative; }
+
+    .drawer-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+    }
+    .drawer-close:hover { background: var(--color-bg); color: var(--color-text); }
+
+    .drawer-owner-name { font-size: 1.35rem; font-weight: 700; padding-right: 40px; margin-bottom: 8px; }
+    .drawer-score      { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+
+    .drawer-section {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .drawer-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* Score breakdown */
+    .score-bd-row {
+      display: grid;
+      grid-template-columns: 145px 1fr 44px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 7px;
+    }
+    .score-bd-label { font-size: 0.8rem; color: var(--color-text-muted); }
+    .score-bd-bar-track { height: 6px; background: var(--color-bg); border-radius: 3px; overflow: hidden; }
+    .score-bd-bar-fill  { height: 100%; border-radius: 3px; }
+    .score-bd-val { font-size: 0.8rem; font-weight: 700; text-align: right; }
+
+    /* Action box */
+    .action-box { padding: 13px 15px; border-radius: 8px; font-size: 0.875rem; font-weight: 600; line-height: 1.5; }
+    .action-box-at_risk  { background: #fff1f1; border: 1px solid #fca5a5; color: #991b1b; }
+    .action-box-watch    { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; }
+    .action-box-healthy  { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+    .action-box-champion { background: #f0fdf4; border: 1px solid #86efac; color: #14532d; }
+    .action-box-null     { background: #f9fafb; border: 1px solid var(--color-border); color: var(--color-text-muted); }
+
+    /* Signal phase badges */
+    .phase-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; }
+    .phase-p1      { background: #fef9c3; color: #a16207; }
+    .phase-p2      { background: #ffedd5; color: #c2410c; }
+    .phase-p3      { background: #fee2e2; color: #b91c1c; }
+    .phase-trust   { background: #ede9fe; color: #6d28d9; }
+    .phase-silence { background: #f3f4f6; color: #6b7280; }
+    .phase-response{ background: #dbeafe; color: #1d4ed8; }
+
+    /* Rows inside drawer */
+    .drawer-row {
+      padding: 7px 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 0.82rem;
+    }
+    .drawer-row:last-child { border-bottom: none; }
+
+    .email-hist-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 0.82rem;
+    }
+    .email-hist-row:last-child { border-bottom: none; }
+
+    /* Contact rows */
+    .contact-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; font-size: 0.85rem; }
+    .contact-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-muted); min-width: 88px; }
+
+    /* Outcome badges */
+    .outcome-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; }
+    .outcome-resolved      { background: #d1fae5; color: #065f46; }
+    .outcome-follow_up     { background: #fef3c7; color: #92400e; }
+    .outcome-no_response   { background: #f3f4f6; color: #6b7280; }
+    .outcome-other         { background: #e5e7eb; color: #374151; }
+
+    /* Notes */
+    .drawer-notes {
+      width: 100%;
+      min-height: 76px;
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      color: var(--color-text);
+      background: var(--color-surface);
+      resize: vertical;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+    .drawer-notes:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(52,152,219,.15); }
+
+    .save-status { font-size: 0.78rem; color: var(--color-success); height: 18px; margin-top: 3px; }
+
+    /* ── Intervention modal ──────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: var(--color-surface);
+      border-radius: 10px;
+      padding: 24px;
+      width: 440px;
+      max-width: 92vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 16px; }
+
+    /* ── Toast ───────────────────────────────────────────────────── */
+    .oh-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--color-primary);
+      color: #fff;
+      padding: 11px 18px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      z-index: 400;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+    }
+    .oh-toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── Intervention queue section ──────────────────────────────── */
+    .queue-section { margin-top: 36px; }
+
+    .queue-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .queue-title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+
+    .queue-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 11px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: var(--color-danger);
+      color: #fff;
+    }
+
+    .queue-table-wrap {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow-x: auto;
+      background: var(--color-surface);
+    }
+
+    .queue-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+
+    .queue-table th {
+      background: #f8f9fa;
+      color: var(--color-text-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+
+    .queue-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+      font-size: 0.875rem;
+    }
+
+    .queue-table tr:last-child td { border-bottom: none; }
+    .queue-table tr:hover td { background: #f8f9fa; }
+
+    /* ── Mobile ──────────────────────────────────────────────────── */
+    @media (max-width: 767px) {
+      .owner-drawer { width: 100%; max-width: 100%; }
+      .tier-pill-count { font-size: 1.1rem; }
+      .tier-pill { padding: 8px 12px; }
+    }
+  </style>
 </head>
 <body>
 
@@ -15,12 +446,14 @@
   <main class="app-main">
     <div class="app-content">
 
+      <!-- Loading -->
       <div class="loading-state" id="loadingState">
         <div class="spinner"></div>
-        <span>Calculating owner health scores...</span>
+        <span id="loadingMsg">Checking login...</span>
       </div>
 
-      <div id="ownerHealthContent" style="display:none;">
+      <!-- Main content -->
+      <div id="ohContent" style="display:none;">
 
         <!-- Page header -->
         <div class="page-header">
@@ -36,53 +469,133 @@
           </div>
         </div>
 
-        <!-- Risk summary bar -->
-        <div class="risk-summary-bar" id="riskSummaryBar">
-          <div class="risk-pill risk-pill-red"    id="pillRed">
-            <span class="risk-pill-count" id="countRed">0</span>
-            <span class="risk-pill-label">At Risk</span>
+        <!-- Tier summary pills -->
+        <div class="tier-pill-bar" id="tierPillBar">
+          <div class="tier-pill" data-tier="at_risk">
+            <span class="tier-pill-count" id="countAtRisk">0</span>
+            <div><div class="tier-pill-label">At Risk</div></div>
           </div>
-          <div class="risk-pill risk-pill-yellow" id="pillYellow">
-            <span class="risk-pill-count" id="countYellow">0</span>
-            <span class="risk-pill-label">Watch</span>
+          <div class="tier-pill" data-tier="watch">
+            <span class="tier-pill-count" id="countWatch">0</span>
+            <div><div class="tier-pill-label">Watch</div></div>
           </div>
-          <div class="risk-pill risk-pill-green"  id="pillGreen">
-            <span class="risk-pill-count" id="countGreen">0</span>
-            <span class="risk-pill-label">Healthy</span>
+          <div class="tier-pill" data-tier="healthy">
+            <span class="tier-pill-count" id="countHealthy">0</span>
+            <div><div class="tier-pill-label">Healthy</div></div>
           </div>
-        </div>
-
-        <!-- No owners notice -->
-        <div class="alert alert-info" id="noOwnersNotice" style="display:none;">
-          <strong>Owner data not yet loaded.</strong>
-          Run <code style="background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px;">npm run sync:owners</code>
-          to pull your owners from AppFolio and populate this dashboard.
-        </div>
-
-        <!-- Filter tabs -->
-        <div class="flex items-center gap-8 mb-16" id="filterRow" style="display:none !important;">
-          <span style="font-size:0.82rem;font-weight:600;color:var(--color-text-muted);">Show:</span>
-          <div class="period-filter" id="riskFilter">
-            <button class="period-btn active" data-risk="alert">At Risk &amp; Watch</button>
-            <button class="period-btn" data-risk="red">At Risk Only</button>
-            <button class="period-btn" data-risk="green">Healthy</button>
-            <button class="period-btn" data-risk="all">All Owners</button>
+          <div class="tier-pill" data-tier="champion">
+            <span class="tier-pill-count" id="countChampion">0</span>
+            <div><div class="tier-pill-label">Champion</div></div>
           </div>
         </div>
 
-        <!-- All clear -->
-        <div class="all-clear-banner" id="allClearBanner" style="display:none;">
-          <div class="all-clear-icon">&#10003;</div>
-          <div class="all-clear-text">All owners are healthy — no retention risks detected.</div>
+        <!-- Filter row -->
+        <div class="oh-filter-row">
+          <div class="period-filter" id="tierFilter">
+            <button class="period-btn active" data-tier="all">All</button>
+            <button class="period-btn" data-tier="at_risk">At Risk</button>
+            <button class="period-btn" data-tier="watch">Watch</button>
+            <button class="period-btn" data-tier="healthy">Healthy</button>
+            <button class="period-btn" data-tier="champion">Champion</button>
+          </div>
+          <input type="text" class="oh-search" id="ownerSearch" placeholder="Search name or email…">
         </div>
 
-        <!-- Owner list -->
-        <div id="ownerListContainer"></div>
+        <!-- Owner table -->
+        <div class="owner-table-wrap">
+          <table class="owner-table">
+            <thead>
+              <tr>
+                <th>Owner</th>
+                <th>Score</th>
+                <th>Tier</th>
+                <th>Last Contact</th>
+                <th>Top Signal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ownerTableBody">
+              <tr><td colspan="8"><div class="loading-state"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer-note" id="tableFooterNote" style="display:none;">
+          Scores not calculated yet. Run: npm run score:owners
+        </div>
 
-      </div>
+        <!-- Intervention queue -->
+        <div class="queue-section" id="queueSection">
+          <div class="queue-header">
+            <span class="queue-title">Intervention Queue</span>
+            <span class="queue-count-badge" id="queueCount">0</span>
+          </div>
+          <div class="queue-table-wrap">
+            <table class="queue-table">
+              <thead>
+                <tr>
+                  <th>Owner</th>
+                  <th>Tier</th>
+                  <th>Days Since Contact</th>
+                  <th>Last Signal</th>
+                  <th>Assigned To</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="queueTableBody"></tbody>
+            </table>
+          </div>
+        </div>
 
+      </div><!-- /ohContent -->
     </div>
   </main>
+
+  <!-- Drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+
+  <!-- Detail drawer -->
+  <div class="owner-drawer" id="ownerDrawer">
+    <div class="drawer-inner" id="drawerInner">
+      <button class="drawer-close" id="drawerClose" title="Close">&#10005;</button>
+    </div>
+  </div>
+
+  <!-- Intervention modal -->
+  <div class="modal-overlay" id="interventionModal">
+    <div class="modal-box">
+      <div class="modal-title">Log Contact</div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="iType">
+          <option value="phone_call">Phone Call</option>
+          <option value="email">Email</option>
+          <option value="meeting">Meeting</option>
+          <option value="text">Text</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" id="iNotes" rows="3" placeholder="What did you discuss?"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Outcome</label>
+        <select class="form-select" id="iOutcome">
+          <option value="resolved">Resolved</option>
+          <option value="follow_up_needed">Follow-Up Needed</option>
+          <option value="no_response">No Response</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+        <button class="btn btn-secondary" id="iCancel">Cancel</button>
+        <button class="btn btn-primary" id="iSave">Save Intervention</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="oh-toast" id="ohToast"></div>
 
   <script type="module">
     import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
@@ -90,28 +603,62 @@
     // =========================================================================
     // STATE
     // =========================================================================
-    let allOwners   = []
-    let currentRisk = 'alert'  // 'alert' | 'red' | 'green' | 'all'
+    let allOwners    = []
+    let activeTier   = 'all'
+    let searchQuery  = ''
+    let currentOwner = null
+    let currentUser  = null
 
     // =========================================================================
     // BOOT
     // =========================================================================
+    const setMsg = msg => { const el = document.getElementById('loadingMsg'); if (el) el.textContent = msg }
+
+    setMsg('Checking login...')
     const auth = await requireAuth()
     if (!auth) throw new Error('Not authenticated')
+    setMsg('Login OK — loading scores...')
 
-    const { profile } = auth
+    const { user, profile } = auth
+    currentUser = user
     renderHeader(profile)
-    renderSidebar('owner-health', profile.role)
+    renderSidebar('owner-health', profile.role, user.email)
 
+    // Controls
     document.getElementById('btnRefresh').addEventListener('click', loadOwners)
+    document.getElementById('drawerOverlay').addEventListener('click', closeDrawer)
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer)
+    document.getElementById('iCancel').addEventListener('click', closeModal)
+    document.getElementById('iSave').addEventListener('click', saveIntervention)
 
-    document.getElementById('riskFilter').addEventListener('click', e => {
+    // Tier filter tabs
+    document.getElementById('tierFilter').addEventListener('click', e => {
       const btn = e.target.closest('.period-btn')
       if (!btn) return
-      document.querySelectorAll('#riskFilter .period-btn').forEach(b => b.classList.remove('active'))
+      document.querySelectorAll('#tierFilter .period-btn').forEach(b => b.classList.remove('active'))
       btn.classList.add('active')
-      currentRisk = btn.dataset.risk
-      renderOwnerList()
+      activeTier = btn.dataset.tier
+      renderTable()
+    })
+
+    // Tier summary pills (clickable filter — toggles)
+    document.getElementById('tierPillBar').addEventListener('click', e => {
+      const pill = e.target.closest('.tier-pill')
+      if (!pill) return
+      const tier = pill.dataset.tier
+      activeTier = activeTier === tier ? 'all' : tier
+      syncFilterTabs()
+      renderTable()
+    })
+
+    // Search
+    let searchTimer = null
+    document.getElementById('ownerSearch').addEventListener('input', e => {
+      clearTimeout(searchTimer)
+      searchTimer = setTimeout(() => {
+        searchQuery = e.target.value.trim()
+        renderTable()
+      }, 250)
     })
 
     await loadOwners()
@@ -120,266 +667,562 @@
     // LOAD
     // =========================================================================
     async function loadOwners() {
+      document.getElementById('loadingState').style.display = 'flex'
+      document.getElementById('ohContent').style.display   = 'none'
+
       try {
-        const { data, error } = await supabase
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timed out — Supabase took too long. Try refreshing.')), 20000)
+        )
+        const query = supabase
           .from('v_owner_health')
           .select('*')
-          .order('risk_score', { ascending: false })
+          .order('score', { ascending: true })
+
+        const { data, error } = await Promise.race([query, timeout])
 
         if (error) throw error
-
         allOwners = data || []
         render()
-
       } catch (err) {
         document.getElementById('loadingState').innerHTML = `
           <div class="alert alert-danger" style="max-width:520px;">
-            Could not load owner health data: ${escHtml(err.message || String(err))}
+            <div style="margin-bottom:12px;">Could not load owner health data: ${escHtml(err.message || String(err))}</div>
+            <button onclick="loadOwners()" style="padding:8px 16px;background:var(--color-accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.875rem;font-weight:600;">Try Again</button>
           </div>
         `
         document.getElementById('loadingState').style.display = 'flex'
-        document.getElementById('ownerHealthContent').style.display = 'none'
+        document.getElementById('ohContent').style.display    = 'none'
       }
     }
 
     // =========================================================================
-    // RENDER
+    // RENDER (full page)
     // =========================================================================
     function render() {
-      const red    = allOwners.filter(o => o.risk_level === 'red')
-      const yellow = allOwners.filter(o => o.risk_level === 'yellow')
-      const green  = allOwners.filter(o => o.risk_level === 'green')
+      const counts = { at_risk: 0, watch: 0, healthy: 0, champion: 0 }
+      allOwners.forEach(o => { if (o.tier && counts[o.tier] !== undefined) counts[o.tier]++ })
 
-      // Summary counts
-      document.getElementById('countRed').textContent    = red.length
-      document.getElementById('countYellow').textContent = yellow.length
-      document.getElementById('countGreen').textContent  = green.length
+      document.getElementById('countAtRisk').textContent   = counts.at_risk
+      document.getElementById('countWatch').textContent    = counts.watch
+      document.getElementById('countHealthy').textContent  = counts.healthy
+      document.getElementById('countChampion').textContent = counts.champion
 
-      // Highlight the highest-risk pill
-      document.getElementById('pillRed').classList.toggle('risk-pill-active', red.length > 0)
-      document.getElementById('pillYellow').classList.toggle('risk-pill-active', yellow.length > 0 && red.length === 0)
-
-      // All-clear vs table
-      if (allOwners.length === 0) {
-        document.getElementById('noOwnersNotice').style.display = ''
-        document.getElementById('filterRow').style.removeProperty('display')
-        document.getElementById('filterRow').style.display = 'none'
-        document.getElementById('allClearBanner').style.display  = 'none'
-      } else if (red.length === 0 && yellow.length === 0) {
-        document.getElementById('noOwnersNotice').style.display = 'none'
-        document.getElementById('filterRow').style.removeProperty('display')
-        document.getElementById('filterRow').style.display = 'flex'
-        document.getElementById('allClearBanner').style.display  = ''
-      } else {
-        document.getElementById('noOwnersNotice').style.display = 'none'
-        document.getElementById('filterRow').style.removeProperty('display')
-        document.getElementById('filterRow').style.display = 'flex'
-        document.getElementById('allClearBanner').style.display  = 'none'
-      }
-
-      renderOwnerList()
+      renderTable()
+      renderQueue()
 
       document.getElementById('lastRefreshed').textContent = 'Updated just now'
-      document.getElementById('loadingState').style.display       = 'none'
-      document.getElementById('ownerHealthContent').style.display = ''
+      document.getElementById('loadingState').style.display = 'none'
+      document.getElementById('ohContent').style.display   = ''
     }
 
-    function getFilteredOwners() {
-      if (currentRisk === 'alert')  return allOwners.filter(o => o.risk_level !== 'green')
-      if (currentRisk === 'red')    return allOwners.filter(o => o.risk_level === 'red')
-      if (currentRisk === 'green')  return allOwners.filter(o => o.risk_level === 'green')
-      return allOwners
+    // =========================================================================
+    // FILTER HELPERS
+    // =========================================================================
+    function getFiltered() {
+      let list = allOwners
+      if (activeTier !== 'all') list = list.filter(o => o.tier === activeTier)
+      const q = searchQuery.toLowerCase()
+      if (q) list = list.filter(o =>
+        o.owner_name?.toLowerCase().includes(q) ||
+        o.owner_email?.toLowerCase().includes(q)
+      )
+      return list
     }
 
-    function renderOwnerList() {
-      const container = document.getElementById('ownerListContainer')
-      const owners    = getFilteredOwners()
+    function syncFilterTabs() {
+      document.querySelectorAll('#tierFilter .period-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tier === activeTier)
+      })
+    }
+
+    // =========================================================================
+    // OWNER TABLE
+    // =========================================================================
+    function renderTable() {
+      const tbody  = document.getElementById('ownerTableBody')
+      const owners = getFiltered()
+
+      const hasNullScores = owners.some(o => o.score == null)
+      document.getElementById('tableFooterNote').style.display = hasNullScores ? '' : 'none'
 
       if (owners.length === 0) {
-        const msg = currentRisk === 'alert'  ? 'No owners currently at risk or under watch.'
-                  : currentRisk === 'red'    ? 'No owners currently at risk.'
-                  : currentRisk === 'green'  ? 'No healthy owners found.'
-                  : 'No owners found. Run npm run sync:owners to load owner data.'
-        container.innerHTML = `
-          <div style="padding:48px 0; text-align:center; color:var(--color-text-muted); font-size:0.9rem;">
-            ${escHtml(msg)}
-          </div>
-        `
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No owners match this filter.</div></td></tr>`
         return
       }
 
-      const AVATAR_COLORS = [
-        '#1e3a5f','#c0392b','#8e44ad','#2980b9',
-        '#27ae60','#d35400','#16a085','#2c3e50'
-      ]
+      tbody.innerHTML = owners.map((o, idx) => buildOwnerRow(o, idx)).join('')
 
-      const rowsHtml = owners.map((o, i) => {
-        const initials    = getInitials(o.name)
-        const avatarBg    = AVATAR_COLORS[i % AVATAR_COLORS.length]
-        const riskClass   = `owner-risk-${o.risk_level}`
-        const badgeLabel  = o.risk_level === 'red' ? 'At Risk' : o.risk_level === 'yellow' ? 'Watch' : 'Healthy'
-        const score       = o.risk_score ?? 0
-        const barColor    = o.risk_level === 'red' ? 'var(--color-danger)' :
-                            o.risk_level === 'yellow' ? 'var(--color-warning)' : 'var(--color-success)'
+      tbody.querySelectorAll('.btn-view-owner').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx, 10)
+          openDrawer(owners[idx])
+        })
+      })
+    }
 
-        // Vacancy cell
-        const vacancyHtml = o.vacant_units > 0
-          ? `<strong class="kpi-danger">${o.vacant_units}</strong>
-             <span class="text-muted" style="font-size:0.78rem;"> unit${o.vacant_units !== 1 ? 's' : ''}
-             (avg ${Math.round(o.avg_days_vacant)}d)</span>`
-          : `<span class="text-muted">—</span>`
+    function buildOwnerRow(o, idx) {
+      const nullScore  = o.score == null
+      const tc         = tierHexColor(o.tier)
+      const tierBadge  = o.tier ? `<span class="tier-badge tier-badge-${o.tier}">${tierLabel(o.tier)}</span>` : ''
 
-        // Response cell
-        const responseHtml = o.emails_received > 0
-          ? `<strong>${formatHours(o.avg_response_hours)}</strong>
-             <span class="text-muted" style="font-size:0.78rem;"> avg (${o.emails_received} email${o.emails_received !== 1 ? 's' : ''})</span>`
-          : `<span class="text-muted">No emails</span>`
+      let daysHtml = '<span class="text-muted">—</span>'
+      if (o.days_since_last_contact != null) {
+        const d = o.days_since_last_contact
+        const cls = d > 30 ? 'days-red' : d > 14 ? 'days-amber' : ''
+        daysHtml = `<span class="${cls}">${d}d</span>`
+      }
 
-        // Open WOs cell
-        const woHtml = o.open_work_orders > 0
-          ? `<strong class="${o.open_work_orders >= 3 ? 'kpi-danger' : 'kpi-warning'}">${o.open_work_orders}</strong> open`
-          : `<span class="text-muted">—</span>`
+      const lastContactHtml = o.last_owner_email_at
+        ? `<span style="font-size:0.82rem;">${relativeDate(o.last_owner_email_at)}</span>`
+        : '<span class="text-muted">—</span>'
 
-        // Last contact cell
-        const contactHtml = o.last_contact_at
-          ? formatRelative(o.last_contact_at)
-          : `<span class="text-muted">Never</span>`
+      const signalHtml = (o.active_signal_count > 0)
+        ? `<span class="signal-count-badge">${o.active_signal_count}</span><span class="text-muted" style="font-size:0.78rem;">active</span>`
+        : '<span class="text-muted">—</span>'
 
-        // Alert callouts (shown below main row as inline hints)
-        const alerts = []
-        if (o.vacant_units > 0 && o.avg_days_vacant >= 14)
-          alerts.push(`Vacancy: ${o.vacant_units} unit${o.vacant_units !== 1 ? 's' : ''} vacant avg ${Math.round(o.avg_days_vacant)} days`)
-        if (o.avg_response_hours > 24 && o.emails_received > 0)
-          alerts.push(`Response: ${formatHours(o.avg_response_hours)} avg to reply to their emails`)
-        if (o.open_work_orders >= 3)
-          alerts.push(`Maintenance: ${o.open_work_orders} open work orders on their properties`)
+      const scoreHtml = nullScore
+        ? '<span class="text-muted">—</span>'
+        : `<span class="oh-score-val" style="color:${tc};">${o.score}</span>
+           <div class="oh-score-bar"><div class="oh-score-bar-fill" style="width:${o.score}%;background:${tc};"></div></div>`
 
-        const alertsHtml = alerts.length > 0
-          ? `<div class="owner-alerts">
-               ${alerts.map(a => `<span class="owner-alert-chip">${escHtml(a)}</span>`).join('')}
-             </div>`
-          : ''
+      const triageHref = o.owner_email
+        ? `email-triage.html?from=${encodeURIComponent(o.owner_email)}`
+        : 'email-triage.html'
+
+      const lsLink = o.leadsimple_contact_id
+        ? `<a href="https://app.leadsimple.com/contacts/${o.leadsimple_contact_id}" target="_blank" class="btn btn-secondary btn-sm" title="Open in LeadSimple" style="text-decoration:none;padding:3px 7px;font-size:0.75rem;">LS</a>`
+        : ''
+
+      return `
+        <tr class="${nullScore ? 'row-null-score' : ''}">
+          <td>
+            <div style="font-weight:700;">${escHtml(o.owner_name || '—')}</div>
+            ${o.owner_email ? `<div style="font-size:0.78rem;color:var(--color-text-muted);">${escHtml(o.owner_email)}</div>` : ''}
+          </td>
+          <td>${scoreHtml}</td>
+          <td>${tierBadge}</td>
+          <td>${lastContactHtml}</td>
+          <td>${signalHtml}</td>
+          <td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+            ${lsLink}
+            <a href="${triageHref}" class="btn btn-secondary btn-sm" title="Email Triage" style="text-decoration:none;padding:3px 7px;font-size:0.75rem;">✉</a>
+            <button class="btn btn-secondary btn-sm btn-view-owner" data-idx="${idx}" style="padding:3px 7px;font-size:0.75rem;">View &rarr;</button>
+          </td>
+        </tr>
+      `
+    }
+
+    // =========================================================================
+    // INTERVENTION QUEUE
+    // =========================================================================
+    function renderQueue() {
+      const qOwners = allOwners
+        .filter(o => o.tier === 'at_risk' || o.tier === 'watch')
+        .sort((a, b) => {
+          if (a.tier !== b.tier) return a.tier === 'at_risk' ? -1 : 1
+          return (b.days_since_last_contact || 0) - (a.days_since_last_contact || 0)
+        })
+
+      document.getElementById('queueCount').textContent = qOwners.length
+
+      const tbody = document.getElementById('queueTableBody')
+      if (qOwners.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No owners need intervention right now.</div></td></tr>`
+        return
+      }
+
+      tbody.innerHTML = qOwners.map((o, i) => {
+        const d = o.days_since_last_contact
+        const daysHtml = d != null
+          ? `<span class="${d > 30 ? 'days-red' : 'days-amber'}">${d}d</span>`
+          : '<span class="text-muted">—</span>'
 
         return `
-          <div class="owner-card ${riskClass}">
-            <div class="owner-card-main">
-
-              <!-- Score -->
-              <div class="owner-score-col">
-                <div class="owner-score-number" style="color:${barColor}">${score}</div>
-                <div class="owner-score-bar-track">
-                  <div class="owner-score-bar-fill" style="width:${score}%;background:${barColor}"></div>
-                </div>
-                <span class="sla-badge sla-badge-${o.risk_level}" style="margin-top:4px;">${badgeLabel}</span>
-              </div>
-
-              <!-- Name -->
-              <div class="owner-name-col">
-                <div class="flex items-center gap-8">
-                  <div class="avatar" style="background:${avatarBg};width:36px;height:36px;font-size:0.8rem;">
-                    ${escHtml(initials)}
-                  </div>
-                  <div>
-                    <div style="font-weight:700;font-size:0.95rem;">${escHtml(o.name)}</div>
-                    ${o.email ? `<div style="font-size:0.78rem;color:var(--color-text-muted);">${escHtml(o.email)}</div>` : ''}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Properties -->
-              <div class="owner-metric-col text-center">
-                <div class="owner-metric-value">${o.property_count ?? 0}</div>
-                <div class="owner-metric-label">properties</div>
-              </div>
-
-              <!-- Vacancy -->
-              <div class="owner-metric-col">
-                ${vacancyHtml}
-                <div class="owner-metric-label" style="margin-top:2px;">vacancy</div>
-              </div>
-
-              <!-- Response time -->
-              <div class="owner-metric-col">
-                ${responseHtml}
-                <div class="owner-metric-label" style="margin-top:2px;">our response</div>
-              </div>
-
-              <!-- Open WOs -->
-              <div class="owner-metric-col text-center">
-                ${woHtml}
-                <div class="owner-metric-label" style="margin-top:2px;">work orders</div>
-              </div>
-
-              <!-- Last contact -->
-              <div class="owner-metric-col">
-                <div style="font-size:0.875rem;">${contactHtml}</div>
-                <div class="owner-metric-label" style="margin-top:2px;">last emailed us</div>
-              </div>
-
-              <!-- Action -->
-              <div class="owner-action-col">
-                ${o.email
-                  ? `<a href="mailto:${escHtml(o.email)}" class="btn btn-${o.risk_level === 'red' ? 'primary' : 'secondary'} btn-sm">
-                       ${o.risk_level === 'red' ? 'Reach Out' : 'Email'}
-                     </a>`
-                  : `<span class="text-muted" style="font-size:0.78rem;">No email</span>`
-                }
-              </div>
-
-            </div>
-            ${alertsHtml}
-          </div>
+          <tr>
+            <td style="font-weight:600;">${escHtml(o.owner_name || '—')}</td>
+            <td><span class="tier-badge tier-badge-${o.tier}">${tierLabel(o.tier)}</span></td>
+            <td>${daysHtml}</td>
+            <td><span class="text-muted">—</span></td>
+            <td>${escHtml(o.relationship_owner || 'Unassigned')}</td>
+            <td><button class="btn btn-secondary btn-sm btn-queue-log" data-qi="${i}">Log Contact</button></td>
+          </tr>
         `
       }).join('')
 
-      container.innerHTML = `
-        <div class="owner-list">${rowsHtml}</div>
-        <div style="margin-top:12px;font-size:0.75rem;color:var(--color-text-muted);">
-          Score 0&ndash;100 &mdash; vacancy (40 pts) + our response time (40 pts) + open work orders (20 pts).
-          Higher = more at risk. Scores update when you refresh or re-run syncs.
+      tbody.querySelectorAll('.btn-queue-log').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentOwner = qOwners[parseInt(btn.dataset.qi, 10)]
+          openModal()
+        })
+      })
+    }
+
+    // =========================================================================
+    // DRAWER — OPEN
+    // =========================================================================
+    async function openDrawer(owner) {
+      currentOwner = owner
+      document.getElementById('drawerOverlay').classList.add('open')
+      document.getElementById('ownerDrawer').classList.add('open')
+
+      document.getElementById('drawerInner').innerHTML = `
+        <button class="drawer-close" id="drawerClose" title="Close">&#10005;</button>
+        <div style="padding-top:40px;"><div class="loading-state"><div class="spinner"></div><span>Loading...</span></div></div>
+      `
+      document.getElementById('drawerClose').addEventListener('click', closeDrawer)
+
+      // Parallel detail queries
+      const prom = [
+        supabase.from('owner_signals')
+          .select('*')
+          .eq('owner_id', owner.owner_id)
+          .order('detected_at', { ascending: false })
+          .limit(30),
+        supabase.from('owner_interventions')
+          .select('*')
+          .eq('owner_id', owner.owner_id)
+          .order('done_at', { ascending: false })
+          .limit(10),
+      ]
+
+      if (owner.owner_email) {
+        prom.push(
+          supabase.from('email_cache')
+            .select('id, subject, received_at, from_address, body_preview')
+            .ilike('from_address', owner.owner_email)
+            .order('received_at', { ascending: false })
+            .limit(10)
+        )
+      }
+
+      const results = await Promise.all(prom)
+      const signals       = results[0]?.data || []
+      const interventions = results[1]?.data || []
+      const emails        = owner.owner_email ? (results[2]?.data || []) : []
+
+      renderDrawer(owner, signals, emails, interventions)
+    }
+
+    // =========================================================================
+    // DRAWER — RENDER
+    // =========================================================================
+    function renderDrawer(owner, signals, emails, interventions) {
+      const tc          = tierHexColor(owner.tier)
+      const rel         = owner.relationship_owner || 'Unassigned'
+      const scoreDisp   = owner.score != null ? owner.score : '—'
+      const activeSignals = signals.filter(s => s.is_active)
+      const action      = getRecommendedAction(owner)
+      const aCls        = owner.tier ? `action-box-${owner.tier}` : 'action-box-null'
+      const aIcon       = { at_risk: '🔴', watch: '🟡', healthy: '🔵', champion: '🟢' }[owner.tier] || '⚪'
+
+      document.getElementById('drawerInner').innerHTML = `
+        <button class="drawer-close" id="drawerClose" title="Close">&#10005;</button>
+
+        <div class="drawer-owner-name">${escHtml(owner.owner_name || '—')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          ${owner.segment ? `<span class="segment-tag">${escHtml(segmentLabel(owner.segment))}</span>` : ''}
+          ${owner.tier    ? `<span class="tier-badge tier-badge-${owner.tier}">${tierLabel(owner.tier)}</span>` : ''}
+        </div>
+        <div class="drawer-score" style="color:${tc};">${scoreDisp}</div>
+        <div style="font-size:0.75rem;color:var(--color-text-muted);margin-top:2px;">Health Score</div>
+
+        <!-- Score breakdown -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Score Breakdown</div>
+          ${buildScoreBreakdown(owner)}
+        </div>
+
+        <!-- Contact info -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Contact</div>
+          ${owner.owner_email ? `<div class="contact-row"><span class="contact-label">Email</span><a href="mailto:${escHtml(owner.owner_email)}">${escHtml(owner.owner_email)}</a></div>` : ''}
+          ${owner.owner_phone ? `<div class="contact-row"><span class="contact-label">Phone</span><span>${escHtml(owner.owner_phone)}</span></div>` : ''}
+          ${owner.communication_preference ? `<div class="contact-row"><span class="contact-label">Prefers</span><span>${escHtml(owner.communication_preference)}</span></div>` : ''}
+          ${owner.years_as_client  != null ? `<div class="contact-row"><span class="contact-label">Client</span><span>${owner.years_as_client} yr${owner.years_as_client !== 1 ? 's' : ''}</span></div>` : ''}
+          ${owner.referrals_sent   != null ? `<div class="contact-row"><span class="contact-label">Referrals</span><span>${owner.referrals_sent}</span></div>` : ''}
+          ${owner.property_count   != null ? `<div class="contact-row"><span class="contact-label">Properties</span><span>${owner.property_count}</span></div>` : ''}
+          ${owner.leadsimple_contact_id ? `<div class="contact-row"><span class="contact-label">LeadSimple</span><a href="https://app.leadsimple.com/contacts/${owner.leadsimple_contact_id}" target="_blank" style="font-weight:600;">Open Contact →</a></div>` : ''}
+          ${owner.owner_email ? `<div class="contact-row"><span class="contact-label">Email Thread</span><a href="email-triage.html?from=${encodeURIComponent(owner.owner_email)}" style="font-weight:600;">Open in Triage →</a></div>` : ''}
+          ${(owner.risk_since && (owner.tier === 'at_risk' || owner.tier === 'watch')) ? `<div class="contact-row"><span class="contact-label">Days Unhappy</span><span style="color:#E04444;font-weight:700;">${Math.floor((Date.now() - new Date(owner.risk_since).getTime()) / 86400000)}d</span></div>` : ''}
+        </div>
+
+        <!-- Recommended action -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Recommended Action</div>
+          <div class="action-box ${aCls}">${aIcon} ${escHtml(action)}</div>
+        </div>
+
+        <!-- Active signals -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Active Signals (${activeSignals.length})</div>
+          ${activeSignals.length === 0
+            ? '<div class="text-muted" style="font-size:0.85rem;">No active signals.</div>'
+            : activeSignals.map(buildSignalRow).join('')}
+        </div>
+
+        <!-- Email history -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Recent Emails (${emails.length})</div>
+          ${emails.length === 0
+            ? '<div class="text-muted" style="font-size:0.85rem;">No emails found.</div>'
+            : emails.map(e => `
+                <div class="email-hist-row">
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(truncate(e.subject || '(no subject)', 70))}</span>
+                  <span class="text-muted" style="white-space:nowrap;font-size:0.78rem;flex-shrink:0;">${relativeDate(e.received_at)}</span>
+                </div>`).join('')}
+        </div>
+
+        <!-- Segment -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Segment</div>
+          <select class="form-select" id="drawerSegment" style="max-width:260px;">
+            <option value="">-- Select segment --</option>
+            ${segmentOptions(owner.segment)}
+          </select>
+        </div>
+
+        <!-- Notes -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Notes</div>
+          <textarea class="drawer-notes" id="drawerNotes" placeholder="Add notes about this owner...">${escHtml(owner.notes || '')}</textarea>
+          <div class="save-status" id="notesSaveStatus"></div>
+        </div>
+
+        <!-- Log contact button -->
+        <div class="drawer-section">
+          <button class="btn btn-primary" id="btnLogContact">Log Contact</button>
+        </div>
+
+        <!-- Intervention log -->
+        <div class="drawer-section">
+          <div class="drawer-section-title">Intervention Log</div>
+          <div id="interventionLogContainer">${buildInterventionList(interventions)}</div>
         </div>
       `
+
+      document.getElementById('drawerClose').addEventListener('click', closeDrawer)
+      document.getElementById('drawerNotes').addEventListener('blur', saveNotes)
+      document.getElementById('drawerSegment').addEventListener('change', saveSegment)
+      document.getElementById('btnLogContact').addEventListener('click', openModal)
+    }
+
+    function buildScoreBreakdown(owner) {
+      const cats = [
+        { label: 'BPM Response Time',   val: owner.score_bpm_response,        max: -25, color: '#E04444' },
+        { label: 'Owner Engagement',     val: owner.score_owner_engagement,     max: -20, color: '#E87A30' },
+        { label: 'Email Tone Signals',   val: owner.score_tone_signals,         max: -20, color: '#E87A30' },
+        { label: 'Property Performance', val: owner.score_property_performance, max: -15, color: '#6B7280' },
+        { label: 'Relationship Bonus',   val: owner.score_relationship_bonus,   max:  20, color: '#22C55E' },
+      ]
+      return cats.map(c => {
+        const v   = c.val ?? 0
+        const pct = c.max !== 0 ? Math.min(100, (Math.abs(v) / Math.abs(c.max)) * 100) : 0
+        const dv  = v > 0 ? `+${v}` : String(v)
+        return `
+          <div class="score-bd-row">
+            <span class="score-bd-label">${escHtml(c.label)}</span>
+            <div class="score-bd-bar-track"><div class="score-bd-bar-fill" style="width:${pct}%;background:${c.color};"></div></div>
+            <span class="score-bd-val" style="color:${c.color};">${dv}</span>
+          </div>`
+      }).join('')
+    }
+
+    function buildSignalRow(s) {
+      const phase = (s.phase || '').toLowerCase()
+      const cls = { p1:'phase-p1', p2:'phase-p2', p3:'phase-p3', trust:'phase-trust', silence:'phase-silence', response:'phase-response' }[phase] || 'phase-silence'
+      const keyword = s.signal_keyword || s.signal_type || 'Signal'
+      const subj    = s.email_subject ? truncate(s.email_subject, 60) : ''
+      return `
+        <div class="drawer-row">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="phase-badge ${cls}">${escHtml(s.phase || '—')}</span>
+            <span style="font-weight:600;">${escHtml(keyword)}</span>
+            <span class="text-muted" style="font-size:0.78rem;">${relativeDate(s.detected_at)}</span>
+          </div>
+          ${subj ? `<div class="text-muted" style="font-size:0.78rem;margin-top:2px;">${escHtml(subj)}</div>` : ''}
+        </div>`
+    }
+
+    function buildInterventionList(interventions) {
+      if (!interventions || interventions.length === 0)
+        return '<div class="text-muted" style="font-size:0.85rem;">No interventions logged yet.</div>'
+
+      const typeIcon = { phone_call:'📞', email:'✉️', meeting:'🤝', text:'💬', other:'📝' }
+      const oCls     = { resolved:'outcome-resolved', follow_up_needed:'outcome-follow_up', no_response:'outcome-no_response', other:'outcome-other' }
+      const oLabel   = { resolved:'Resolved', follow_up_needed:'Follow-Up Needed', no_response:'No Response', other:'Other' }
+
+      return interventions.map(iv => {
+        const icon    = typeIcon[iv.intervention_type] || '📝'
+        const preview = iv.notes ? truncate(iv.notes, 80) : ''
+        const ocls    = oCls[iv.outcome]   || 'outcome-other'
+        const olabel  = oLabel[iv.outcome] || iv.outcome || ''
+        return `
+          <div class="drawer-row">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span>${icon}</span>
+              <span style="font-weight:600;text-transform:capitalize;">${escHtml((iv.intervention_type || '').replace(/_/g,' '))}</span>
+              <span class="outcome-badge ${ocls}">${escHtml(olabel)}</span>
+              <span class="text-muted" style="font-size:0.78rem;">${relativeDate(iv.done_at)}</span>
+            </div>
+            ${preview ? `<div class="text-muted" style="font-size:0.78rem;margin-top:2px;">${escHtml(preview)}</div>` : ''}
+          </div>`
+      }).join('')
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawerOverlay').classList.remove('open')
+      document.getElementById('ownerDrawer').classList.remove('open')
+    }
+
+    // =========================================================================
+    // NOTES & SEGMENT SAVE
+    // =========================================================================
+    async function saveNotes() {
+      if (!currentOwner) return
+      const notes  = document.getElementById('drawerNotes')?.value ?? ''
+      const status = document.getElementById('notesSaveStatus')
+      if (!status) return
+      const { error } = await supabase.from('owner_profiles')
+        .upsert({ owner_id: currentOwner.owner_id, notes }, { onConflict: 'owner_id' })
+      if (!error) {
+        status.textContent = 'Saved ✓'
+        setTimeout(() => { if (status) status.textContent = '' }, 2000)
+      } else {
+        status.textContent = 'Save failed'
+        status.style.color = 'var(--color-danger)'
+      }
+    }
+
+    async function saveSegment() {
+      if (!currentOwner) return
+      const seg = document.getElementById('drawerSegment')?.value ?? ''
+      const { error } = await supabase.from('owner_profiles')
+        .upsert({ owner_id: currentOwner.owner_id, segment: seg || null }, { onConflict: 'owner_id' })
+      if (error) showToast('Segment save failed')
+      else showToast('Segment saved')
+    }
+
+    // =========================================================================
+    // INTERVENTION MODAL
+    // =========================================================================
+    function openModal() {
+      document.getElementById('iNotes').value   = ''
+      document.getElementById('iType').value    = 'phone_call'
+      document.getElementById('iOutcome').value = 'resolved'
+      document.getElementById('interventionModal').classList.add('open')
+    }
+
+    function closeModal() {
+      document.getElementById('interventionModal').classList.remove('open')
+    }
+
+    async function saveIntervention() {
+      if (!currentOwner) return
+      const btn = document.getElementById('iSave')
+      btn.disabled    = true
+      btn.textContent = 'Saving...'
+
+      const { error } = await supabase.from('owner_interventions').insert({
+        owner_id:          currentOwner.owner_id,
+        intervention_type: document.getElementById('iType').value,
+        notes:             document.getElementById('iNotes').value,
+        outcome:           document.getElementById('iOutcome').value,
+        done_by:           currentUser?.id,
+        done_at:           new Date().toISOString(),
+      })
+
+      btn.disabled    = false
+      btn.textContent = 'Save Intervention'
+
+      if (error) { showToast('Save failed: ' + (error.message || 'Unknown error')); return }
+
+      closeModal()
+      showToast('Intervention logged')
+
+      // Reload intervention list in open drawer
+      if (document.getElementById('ownerDrawer').classList.contains('open') && currentOwner) {
+        const { data } = await supabase
+          .from('owner_interventions')
+          .select('*')
+          .eq('owner_id', currentOwner.owner_id)
+          .order('done_at', { ascending: false })
+          .limit(10)
+        const c = document.getElementById('interventionLogContainer')
+        if (c) c.innerHTML = buildInterventionList(data || [])
+      }
     }
 
     // =========================================================================
     // HELPERS
     // =========================================================================
-    function getInitials(name) {
-      if (!name) return '?'
-      const parts = name.trim().split(/\s+/)
-      return parts.length === 1
-        ? parts[0][0].toUpperCase()
-        : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    function tierHexColor(tier) {
+      return { at_risk: '#E04444', watch: '#E87A30', healthy: '#3B82F6', champion: '#22C55E' }[tier] || '#6B7280'
     }
 
-    function formatHours(h) {
-      if (h == null || isNaN(h) || h === 0) return '—'
-      if (h < 1)  return `${Math.round(h * 60)}m`
-      if (h < 24) return `${h.toFixed(1)}h`
-      const days = Math.floor(h / 24)
-      const rem  = Math.round(h % 24)
-      return rem > 0 ? `${days}d ${rem}h` : `${days}d`
+    function tierLabel(tier) {
+      return { at_risk: 'At Risk', watch: 'Watch', healthy: 'Healthy', champion: 'Champion' }[tier] || tier || '—'
     }
 
-    function formatRelative(iso) {
+    function segmentLabel(seg) {
+      return {
+        investor_elite: 'Investor Elite', growth_investor: 'Growth Investor',
+        legacy_client: 'Legacy Client', hands_off: 'Hands-Off', hands_on: 'Hands-On',
+        out_of_state: 'Out of State', accidental_landlord: 'Accidental Landlord',
+        first_time_investor: 'First-Time Investor',
+      }[seg] || seg || ''
+    }
+
+    function segmentOptions(current) {
+      return [
+        ['investor_elite','Investor Elite'],['growth_investor','Growth Investor'],
+        ['legacy_client','Legacy Client'],['hands_off','Hands-Off'],['hands_on','Hands-On'],
+        ['out_of_state','Out of State'],['accidental_landlord','Accidental Landlord'],
+        ['first_time_investor','First-Time Investor'],
+      ].map(([v, l]) => `<option value="${v}"${current === v ? ' selected' : ''}>${escHtml(l)}</option>`).join('')
+    }
+
+    function getRecommendedAction(owner) {
+      const rel = owner.relationship_owner || 'Unassigned'
+      if (!owner.tier || owner.score == null) return 'Run scoring engine first (npm run score:owners)'
+      if (owner.tier === 'at_risk')  return `Call ${rel} immediately — schedule owner call within 24 hours`
+      if (owner.tier === 'watch')    return `${rel} to reach out this week — proactive check-in`
+      if (owner.tier === 'healthy') {
+        const base = owner.scored_at ? new Date(owner.scored_at) : new Date()
+        const due  = new Date(base)
+        due.setMonth(due.getMonth() + 3)
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        return `On track — Quarterly Investment Review due ${months[due.getMonth()]} ${due.getFullYear()}`
+      }
+      if (owner.tier === 'champion') return 'Request referral — ask about their next acquisition'
+      return ''
+    }
+
+    function relativeDate(iso) {
       if (!iso) return '—'
-      const diff  = Date.now() - new Date(iso).getTime()
-      const hours = Math.floor(diff / 3600000)
-      const days  = Math.floor(diff / 86400000)
-      if (hours < 1)  return 'under 1h ago'
-      if (hours < 24) return `${hours}h ago`
-      if (days  < 7)  return `${days}d ago`
-      if (days  < 30) return `${Math.floor(days / 7)}w ago`
-      return `${Math.floor(days / 30)}mo ago`
+      const days = Math.floor((Date.now() - new Date(iso)) / 86400000)
+      if (days === 0) return 'today'
+      if (days === 1) return 'yesterday'
+      return `${days}d ago`
+    }
+
+    function truncate(str, max) {
+      if (!str) return ''
+      return str.length > max ? str.slice(0, max) + '…' : str
     }
 
     function escHtml(str) {
       if (str == null) return ''
       return String(str)
-        .replace(/&/g,  '&amp;')
-        .replace(/</g,  '&lt;')
-        .replace(/>/g,  '&gt;')
-        .replace(/"/g,  '&quot;')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('ohToast')
+      t.textContent = msg
+      t.classList.add('show')
+      setTimeout(() => t.classList.remove('show'), 3000)
     }
   </script>
 

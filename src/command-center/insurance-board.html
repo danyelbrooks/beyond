@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insurance Board — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+
+    /* ── 911 banner ─────────────────────────────────────────── */
+    .banner-911 {
+      background: #dc2626;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Filter + action row ────────────────────────────────── */
+    .ib-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-new-project {
+      background: #16a34a;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-new-project:hover { background: #15803d; }
+
+    /* ── Projects table ─────────────────────────────────────── */
+    .proj-table-wrap {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow-x: auto;
+      background: var(--color-surface);
+    }
+
+    .proj-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    .proj-table th {
+      background: #f8f9fa;
+      color: var(--color-text-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .proj-table th.sortable { cursor: pointer; }
+    .proj-table th.sortable:hover { color: var(--color-text); }
+    .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; font-style: normal; }
+    .proj-table th.sort-asc  .sort-icon,
+    .proj-table th.sort-desc .sort-icon { opacity: 1; color: var(--color-accent); }
+
+    .proj-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+      font-size: 0.875rem;
+    }
+
+    .proj-table tr:last-child td { border-bottom: none; }
+
+    .proj-table tbody tr {
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .proj-table tbody tr:hover td { background: #f5f7fa; }
+
+    /* New-row highlight — fades out */
+    .proj-table tbody tr.row-highlight td {
+      background: #fef9c3;
+      transition: background 1.8s ease;
+    }
+
+    /* ── Status circle ──────────────────────────────────────── */
+    .status-circle {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.12s;
+      border: 2px solid transparent;
+    }
+    .status-circle:hover { transform: scale(1.25); }
+    .status-circle.green  { background: #22c55e; }
+    .status-circle.yellow { background: #eab308; }
+    .status-circle.red    { background: #ef4444; }
+
+    /* ── Inline status dropdown ─────────────────────────────── */
+    .status-dropdown {
+      position: fixed;
+      z-index: 500;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      padding: 6px 0;
+      display: none;
+      min-width: 130px;
+    }
+    .status-dropdown.open { display: block; }
+
+    .status-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: background 0.1s;
+    }
+    .status-option:hover { background: var(--color-bg); }
+
+    /* ── Project type badge ─────────────────────────────────── */
+    .type-badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .type-insurance { background: #dbeafe; color: #1d4ed8; }
+    .type-capex     { background: #ede9fe; color: #6d28d9; }
+    .type-termite   { background: #ffedd5; color: #c2410c; }
+    .type-other     { background: #f3f4f6; color: #4b5563; }
+
+    /* ── 911 table badge ────────────────────────────────────── */
+    .badge-911 {
+      display: inline-block;
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Past-due date ──────────────────────────────────────── */
+    .date-pastdue { color: #ef4444; font-weight: 700; }
+
+    /* ── Days open — right-aligned ──────────────────────────── */
+    .td-right { text-align: right; }
+
+    /* ── Empty state ────────────────────────────────────────── */
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* ── Modal overlay ──────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 400;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: var(--color-surface);
+      border-radius: 10px;
+      padding: 28px 28px 24px;
+      width: 480px;
+      max-width: 94vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 20px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .modal-error {
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      color: #9b2c2c;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .modal-error.visible { display: block; }
+
+    /* ── Blocking item dash ─────────────────────────────────── */
+    .text-dash { color: var(--color-text-muted); }
+
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <!-- Loading state -->
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <span id="loadingMsg">Checking login...</span>
+      </div>
+
+      <!-- Page content (hidden until auth passes) -->
+      <div id="pageContent" style="display:none;">
+
+        <!-- 911 banner — hidden when no red projects -->
+        <div class="banner-911" id="banner911" style="display:none;">
+          <span>&#9888;</span>
+          <span id="banner911Text"></span>
+        </div>
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+              <div class="page-title">Insurance Board</div>
+              <div class="page-subtitle">Track insurance claims, CapEx jobs, and large projects</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toolbar: filter tabs + new project button -->
+        <div class="ib-toolbar">
+          <div class="period-filter" id="filterBar">
+            <button class="period-btn" data-filter="all">All</button>
+            <button class="period-btn active" data-filter="open">Open</button>
+            <button class="period-btn" data-filter="closed">Closed</button>
+            <button class="period-btn" data-filter="red">&#128308; Red</button>
+            <button class="period-btn" data-filter="yellow">&#128993; Yellow</button>
+            <button class="period-btn" data-filter="green">&#128994; Green</button>
+          </div>
+          <button class="btn-new-project" id="btnNewProject">+ New Project</button>
+        </div>
+
+        <!-- Projects table -->
+        <div class="proj-table-wrap">
+          <table class="proj-table" id="projTable">
+            <thead>
+              <tr>
+                <th style="width:36px;">Status</th>
+                <th class="sortable" data-col="property_address">
+                  Property <i class="sort-icon">&#8597;</i>
+                </th>
+                <th class="sortable" data-col="project_type">
+                  Type <i class="sort-icon">&#8597;</i>
+                </th>
+                <th>Current Stage</th>
+                <th>Blocking Item</th>
+                <th class="sortable" data-col="date_opened">
+                  Opened <i class="sort-icon">&#8597;</i>
+                </th>
+                <th class="sortable" data-col="scheduled_close_date">
+                  Sched. Close <i class="sort-icon">&#8597;</i>
+                </th>
+                <th class="sortable td-right" data-col="days_open">
+                  Days <i class="sort-icon">&#8597;</i>
+                </th>
+                <th style="width:48px;">911</th>
+              </tr>
+            </thead>
+            <tbody id="projTableBody">
+              <tr><td colspan="9"><div class="loading-state"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /pageContent -->
+    </div>
+  </main>
+
+  <!-- Inline status change dropdown (single shared instance) -->
+  <div class="status-dropdown" id="statusDropdown">
+    <div class="status-option" data-val="green">
+      <span class="status-circle green"></span> Green
+    </div>
+    <div class="status-option" data-val="yellow">
+      <span class="status-circle yellow"></span> Yellow
+    </div>
+    <div class="status-option" data-val="red">
+      <span class="status-circle red"></span> Red
+    </div>
+  </div>
+
+  <!-- New Project Modal -->
+  <div class="modal-overlay" id="newProjectModal">
+    <div class="modal-box">
+      <div class="modal-title">New Project</div>
+
+      <div class="modal-error" id="modalError"></div>
+
+      <div class="form-group">
+        <label class="form-label" for="npAddress">Property Address <span style="color:#ef4444;">*</span></label>
+        <input class="form-input" type="text" id="npAddress"
+               placeholder="e.g. 1234 Main St, San Diego, CA 92101" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="npType">Project Type <span style="color:#ef4444;">*</span></label>
+        <select class="form-select" id="npType">
+          <option value="">Select a type...</option>
+          <option value="Insurance Claim">Insurance Claim</option>
+          <option value="CapEx">CapEx</option>
+          <option value="Termite">Termite</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="npCloseDate">Scheduled Close Date</label>
+        <input class="form-input" type="date" id="npCloseDate">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="npStage">Current Stage</label>
+        <input class="form-input" type="text" id="npStage"
+               placeholder="e.g. Waiting for insurance approval">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="npAppfolio">AppFolio Property ID</label>
+        <input class="form-input" type="text" id="npAppfolio"
+               placeholder="From AppFolio — used to sync work orders">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnModalCancel">Cancel</button>
+        <button class="btn btn-primary" id="btnModalCreate" style="background:#16a34a;border-color:#16a34a;">
+          Create Project
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:3005'
+      : 'https://bpm-api.onrender.com'
+    let allProjects   = []
+    let activeFilter  = 'open'
+    let sortCol       = null   // null = default server sort
+    let sortDir       = 1      // 1 = asc, -1 = desc
+    let sessionToken  = ''
+    let dropdownProjId = null  // project ID the status dropdown is open for
+
+    // =========================================================================
+    // BOOT
+    // =========================================================================
+    const setMsg = t => { const el = document.getElementById('loadingMsg'); if (el) el.textContent = t }
+
+    setMsg('Checking login...')
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+
+    const { user, profile } = auth
+    renderHeader(profile)
+    renderSidebar('insurance-board', profile.role, user.email)
+
+    // Grab session token once — used on every API call
+    const { data: { session } } = await supabase.auth.getSession()
+    sessionToken = session?.access_token || ''
+
+    setMsg('Loading projects...')
+    await loadProjects()
+
+    document.getElementById('loadingState').style.display = 'none'
+    document.getElementById('pageContent').style.display  = ''
+
+    // =========================================================================
+    // API HELPERS
+    // =========================================================================
+    function apiHeaders() {
+      return {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${sessionToken}`,
+      }
+    }
+
+    async function loadProjects() {
+      try {
+        const res  = await fetch(`${API_BASE}/api/insurance/projects`, { headers: apiHeaders() })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+        allProjects = data
+        render()
+      } catch (err) {
+        document.getElementById('projTableBody').innerHTML = `
+          <tr><td colspan="9">
+            <div class="empty-state" style="color:#ef4444;">
+              Could not load projects: ${escHtml(err.message)}
+              <br><br>
+              <button onclick="location.reload()" style="padding:7px 16px;background:var(--color-accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">Retry</button>
+            </div>
+          </td></tr>
+        `
+      }
+    }
+
+    // =========================================================================
+    // RENDER
+    // =========================================================================
+    function render() {
+      renderBanner()
+      renderTable()
+    }
+
+    function renderBanner() {
+      const redOpen = allProjects.filter(p => p.status === 'red' && !p.actual_close_date)
+      const banner  = document.getElementById('banner911')
+      if (redOpen.length === 0) {
+        banner.style.display = 'none'
+      } else {
+        banner.style.display = ''
+        const noun = redOpen.length === 1 ? 'project needs' : 'projects need'
+        document.getElementById('banner911Text').textContent =
+          `${redOpen.length} ${noun} immediate attention`
+      }
+    }
+
+    function filterProjects() {
+      switch (activeFilter) {
+        case 'open':   return allProjects.filter(p => !p.actual_close_date)
+        case 'closed': return allProjects.filter(p =>  p.actual_close_date)
+        case 'red':    return allProjects.filter(p => p.status === 'red')
+        case 'yellow': return allProjects.filter(p => p.status === 'yellow')
+        case 'green':  return allProjects.filter(p => p.status === 'green')
+        default:       return allProjects  // 'all'
+      }
+    }
+
+    function sortedProjects(list) {
+      if (!sortCol) return list  // use server's default order
+
+      return [...list].sort((a, b) => {
+        let vA = a[sortCol]
+        let vB = b[sortCol]
+
+        // Nulls to the bottom regardless of direction
+        if (vA == null && vB == null) return 0
+        if (vA == null) return 1
+        if (vB == null) return -1
+
+        if (typeof vA === 'string') vA = vA.toLowerCase()
+        if (typeof vB === 'string') vB = vB.toLowerCase()
+
+        if (vA < vB) return -1 * sortDir
+        if (vA > vB) return  1 * sortDir
+        return 0
+      })
+    }
+
+    function renderTable() {
+      const projects = sortedProjects(filterProjects())
+      updateSortHeaders()
+
+      if (projects.length === 0) {
+        document.getElementById('projTableBody').innerHTML = `
+          <tr><td colspan="9">
+            <div class="empty-state">
+              No projects found. Click + New Project to add one.
+            </div>
+          </td></tr>
+        `
+        return
+      }
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const rows = projects.map(p => {
+        const statusClass = p.status  // 'green' | 'yellow' | 'red'
+
+        // Project type badge
+        const typeClass = {
+          'Insurance Claim': 'type-insurance',
+          'CapEx':           'type-capex',
+          'Termite':         'type-termite',
+          'Other':           'type-other',
+        }[p.project_type] || 'type-other'
+
+        // Scheduled close date — red if past due and project is still open
+        let closeDateHtml = '<span class="text-dash">—</span>'
+        if (p.scheduled_close_date) {
+          const closeDate = new Date(p.scheduled_close_date + 'T00:00:00')
+          const isPastDue = closeDate < today && !p.actual_close_date
+          closeDateHtml = `<span class="${isPastDue ? 'date-pastdue' : ''}">${fmtDate(p.scheduled_close_date)}</span>`
+        }
+
+        const blockingHtml = p.blocking_item
+          ? escHtml(p.blocking_item)
+          : '<span class="text-dash">—</span>'
+
+        const badge911 = p.is_911
+          ? '<span class="badge-911">911</span>'
+          : ''
+
+        return `
+          <tr data-id="${p.id}" data-status="${p.status}">
+            <td style="text-align:center;">
+              <span class="status-circle ${statusClass}"
+                    data-id="${p.id}"
+                    title="Change status"
+                    id="sc-${p.id}"></span>
+            </td>
+            <td><strong>${escHtml(p.property_address)}</strong></td>
+            <td><span class="type-badge ${typeClass}">${escHtml(p.project_type)}</span></td>
+            <td>${p.current_stage ? escHtml(p.current_stage) : '<span class="text-dash">—</span>'}</td>
+            <td>${blockingHtml}</td>
+            <td>${fmtDate(p.date_opened)}</td>
+            <td>${closeDateHtml}</td>
+            <td class="td-right">${p.days_open}</td>
+            <td style="text-align:center;">${badge911}</td>
+          </tr>
+        `
+      })
+
+      document.getElementById('projTableBody').innerHTML = rows.join('')
+
+      // Attach status-circle click handlers (stop row-click propagation)
+      document.querySelectorAll('.status-circle[data-id]').forEach(circle => {
+        circle.addEventListener('click', e => {
+          e.stopPropagation()
+          openStatusDropdown(circle)
+        })
+      })
+
+      // Attach row-click navigation
+      document.querySelectorAll('#projTableBody tr[data-id]').forEach(row => {
+        row.addEventListener('click', () => {
+          window.location.href = `insurance-project.html?id=${row.dataset.id}`
+        })
+      })
+    }
+
+    function updateSortHeaders() {
+      document.querySelectorAll('.proj-table th.sortable').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc')
+        const icon = th.querySelector('.sort-icon')
+        if (icon) icon.innerHTML = '&#8597;'
+
+        if (th.dataset.col === sortCol) {
+          if (sortDir === 1) {
+            th.classList.add('sort-asc')
+            if (icon) icon.innerHTML = '&#8593;'
+          } else {
+            th.classList.add('sort-desc')
+            if (icon) icon.innerHTML = '&#8595;'
+          }
+        }
+      })
+    }
+
+    // =========================================================================
+    // FILTER TABS
+    // =========================================================================
+    document.getElementById('filterBar').addEventListener('click', e => {
+      const btn = e.target.closest('.period-btn')
+      if (!btn) return
+      document.querySelectorAll('#filterBar .period-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      activeFilter = btn.dataset.filter
+      renderTable()
+    })
+
+    // =========================================================================
+    // COLUMN SORT
+    // =========================================================================
+    document.getElementById('projTable').addEventListener('click', e => {
+      const th = e.target.closest('th.sortable')
+      if (!th) return
+      const col = th.dataset.col
+      if (sortCol === col) {
+        sortDir = sortDir === 1 ? -1 : 1
+      } else {
+        sortCol = col
+        sortDir = col === 'date_opened' || col === 'days_open' ? -1 : 1
+      }
+      renderTable()
+    })
+
+    // =========================================================================
+    // STATUS DROPDOWN
+    // =========================================================================
+    function openStatusDropdown(circle) {
+      const dropdown = document.getElementById('statusDropdown')
+      const rect = circle.getBoundingClientRect()
+
+      dropdown.style.top  = `${rect.bottom + 6}px`
+      dropdown.style.left = `${rect.left}px`
+      dropdown.classList.add('open')
+
+      dropdownProjId = circle.dataset.id
+    }
+
+    function closeStatusDropdown() {
+      document.getElementById('statusDropdown').classList.remove('open')
+      dropdownProjId = null
+    }
+
+    document.getElementById('statusDropdown').addEventListener('click', async e => {
+      const opt = e.target.closest('.status-option')
+      if (!opt || !dropdownProjId) return
+
+      const newStatus = opt.dataset.val
+      const projId    = dropdownProjId
+      closeStatusDropdown()
+
+      try {
+        const res  = await fetch(`${API_BASE}/api/insurance/projects/${projId}`, {
+          method:  'PATCH',
+          headers: apiHeaders(),
+          body:    JSON.stringify({ status: newStatus }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+
+        // Update the in-memory record and re-render
+        const idx = allProjects.findIndex(p => p.id === projId)
+        if (idx !== -1) {
+          allProjects[idx].status = newStatus
+          allProjects[idx].is_911 = newStatus === 'red'
+        }
+        render()
+      } catch (err) {
+        alert(`Could not update status: ${err.message}`)
+      }
+    })
+
+    // Close dropdown when clicking anywhere else
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#statusDropdown') && !e.target.closest('.status-circle')) {
+        closeStatusDropdown()
+      }
+    })
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeStatusDropdown()
+        closeModal()
+      }
+    })
+
+    // =========================================================================
+    // NEW PROJECT MODAL
+    // =========================================================================
+    document.getElementById('btnNewProject').addEventListener('click', () => {
+      openModal()
+    })
+
+    document.getElementById('btnModalCancel').addEventListener('click', closeModal)
+
+    document.getElementById('newProjectModal').addEventListener('click', e => {
+      // Close if clicking the backdrop (not the box)
+      if (e.target === document.getElementById('newProjectModal')) closeModal()
+    })
+
+    function openModal() {
+      document.getElementById('npAddress').value   = ''
+      document.getElementById('npType').value      = ''
+      document.getElementById('npCloseDate').value = ''
+      document.getElementById('npStage').value     = ''
+      document.getElementById('npAppfolio').value  = ''
+      document.getElementById('modalError').className = 'modal-error'
+      document.getElementById('btnModalCreate').disabled = false
+      document.getElementById('btnModalCreate').textContent = 'Create Project'
+      document.getElementById('newProjectModal').classList.add('open')
+      document.getElementById('npAddress').focus()
+    }
+
+    function closeModal() {
+      document.getElementById('newProjectModal').classList.remove('open')
+    }
+
+    document.getElementById('btnModalCreate').addEventListener('click', async () => {
+      const address  = document.getElementById('npAddress').value.trim()
+      const type     = document.getElementById('npType').value
+      const closeDate = document.getElementById('npCloseDate').value || null
+      const stage    = document.getElementById('npStage').value.trim() || null
+      const appfolio = document.getElementById('npAppfolio').value.trim() || null
+
+      const errBox = document.getElementById('modalError')
+      errBox.className = 'modal-error'
+
+      if (!address) {
+        errBox.textContent = 'Property address is required.'
+        errBox.className   = 'modal-error visible'
+        document.getElementById('npAddress').focus()
+        return
+      }
+      if (!type) {
+        errBox.textContent = 'Please select a project type.'
+        errBox.className   = 'modal-error visible'
+        document.getElementById('npType').focus()
+        return
+      }
+
+      const btn = document.getElementById('btnModalCreate')
+      btn.disabled    = true
+      btn.textContent = 'Creating...'
+
+      try {
+        const res  = await fetch(`${API_BASE}/api/insurance/projects`, {
+          method:  'POST',
+          headers: apiHeaders(),
+          body:    JSON.stringify({
+            property_address:     address,
+            project_type:         type,
+            scheduled_close_date: closeDate,
+            current_stage:        stage,
+            appfolio_property_id: appfolio,
+          }),
+        })
+        const newProject = await res.json()
+        if (!res.ok) throw new Error(newProject.error || `HTTP ${res.status}`)
+
+        closeModal()
+
+        // Re-fetch so the new row has all server-computed fields
+        await loadProjects()
+
+        // Scroll to and briefly highlight the new row
+        requestAnimationFrame(() => {
+          const newRow = document.querySelector(`#projTableBody tr[data-id="${newProject.id}"]`)
+          if (newRow) {
+            newRow.classList.add('row-highlight')
+            newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+            setTimeout(() => newRow.classList.remove('row-highlight'), 2200)
+          }
+        })
+      } catch (err) {
+        errBox.textContent = `Could not create project: ${err.message}`
+        errBox.className   = 'modal-error visible'
+        btn.disabled    = false
+        btn.textContent = 'Create Project'
+      }
+    })
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+    function fmtDate(dateStr) {
+      if (!dateStr) return '—'
+      // dateStr is YYYY-MM-DD; parse as local date to avoid UTC offset shifts
+      const [y, m, d] = dateStr.split('-').map(Number)
+      const dt = new Date(y, m - 1, d)
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    }
+
+    function escHtml(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+
+  </script>
+</body>
+</html>

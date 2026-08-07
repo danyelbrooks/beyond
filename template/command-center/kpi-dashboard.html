@@ -1,0 +1,555 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPI Dashboard — [YOUR COMPANY] Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <span>Loading dashboard...</span>
+      </div>
+
+      <div id="kpiContent" style="display:none;">
+
+        <!-- ================================================================
+             SECTION 1 — MORNING PULSE
+             Live snapshot of business health. No period filter.
+             ================================================================ -->
+        <div class="page-header">
+          <div class="flex justify-between items-center flex-wrap gap-12">
+            <div>
+              <div class="page-title">Morning Pulse</div>
+              <div class="page-subtitle">
+                Live snapshot &mdash;
+                <span id="pulseRefreshed" class="text-muted">loading&hellip;</span>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnRefresh">&#8635; Refresh All</button>
+          </div>
+        </div>
+
+        <div class="summary-grid summary-grid-4">
+
+          <div class="card">
+            <div class="card-title">Occupancy</div>
+            <div class="card-value" id="statOccupancy">—</div>
+            <div class="card-subtitle" id="statOccupancyDetail">of managed portfolio</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Open Work Orders &gt;7 Days</div>
+            <div class="card-value" id="statOpenWOs">—</div>
+            <div class="card-subtitle" id="statOpenWOsDetail">open work orders total</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Vacancy $ Lost MTD</div>
+            <div class="card-value" id="statVacancyCost">—</div>
+            <div class="card-subtitle" id="statVacancyCostDetail">estimated rent not collected</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Unanswered 24h+</div>
+            <div class="card-value" id="statUnanswered">—</div>
+            <div class="card-subtitle">emails with no reply yet</div>
+          </div>
+
+        </div>
+
+        <!-- Portfolio data notice (shown when units table is empty) -->
+        <div class="alert alert-info mb-24" id="portfolioNotice" style="display:none;">
+          <strong>Portfolio data not yet loaded.</strong>
+          Occupancy % and Vacancy $ will show once you run:
+          <code style="background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px;">node src/portfolio/sync-units.js</code>
+        </div>
+
+        <div class="kpi-section-divider"></div>
+
+        <!-- ================================================================
+             SECTION 2 — TEAM RESPONSE LEADERBOARD
+             Period-filtered. Shows who's keeping up and who isn't.
+             ================================================================ -->
+        <div class="page-header">
+          <div class="flex justify-between items-center flex-wrap gap-12">
+            <div>
+              <div class="page-title">Team Response</div>
+              <div class="page-subtitle">
+                Response time leaderboard &mdash;
+                <span id="lastRefreshed" class="text-muted">loading&hellip;</span>
+              </div>
+            </div>
+            <div class="period-filter" id="periodFilter">
+              <button class="period-btn active" data-period="today">Today</button>
+              <button class="period-btn" data-period="week">This Week</button>
+              <button class="period-btn" data-period="month">This Month</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+
+          <div class="card">
+            <div class="card-title">Team Avg Response</div>
+            <div class="card-value" id="statAvgResponse">—</div>
+            <div class="card-subtitle">Across all replies in period</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Emails Replied To</div>
+            <div class="card-value" id="statHandled">—</div>
+            <div class="card-subtitle">Total replies sent in period</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">SLA Breaches</div>
+            <div class="card-value" id="statBreaches">—</div>
+            <div class="card-subtitle">Replies that took &gt;24h</div>
+          </div>
+
+        </div>
+
+        <!-- SLA bar -->
+        <div class="card mb-24" id="slaBarCard" style="display:none;">
+          <div class="section-heading" style="margin-bottom:12px;">
+            SLA Breakdown &mdash; <span id="slaBarLabel"></span>
+          </div>
+          <div class="sla-bar-row">
+            <div class="sla-bar-segment sla-green"  id="slaBarGreen"  title="Replied in < 4h"></div>
+            <div class="sla-bar-segment sla-yellow" id="slaBarYellow" title="Replied in 4–24h"></div>
+            <div class="sla-bar-segment sla-red"    id="slaBarRed"    title="Replied in > 24h"></div>
+          </div>
+          <div class="sla-bar-legend">
+            <span class="sla-legend-dot sla-green-dot"></span>
+            <span id="slaLegendGreenPct">0%</span> under 4h &nbsp;
+            <span class="sla-legend-dot sla-yellow-dot"></span>
+            <span id="slaLegendYellowPct">0%</span> 4&ndash;24h &nbsp;
+            <span class="sla-legend-dot sla-red-dot"></span>
+            <span id="slaLegendRedPct">0%</span> over 24h
+          </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="card">
+          <div class="section-heading">Response Time by Team Member</div>
+          <div id="leaderboardContainer"></div>
+        </div>
+
+        <!-- Unanswered emails detail -->
+        <div class="card mt-24" id="unansweredCard" style="display:none;">
+          <div class="section-heading">Waiting Over 24 Hours &mdash; Needs Attention</div>
+          <div id="unansweredContainer"></div>
+        </div>
+
+      </div>
+      <!-- /kpiContent -->
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
+    let currentPeriod = 'today'
+    let refreshTimer  = null
+
+    // =========================================================================
+    // BOOT
+    // =========================================================================
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+
+    const { user, profile } = auth
+    renderHeader(profile)
+    renderSidebar('kpi-dashboard', profile.role)
+
+    document.getElementById('periodFilter').addEventListener('click', e => {
+      const btn = e.target.closest('.period-btn')
+      if (!btn) return
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      currentPeriod = btn.dataset.period
+      loadLeaderboard()
+    })
+
+    document.getElementById('btnRefresh').addEventListener('click', () => {
+      loadPulse()
+      loadLeaderboard()
+    })
+
+    // Show page shell immediately, load data in parallel
+    document.getElementById('loadingState').style.display = 'none'
+    document.getElementById('kpiContent').style.display   = ''
+
+    await Promise.all([ loadPulse(), loadLeaderboard() ])
+
+    scheduleRefresh()
+
+    // =========================================================================
+    // AUTO-REFRESH (every 5 minutes)
+    // =========================================================================
+    function scheduleRefresh() {
+      clearTimeout(refreshTimer)
+      refreshTimer = setTimeout(async () => {
+        await Promise.all([ loadPulse(), loadLeaderboard() ])
+        scheduleRefresh()
+      }, 5 * 60 * 1000)
+    }
+
+    // =========================================================================
+    // SECTION 1: MORNING PULSE
+    // =========================================================================
+    async function loadPulse() {
+      try {
+        const [occupancy, vacancyCost, openWOs, unanswered] = await Promise.all([
+          supabase.from('v_occupancy').select('*').single(),
+          supabase.from('v_vacancy_cost').select('*').single(),
+          supabase.from('v_open_work_orders').select('*').single(),
+          supabase.from('email_cache')
+            .select('*', { count: 'exact', head: true })
+            .neq('status', 'handled')
+            .lt('received_at', new Date(Date.now() - 86400000).toISOString()),
+        ])
+
+        renderPulse(
+          occupancy.data,
+          vacancyCost.data,
+          openWOs.data,
+          unanswered.count ?? 0
+        )
+
+      } catch (err) {
+        console.error('Morning Pulse load error:', err)
+      }
+    }
+
+    function renderPulse(occ, vac, wos, unansweredCount) {
+      // --- Occupancy ---
+      if (occ && occ.total_units > 0) {
+        document.getElementById('statOccupancy').textContent = occ.occupancy_pct + '%'
+        document.getElementById('statOccupancyDetail').textContent =
+          `${occ.occupied_units} of ${occ.total_units} units occupied`
+        document.getElementById('portfolioNotice').style.display = 'none'
+      } else {
+        document.getElementById('statOccupancy').textContent = '—'
+        document.getElementById('statOccupancyDetail').textContent = 'Run sync-units.js to load'
+        document.getElementById('portfolioNotice').style.display = ''
+      }
+
+      // --- Open work orders ---
+      if (wos) {
+        const over7 = wos.over_7_days ?? 0
+        const open  = wos.open_count  ?? 0
+        const el    = document.getElementById('statOpenWOs')
+        el.textContent  = over7
+        el.className    = 'card-value' + (over7 > 0 ? ' kpi-danger' : ' kpi-success')
+        document.getElementById('statOpenWOsDetail').textContent =
+          open > 0 ? `${open} open work orders total` : 'No open work orders'
+      }
+
+      // --- Vacancy cost ---
+      if (vac) {
+        const cost  = parseFloat(vac.lost_rent_mtd ?? 0)
+        const count = parseInt(vac.vacant_units    ?? 0, 10)
+        document.getElementById('statVacancyCost').textContent =
+          cost > 0 ? formatDollars(cost) : (count > 0 ? '—' : '$0')
+        document.getElementById('statVacancyCostDetail').textContent =
+          count > 0
+            ? `${count} vacant unit${count !== 1 ? 's' : ''} — est. rent not collected`
+            : 'No vacant units'
+      }
+
+      // --- Unanswered emails ---
+      const unansweredEl = document.getElementById('statUnanswered')
+      unansweredEl.textContent = unansweredCount
+      unansweredEl.className   = 'card-value' + (unansweredCount > 0 ? ' kpi-danger' : ' kpi-success')
+
+      // Show last sync time if available, otherwise wall-clock refresh time
+      const syncTime = occ && occ.last_synced_at
+        ? 'Last synced ' + formatRelative(occ.last_synced_at)
+        : 'Refreshed ' + formatRelative(new Date().toISOString())
+      document.getElementById('pulseRefreshed').textContent = syncTime
+    }
+
+    // =========================================================================
+    // SECTION 2: TEAM RESPONSE LEADERBOARD
+    // =========================================================================
+    function getPeriodStart(period) {
+      const now = new Date()
+      if (period === 'today') {
+        const d = new Date(now); d.setHours(0, 0, 0, 0); return d
+      }
+      if (period === 'week') {
+        const d = new Date(now)
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7))  // Monday
+        d.setHours(0, 0, 0, 0)
+        return d
+      }
+      return new Date(now.getFullYear(), now.getMonth(), 1)
+    }
+
+    function getPeriodLabel(period) {
+      return period === 'today' ? 'Today' : period === 'week' ? 'This Week' : 'This Month'
+    }
+
+    async function loadLeaderboard() {
+      const periodStart = getPeriodStart(currentPeriod)
+
+      try {
+        const [replyRes, unansweredRes, unansweredDetailRes] = await Promise.all([
+          supabase
+            .from('v_email_response_times')
+            .select('performed_by, display_name, response_hours, sla_status, replied_at')
+            .gte('replied_at', periodStart.toISOString())
+            .order('replied_at', { ascending: false }),
+
+          supabase
+            .from('email_cache')
+            .select('*', { count: 'exact', head: true })
+            .neq('status', 'handled')
+            .lt('received_at', new Date(Date.now() - 86400000).toISOString()),
+
+          supabase
+            .from('email_cache')
+            .select('id, subject, from_name, from_address, received_at')
+            .neq('status', 'handled')
+            .lt('received_at', new Date(Date.now() - 86400000).toISOString())
+            .order('received_at', { ascending: true })
+            .limit(10),
+        ])
+
+        if (replyRes.error)          throw replyRes.error
+        if (unansweredRes.error)     throw unansweredRes.error
+        if (unansweredDetailRes.error) throw unansweredDetailRes.error
+
+        renderLeaderboard(replyRes.data || [])
+        renderUnanswered(unansweredRes.count || 0, unansweredDetailRes.data || [])
+
+        document.getElementById('lastRefreshed').textContent =
+          'Updated ' + formatRelative(new Date().toISOString())
+
+      } catch (err) {
+        document.getElementById('leaderboardContainer').innerHTML = `
+          <div class="alert alert-danger" style="margin:16px 0;">
+            Could not load leaderboard: ${escHtml(err.message || String(err))}
+          </div>
+        `
+      }
+    }
+
+    function renderLeaderboard(rows) {
+      const total  = rows.length
+      const green  = rows.filter(r => r.sla_status === 'green').length
+      const yellow = rows.filter(r => r.sla_status === 'yellow').length
+      const red    = rows.filter(r => r.sla_status === 'red').length
+      const avgHrs = total > 0 ? rows.reduce((s, r) => s + (r.response_hours || 0), 0) / total : 0
+
+      // Summary cards
+      document.getElementById('statAvgResponse').textContent = total > 0 ? formatHours(avgHrs) : '—'
+      document.getElementById('statHandled').textContent     = total
+      const breachEl = document.getElementById('statBreaches')
+      breachEl.textContent = red
+      breachEl.className   = 'card-value' + (red > 0 ? ' kpi-danger' : ' kpi-success')
+
+      // SLA bar
+      if (total > 0) {
+        const gPct = Math.round(green  / total * 100)
+        const yPct = Math.round(yellow / total * 100)
+        const rPct = 100 - gPct - yPct
+        document.getElementById('slaBarGreen').style.width  = gPct + '%'
+        document.getElementById('slaBarYellow').style.width = yPct + '%'
+        document.getElementById('slaBarRed').style.width    = rPct + '%'
+        document.getElementById('slaLegendGreenPct').textContent  = gPct + '%'
+        document.getElementById('slaLegendYellowPct').textContent = yPct + '%'
+        document.getElementById('slaLegendRedPct').textContent    = rPct + '%'
+        document.getElementById('slaBarLabel').textContent        = total + ' replies'
+        document.getElementById('slaBarCard').style.display = ''
+      } else {
+        document.getElementById('slaBarCard').style.display = 'none'
+      }
+
+      // Table
+      const container = document.getElementById('leaderboardContainer')
+      if (rows.length === 0) {
+        container.innerHTML = `
+          <div style="padding:32px 0; text-align:center; color:var(--color-text-muted); font-size:0.9rem;">
+            No replies logged for ${getPeriodLabel(currentPeriod).toLowerCase()}.
+            Once your team starts replying to emails the leaderboard will appear here.
+          </div>
+        `
+        return
+      }
+
+      // Group by person
+      const byPerson = {}
+      for (const row of rows) {
+        if (!byPerson[row.performed_by]) {
+          byPerson[row.performed_by] = { id: row.performed_by, name: row.display_name || 'Unknown', rows: [] }
+        }
+        byPerson[row.performed_by].rows.push(row)
+      }
+
+      const people = Object.values(byPerson).map(p => {
+        const hrs  = p.rows.map(r => r.response_hours || 0)
+        const avg  = hrs.reduce((a, b) => a + b, 0) / hrs.length
+        const g    = hrs.filter(h => h <= 4).length
+        const y    = hrs.filter(h => h > 4 && h <= 24).length
+        const r    = hrs.filter(h => h > 24).length
+        return { ...p, handled: hrs.length, avg, green: g, yellow: y, red: r,
+          slaColor: avg <= 4 ? 'green' : avg <= 24 ? 'yellow' : 'red' }
+      }).sort((a, b) => a.avg - b.avg)
+
+      const COLORS = ['#3498db','#2ecc71','#9b59b6','#e67e22','#1abc9c','#e74c3c','#2980b9','#27ae60']
+
+      const rowsHtml = people.map((p, i) => {
+        const initials = getInitials(p.name)
+        const bg       = COLORS[i % COLORS.length]
+        const badge    = p.slaColor === 'green' ? 'On Track' : p.slaColor === 'yellow' ? 'Watch' : 'At Risk'
+        const chips    = [
+          p.green  > 0 ? `<span class="sla-mini sla-mini-green">${p.green}</span>`  : '',
+          p.yellow > 0 ? `<span class="sla-mini sla-mini-yellow">${p.yellow}</span>` : '',
+          p.red    > 0 ? `<span class="sla-mini sla-mini-red">${p.red}</span>`       : '',
+        ].filter(Boolean).join('')
+        return `
+          <tr>
+            <td class="leaderboard-rank">#${i + 1}</td>
+            <td>
+              <div class="flex items-center gap-8">
+                <div class="avatar" style="background:${bg}">${escHtml(initials)}</div>
+                <span class="leaderboard-name">${escHtml(p.name)}</span>
+              </div>
+            </td>
+            <td class="text-right"><strong>${p.handled}</strong></td>
+            <td class="text-right leaderboard-avg">${formatHours(p.avg)}</td>
+            <td><div class="flex items-center gap-4">${chips}</div></td>
+            <td><span class="sla-badge sla-badge-${p.slaColor}">${badge}</span></td>
+          </tr>
+        `
+      }).join('')
+
+      container.innerHTML = `
+        <div class="table-wrapper">
+          <table class="data-table leaderboard-table">
+            <thead>
+              <tr>
+                <th style="width:48px;">Rank</th>
+                <th>Team Member</th>
+                <th class="text-right">Replies</th>
+                <th class="text-right">Avg Response</th>
+                <th>Breakdown</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px; font-size:0.75rem; color:var(--color-text-muted); padding:0 4px;">
+          Sorted fastest to slowest &mdash; green = &lt;4h, yellow = 4&ndash;24h, red = &gt;24h
+        </div>
+      `
+    }
+
+    function renderUnanswered(count, emails) {
+      const card = document.getElementById('unansweredCard')
+      if (count === 0) { card.style.display = 'none'; return }
+      card.style.display = ''
+
+      const rowsHtml = emails.map(e => {
+        const waitHrs  = (Date.now() - new Date(e.received_at).getTime()) / 3600000
+        const urgency  = waitHrs > 48 ? 'kpi-danger' : 'kpi-warning'
+        const from     = e.from_name
+          ? `${escHtml(e.from_name)} &lt;${escHtml(e.from_address)}&gt;`
+          : escHtml(e.from_address || '')
+        return `
+          <tr>
+            <td>${escHtml(e.subject || '(no subject)')}</td>
+            <td>${from}</td>
+            <td class="text-right"><span class="${urgency}"><strong>${formatHours(waitHrs)}</strong></span></td>
+            <td><a href="email-triage.html" class="btn btn-secondary btn-sm">Open in Triage</a></td>
+          </tr>
+        `
+      }).join('')
+
+      const moreNote = count > emails.length
+        ? `<div style="margin-top:10px;font-size:0.78rem;color:var(--color-text-muted);padding:0 4px;">
+             Showing ${emails.length} of ${count}.
+             <a href="email-triage.html">View all in Email Triage &rarr;</a>
+           </div>`
+        : ''
+
+      document.getElementById('unansweredContainer').innerHTML = `
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Subject</th><th>From</th><th class="text-right">Waiting</th><th></th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        ${moreNote}
+      `
+    }
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+    function getInitials(name) {
+      if (!name) return '?'
+      const parts = name.trim().split(/\s+/)
+      return parts.length === 1
+        ? parts[0][0].toUpperCase()
+        : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+
+    function formatHours(h) {
+      if (h == null || isNaN(h)) return '—'
+      if (h < 1)  return `${Math.round(h * 60)}m`
+      if (h < 24) return `${h.toFixed(1)}h`
+      const days = Math.floor(h / 24)
+      const rem  = Math.round(h % 24)
+      return rem > 0 ? `${days}d ${rem}h` : `${days}d`
+    }
+
+    function formatDollars(n) {
+      if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'k'
+      return '$' + Math.round(n).toLocaleString()
+    }
+
+    function formatRelative(iso) {
+      if (!iso) return ''
+      const diff  = Date.now() - new Date(iso).getTime()
+      const mins  = Math.floor(diff / 60000)
+      const hours = Math.floor(diff / 3600000)
+      if (mins  < 1)  return 'just now'
+      if (mins  < 60) return `${mins}m ago`
+      if (hours < 24) return `${hours}h ago`
+      return `${Math.floor(hours / 24)}d ago`
+    }
+
+    function escHtml(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g,  '&amp;')
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;')
+    }
+  </script>
+
+</body>
+</html>

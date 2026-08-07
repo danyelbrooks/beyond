@@ -97,10 +97,15 @@ function splitName(fullName) {
  */
 function parseAddress(shortAddress) {
   if (!shortAddress) return {}
-  // Try "Street, City, ST 12345" or "Street, City ST 12345"
-  const match = shortAddress.match(/^(.+?),\s*(.+?),?\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/)
-  if (match) {
-    return { address1: match[1].trim(), city: match[2].trim(), state: match[3].trim(), zip: match[4].trim() }
+  // "Street, City, ST 12345" or "Street, City ST 12345"
+  const full = shortAddress.match(/^(.+?),\s*(.+?),?\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/)
+  if (full) {
+    return { address1: full[1].trim(), city: full[2].trim(), state: full[3].trim(), zip: full[4].trim() }
+  }
+  // "Street, City 12345" — no state code, default to CA
+  const noState = shortAddress.match(/^(.+?),\s*(.+?)\s+(\d{5}(?:-\d{4})?)$/)
+  if (noState) {
+    return { address1: noState[1].trim(), city: noState[2].trim(), state: 'CA', zip: noState[3].trim() }
   }
   // Fallback: use full string as address1 only
   return { address1: shortAddress }
@@ -123,9 +128,9 @@ async function createAppFolioProperty(authHeader, onboarding, propType) {
       ReferenceId:              String(onboarding.id),
       PropertyType:             afType,
       Address1:                 address1,
-      City:                     city  || '',
+      City:                     city  || 'San Diego',
       State:                    state || 'CA',
-      Zip:                      zip   || '',
+      Zip:                      zip   || '92101',
       OperatingCashBankAccountId: AF_TRUST_ACCOUNT_ID,
       EscrowCashBankAccountId:    AF_TRUST_ACCOUNT_ID,
     }],
@@ -332,6 +337,12 @@ async function updateAppFolioProperty(authHeader, propertyId, onboarding, s2, in
   // Management start date — today
   body.ManagementStartDate = new Date().toISOString().replace(/\.\d+Z$/, 'Z')
 
+  // HOA tag
+  const hasHoa = s2.hasHoa === 'yes' || !!(s2.hoaName || s2.hoaCompany)
+  if (hasHoa) {
+    body.Tags = Array.isArray(body.Tags) ? [...body.Tags, 'HOA'] : ['HOA']
+  }
+
   // Home warranty
   if (s2.homeWarranty === 'yes' || s2.homeWarranty === true) {
     body.HomeWarrantyInfo = {
@@ -379,6 +390,75 @@ async function createAppFolioUnits(authHeader, onboarding, s2, propertyId) {
                         ? parseFloat(s2.depositAmountCustom) || undefined
                         : undefined
 
+  // --- Rent Engine: pre-compute derived fields ---
+
+  const today = new Date().toISOString().split('T')[0]
+
+  // Per-unit availability: vacant → today, move-out → that date, staying → null (skip)
+  const availMap = {}
+  for (const entry of (Array.isArray(s2.unitOccupancy) ? s2.unitOccupancy : [])) {
+    const uNum = parseInt(entry.unit) || 1
+    if (entry.occupancy === 'staying') {
+      availMap[uNum] = null
+    } else if (entry.ownerMoveOutDate) {
+      availMap[uNum] = entry.ownerMoveOutDate
+    } else if (entry.moveOutDate) {
+      availMap[uNum] = entry.moveOutDate
+    } else {
+      availMap[uNum] = today
+    }
+  }
+  if (!Object.keys(availMap).length) availMap[1] = today
+
+  // Utilities included in rent (capitalize for AppFolio)
+  const UTIL_LABELS = { water: 'Water', electricity: 'Electricity', gas: 'Gas', trash: 'Trash', sewer: 'Sewer' }
+  const utilitiesIncluded = (s2.tenantPays || []).filter(u => UTIL_LABELS[u]).map(u => UTIL_LABELS[u])
+
+  // HOA yes/no
+  const hasHoa = s2.hasHoa === 'yes' || !!(s2.hoaName || s2.hoaCompany)
+
+  // Property type → AppFolio UnitType enum
+  const UNIT_TYPE_MAP = {
+    detached_house:    'SingleFamilyHome',
+    condo:             'Condo',
+    adu:               'Guesthouse',
+    townhome:          'Townhome',
+    '2_4_units':       'Duplex',
+    apartment_complex: 'Apartment',
+    mobile_home:       'MobileHome',
+  }
+  const unitType = UNIT_TYPE_MAP[s2.propertyType || ''] || null
+
+  // Furnished
+  const furnished = s2.furnished === 'yes'
+
+  // Laundry — inferred from existing appliances / amenities / community checkboxes
+  const appliances = s2.appliances        || []
+  const amenities  = s2.amenities         || []
+  const community  = s2.communityFeatures || []
+  let laundry = 'None'
+  if (appliances.some(a => ['appl-washer', 'appl-dryer', 'appl-stackable'].includes(a))) {
+    laundry = 'InUnit'
+  } else if (amenities.some(a => ['amen-washer-electric', 'amen-washer-gas', 'amen-laundry-room', 'amen-laundry-garage'].includes(a))) {
+    laundry = 'HooksOnly'
+  } else if (community.includes('comm-laundry-facility')) {
+    laundry = 'Shared'
+  }
+
+  // Parking — count and primary type from existing parking checkboxes
+  const parkingItems = (s2.parking || []).filter(p => p && !p.startsWith('other'))
+  const parkingSpaces = parkingItems.length || undefined
+  const PARKING_TYPES = [
+    ['park-garage-attached', 'Attached Garage'],
+    ['park-garage-detached', 'Detached Garage'],
+    ['park-carport',         'Carport'],
+    ['park-driveway',        'Driveway'],
+    ['park-assigned',        'Assigned'],
+    ['park-street',          'Street'],
+  ]
+  const primaryParking      = PARKING_TYPES.find(([prefix]) => parkingItems.some(p => p.startsWith(prefix)))
+  const parkingDescription  = primaryParking ? primaryParking[1] : undefined
+
   const units = []
   for (let i = 1; i <= unitCount; i++) {
     const name = unitCount === 1
@@ -400,6 +480,20 @@ async function createAppFolioUnits(authHeader, onboarding, s2, propertyId) {
     if (sqft      !== undefined) unit.SquareFeet = sqft
     if (marketRent)              unit.MarketRent = marketRent
     if (deposit   !== undefined) unit.Deposit    = deposit
+
+    // Rent Engine fields
+    const availDate = availMap.hasOwnProperty(i) ? availMap[i] : today
+    if (availDate)                   unit.AvailableOn          = availDate
+    if (unitType)                    unit.UnitType             = unitType
+    unit.Furnished                                             = furnished
+    unit.Laundry                                              = laundry
+    if (utilitiesIncluded.length)    unit.UtilitiesIncluded    = utilitiesIncluded
+    if (hasHoa)                      unit.HasHOA               = true
+    if (parkingSpaces !== undefined) unit.ParkingSpaces        = parkingSpaces
+    if (parkingDescription)          unit.ParkingDescription   = parkingDescription
+    unit.ShowingMethod                                         = 'Accompanied'
+    unit.TenantAgentCommissions                                = 'None'
+    unit.MinimumQualifications                                 = '3x monthly rent; verifiable income and employment'
 
     units.push(unit)
   }
@@ -714,6 +808,25 @@ async function createAppFolioTenants(authHeader, onboarding, s2, unitIds) {
 }
 
 /**
+ * Send an AppFolio owner portal invitation email.
+ * Tries the primary endpoint first, then a fallback. Non-fatal — logs a warning on failure.
+ */
+async function sendOwnerPortalInvitation(ownerId, email, supabase, onboardingId) {
+  if (!ownerId || !email) return
+  // AppFolio does not expose a portal invitation endpoint in its API.
+  // Flag it so staff can send the invitation manually from AppFolio.
+  if (supabase && onboardingId) {
+    const { error: flagErr } = await supabase.from('onboarding_flags').insert({
+      onboarding_id: onboardingId,
+      flag_type:     'portal_invitation_pending',
+      message:       `Send AppFolio owner portal invitation to ${email} manually. Open AppFolio → Owners → find this owner → Send Portal Invitation.`,
+    })
+    if (flagErr) console.warn('[AppFolio sync] Could not insert portal flag:', flagErr.message)
+    else console.log(`[AppFolio sync] Portal invitation flagged for staff — send manually to ${email}`)
+  }
+}
+
+/**
  * Main export.
  *
  * @param {object} onboarding  — full row from the onboardings table
@@ -757,45 +870,50 @@ export async function syncToAppFolio(onboarding, supabase) {
     // -------------------------------------------------------------------------
     // C. Create owner record(s) in AppFolio
     // -------------------------------------------------------------------------
-    let primaryOwnerId = null
+    let primaryOwnerId = onboarding.appfolio_owner_id || null
 
     if (!authHeader) {
       console.warn('[AppFolio sync] Missing APPFOLIO_STACK_CLIENT_ID or APPFOLIO_STACK_CLIENT_SECRET — skipping owner sync')
     } else {
-      // --- Primary owner ---
-      try {
-        const { firstName, lastName } = splitName(onboarding.owner_name)
-        const entityType  = onboarding.entity_type || 'individual'
-        const isCompany   = entityType === 'business'
-        const companyName = isCompany ? onboarding.owner_name : null
+      // --- Primary owner (skip if already created by an earlier step sync) ---
+      if (primaryOwnerId) {
+        console.log(`[AppFolio sync] Primary owner already created (${primaryOwnerId}) — skipping`)
+      } else {
+        try {
+          const { firstName, lastName } = splitName(onboarding.owner_name)
+          const entityType  = onboarding.entity_type || 'individual'
+          const isCompany   = ['business', 'corp', 'llc', 'partnership', 'trust'].includes(entityType)
+          const companyName = isCompany ? onboarding.owner_name : null
 
-        const primaryPayload = buildOwnerPayload({
-          firstName: onboarding.owner_first_name || firstName,
-          lastName,
-          email:       onboarding.owner_email || s2.owner1Email  || null,
-          phone:       onboarding.owner_phone || s2.owner1Phone  || null,
-          street:      s2.owner1Street || null,
-          city:        s2.owner1City   || null,
-          state:       s2.owner1State  || null,
-          zip:         s2.owner1Zip    || null,
-          isCompany,
-          companyName,
-        })
-        primaryOwnerId = await createAppFolioOwner(authHeader, primaryPayload)
-        if (primaryOwnerId) {
-          await supabase
-            .from('onboardings')
-            .update({ appfolio_owner_id: String(primaryOwnerId) })
-            .eq('id', onboarding.id)
-          console.log(`[AppFolio sync] Owner created: ${primaryOwnerId} for ${onboarding.short_address}`)
+          const primaryPayload = buildOwnerPayload({
+            firstName: onboarding.owner_first_name || firstName,
+            lastName,
+            email:       onboarding.owner_email || s2.owner1Email  || null,
+            phone:       onboarding.owner_phone || s2.owner1Phone  || null,
+            street:      s2.owner1Street || null,
+            city:        s2.owner1City   || null,
+            state:       s2.owner1State  || null,
+            zip:         s2.owner1Zip    || null,
+            isCompany,
+            companyName,
+          })
+          primaryOwnerId = await createAppFolioOwner(authHeader, primaryPayload)
+          if (primaryOwnerId) {
+            await supabase
+              .from('onboardings')
+              .update({ appfolio_owner_id: String(primaryOwnerId) })
+              .eq('id', onboarding.id)
+            console.log(`[AppFolio sync] Owner created: ${primaryOwnerId} for ${onboarding.short_address}`)
+            await sendOwnerPortalInvitation(primaryOwnerId, onboarding.owner_email || s2.owner1Email || null, supabase, onboarding.id)
+          }
+        } catch (err) {
+          console.error('[AppFolio sync] Primary owner create failed:', err.message)
+          await supabase.from('onboarding_flags').insert({
+            onboarding_id: onboarding.id,
+            flag_type:     'appfolio_sync_error',
+            message:       `AppFolio primary owner create failed for ${onboarding.short_address}: ${err.message}`,
+          })
         }
-      } catch (err) {
-        console.error('[AppFolio sync] Primary owner create failed:', err.message)
-        await supabase.from('onboarding_flags').insert({
-          onboarding_id: onboarding.id,
-          flag_type:     'appfolio_sync_error',
-          message:       `AppFolio primary owner create failed for ${onboarding.short_address}: ${err.message}`,
-        })
       }
 
       // --- Additional owners (2, 3, 4) — present only if owner was entered in step 2 ---
@@ -831,101 +949,109 @@ export async function syncToAppFolio(onboarding, supabase) {
     }
 
     // -------------------------------------------------------------------------
-    // D. Create property record in AppFolio
+    // D. Create property record in AppFolio (skip if already created)
     // -------------------------------------------------------------------------
-    let appfolioPropertyId = null
+    let appfolioPropertyId = onboarding.appfolio_property_id || null
     let appfolioPropertyLink = null
 
     if (authHeader) {
-      try {
-        const propType = s2.propertyType || s2.propType || s2['prop-type'] || ''
-        appfolioPropertyId = await createAppFolioProperty(authHeader, onboarding, propType)
-        if (appfolioPropertyId) {
-          appfolioPropertyLink = await getAppFolioPropertyLink(authHeader, appfolioPropertyId)
-          await supabase
-            .from('onboardings')
-            .update({ appfolio_property_id: String(appfolioPropertyId) })
-            .eq('id', onboarding.id)
-          console.log(`[AppFolio sync] Property created: ${appfolioPropertyId} for ${onboarding.short_address}`)
+      if (appfolioPropertyId) {
+        // Property was already created by an earlier step sync — fetch the link for the flag
+        appfolioPropertyLink = await getAppFolioPropertyLink(authHeader, appfolioPropertyId).catch(() => null)
+        console.log(`[AppFolio sync] Property already created (${appfolioPropertyId}) — skipping creation`)
+      } else {
+        try {
+          const propType = s2.propertyType || s2.propType || s2['prop-type'] || ''
+          appfolioPropertyId = await createAppFolioProperty(authHeader, onboarding, propType)
+          if (appfolioPropertyId) {
+            appfolioPropertyLink = await getAppFolioPropertyLink(authHeader, appfolioPropertyId)
+            await supabase
+              .from('onboardings')
+              .update({ appfolio_property_id: String(appfolioPropertyId) })
+              .eq('id', onboarding.id)
+            console.log(`[AppFolio sync] Property created: ${appfolioPropertyId} for ${onboarding.short_address}`)
 
-          // Update property with full details
-          try {
-            await updateAppFolioProperty(authHeader, appfolioPropertyId, onboarding, s2, insuranceStatus, surevestorApproved)
-            console.log(`[AppFolio sync] Property updated with form details for ${onboarding.short_address}`)
-          } catch (err) {
-            console.error('[AppFolio sync] Property update failed:', err.message)
-            await supabase.from('onboarding_flags').insert({
-              onboarding_id: onboarding.id,
-              flag_type:     'appfolio_sync_error',
-              message:       `AppFolio property update failed for ${onboarding.short_address}: ${err.message}`,
-            })
-          }
-
-          // Create units with rental details (one per onboarding.units count)
-          let unitIds = []
-          try {
-            unitIds = await createAppFolioUnits(authHeader, onboarding, s2, appfolioPropertyId)
-            if (unitIds.length) console.log(`[AppFolio sync] ${unitIds.length} unit(s) created for ${onboarding.short_address}`)
-          } catch (err) {
-            console.error('[AppFolio sync] Unit create failed:', err.message)
-            await supabase.from('onboarding_flags').insert({
-              onboarding_id: onboarding.id,
-              flag_type:     'appfolio_sync_error',
-              message:       `AppFolio unit create failed for ${onboarding.short_address}: ${err.message}`,
-            })
-          }
-
-          // Assign property to the right groups
-          try {
-            await addToAppFolioPropertyGroups(authHeader, appfolioPropertyId, onboarding, s2, s3, insuranceStatus, surevestorApproved)
-          } catch (err) {
-            console.error('[AppFolio sync] Property group assignment failed:', err.message)
-            await supabase.from('onboarding_flags').insert({
-              onboarding_id: onboarding.id,
-              flag_type:     'appfolio_sync_error',
-              message:       `AppFolio property group assignment failed for ${onboarding.short_address}: ${err.message}`,
-            })
-          }
-
-          // Create HOA vendor if HOA is present
-          const hasHoa = !!(s2.hoaName || s2.hoaCompany)
-          if (hasHoa) {
+            // Create units with rental details (one per onboarding.units count)
+            let unitIds = []
             try {
-              const vendorId = await createAppFolioHoaVendor(authHeader, s2)
-              if (vendorId) console.log(`[AppFolio sync] HOA vendor created: ${vendorId} for ${onboarding.short_address}`)
+              unitIds = await createAppFolioUnits(authHeader, onboarding, s2, appfolioPropertyId)
+              if (unitIds.length) console.log(`[AppFolio sync] ${unitIds.length} unit(s) created for ${onboarding.short_address}`)
             } catch (err) {
-              console.error('[AppFolio sync] HOA vendor create failed:', err.message)
+              console.error('[AppFolio sync] Unit create failed:', err.message)
               await supabase.from('onboarding_flags').insert({
                 onboarding_id: onboarding.id,
                 flag_type:     'appfolio_sync_error',
-                message:       `AppFolio HOA vendor create failed for ${onboarding.short_address}: ${err.message}`,
+                message:       `AppFolio unit create failed for ${onboarding.short_address}: ${err.message}`,
               })
             }
-          }
 
-          // Create tenants for occupied units
-          if (unitIds.length) {
+            // Assign property to the right groups
             try {
-              const jobId = await createAppFolioTenants(authHeader, onboarding, s2, unitIds)
-              if (jobId) console.log(`[AppFolio sync] Tenants queued (JobId: ${jobId}) for ${onboarding.short_address}`)
-              else       console.log(`[AppFolio sync] No occupied units — tenants skipped for ${onboarding.short_address}`)
+              await addToAppFolioPropertyGroups(authHeader, appfolioPropertyId, onboarding, s2, s3, insuranceStatus, surevestorApproved)
             } catch (err) {
-              console.error('[AppFolio sync] Tenant create failed:', err.message)
+              console.error('[AppFolio sync] Property group assignment failed:', err.message)
               await supabase.from('onboarding_flags').insert({
                 onboarding_id: onboarding.id,
                 flag_type:     'appfolio_sync_error',
-                message:       `AppFolio tenant create failed for ${onboarding.short_address}: ${err.message}`,
+                message:       `AppFolio property group assignment failed for ${onboarding.short_address}: ${err.message}`,
               })
             }
+
+            // Create HOA vendor if HOA is present
+            const hasHoa = !!(s2.hoaName || s2.hoaCompany)
+            if (hasHoa) {
+              try {
+                const vendorId = await createAppFolioHoaVendor(authHeader, s2)
+                if (vendorId) console.log(`[AppFolio sync] HOA vendor created: ${vendorId} for ${onboarding.short_address}`)
+              } catch (err) {
+                console.error('[AppFolio sync] HOA vendor create failed:', err.message)
+                await supabase.from('onboarding_flags').insert({
+                  onboarding_id: onboarding.id,
+                  flag_type:     'appfolio_sync_error',
+                  message:       `AppFolio HOA vendor create failed for ${onboarding.short_address}: ${err.message}`,
+                })
+              }
+            }
+
+            // Create tenants for occupied units
+            if (unitIds.length) {
+              try {
+                const jobId = await createAppFolioTenants(authHeader, onboarding, s2, unitIds)
+                if (jobId) console.log(`[AppFolio sync] Tenants queued (JobId: ${jobId}) for ${onboarding.short_address}`)
+                else       console.log(`[AppFolio sync] No occupied units — tenants skipped for ${onboarding.short_address}`)
+              } catch (err) {
+                console.error('[AppFolio sync] Tenant create failed:', err.message)
+                await supabase.from('onboarding_flags').insert({
+                  onboarding_id: onboarding.id,
+                  flag_type:     'appfolio_sync_error',
+                  message:       `AppFolio tenant create failed for ${onboarding.short_address}: ${err.message}`,
+                })
+              }
+            }
           }
+        } catch (err) {
+          console.error('[AppFolio sync] Property create failed:', err.message)
+          await supabase.from('onboarding_flags').insert({
+            onboarding_id: onboarding.id,
+            flag_type:     'appfolio_sync_error',
+            message:       `AppFolio property create failed for ${onboarding.short_address}: ${err.message}`,
+          })
         }
-      } catch (err) {
-        console.error('[AppFolio sync] Property create failed:', err.message)
-        await supabase.from('onboarding_flags').insert({
-          onboarding_id: onboarding.id,
-          flag_type:     'appfolio_sync_error',
-          message:       `AppFolio property create failed for ${onboarding.short_address}: ${err.message}`,
-        })
+      }
+
+      // Always update property with final form details on completion
+      if (appfolioPropertyId) {
+        try {
+          await updateAppFolioProperty(authHeader, appfolioPropertyId, onboarding, s2, insuranceStatus, surevestorApproved)
+          console.log(`[AppFolio sync] Property updated with final details for ${onboarding.short_address}`)
+        } catch (err) {
+          console.error('[AppFolio sync] Property update failed:', err.message)
+          await supabase.from('onboarding_flags').insert({
+            onboarding_id: onboarding.id,
+            flag_type:     'appfolio_sync_error',
+            message:       `AppFolio property update failed for ${onboarding.short_address}: ${err.message}`,
+          })
+        }
       }
     }
 
@@ -1001,5 +1127,153 @@ export async function syncToAppFolio(onboarding, supabase) {
     } catch {
       // Nothing left to do if even the flag insert fails
     }
+  }
+}
+
+/**
+ * Fire-and-forget sync triggered after Step 1 (Management Agreement) completes.
+ * Creates the owner, property, and units in AppFolio using the basic intake data
+ * on the onboarding row. Step 2 form data is not available yet so units are created
+ * with minimal detail; syncAfterStep2 will enrich them once the questionnaire is done.
+ */
+export async function syncAfterStep1(onboardingId, supabase) {
+  // Diagnostic trace — remove once auto-sync is confirmed working
+  await supabase.from('onboarding_flags').insert({
+    onboarding_id: onboardingId,
+    flag_type:     '_sync_trace',
+    message:       'syncAfterStep1 called at ' + new Date().toISOString(),
+  })
+
+  const authHeader = buildAuthHeader()
+  if (!authHeader) {
+    console.warn('[AppFolio Step1 sync] Missing credentials — skipping')
+    return
+  }
+
+  // Re-fetch so we have the latest status and can check for existing IDs (idempotency)
+  const { data: onboarding } = await supabase
+    .from('onboardings')
+    .select('*')
+    .eq('id', onboardingId)
+    .single()
+
+  if (!onboarding) {
+    console.error('[AppFolio Step1 sync] Onboarding record not found:', onboardingId)
+    return
+  }
+
+  // Both already exist — nothing to do
+  if (onboarding.appfolio_owner_id && onboarding.appfolio_property_id) {
+    console.log(`[AppFolio Step1 sync] Already synced — skipping for ${onboarding.short_address}`)
+    return
+  }
+
+  // --- Owner ---
+  if (!onboarding.appfolio_owner_id) {
+    try {
+      const { firstName, lastName } = splitName(onboarding.owner_name)
+      const entityType  = onboarding.entity_type || 'individual'
+      const isCompany   = ['business', 'corp', 'llc', 'partnership', 'trust'].includes(entityType)
+      const companyName = isCompany ? onboarding.owner_name : null
+
+      const payload = buildOwnerPayload({
+        firstName: onboarding.owner_first_name || firstName,
+        lastName,
+        email:    onboarding.owner_email || null,
+        phone:    onboarding.owner_phone || null,
+        isCompany,
+        companyName,
+      })
+
+      const ownerId = await createAppFolioOwner(authHeader, payload)
+      if (ownerId) {
+        await supabase
+          .from('onboardings')
+          .update({ appfolio_owner_id: String(ownerId) })
+          .eq('id', onboarding.id)
+        console.log(`[AppFolio Step1 sync] Owner created: ${ownerId} for ${onboarding.short_address}`)
+        // Send portal invitation immediately after owner record exists
+        await sendOwnerPortalInvitation(ownerId, onboarding.owner_email || null, supabase, onboarding.id)
+      }
+    } catch (err) {
+      console.error('[AppFolio Step1 sync] Owner create failed:', err.message)
+      await supabase.from('onboarding_flags').insert({
+        onboarding_id: onboarding.id,
+        flag_type:     'appfolio_sync_error',
+        message:       `AppFolio owner create failed (Step 1 sync) for ${onboarding.short_address}: ${err.message}`,
+      })
+    }
+  }
+
+  // --- Property ---
+  if (!onboarding.appfolio_property_id) {
+    try {
+      // Property type is unknown at Step 1; createAppFolioProperty defaults to Single-Family
+      const propertyId = await createAppFolioProperty(authHeader, onboarding, '')
+      if (propertyId) {
+        await supabase
+          .from('onboardings')
+          .update({ appfolio_property_id: String(propertyId) })
+          .eq('id', onboarding.id)
+        console.log(`[AppFolio Step1 sync] Property created: ${propertyId} for ${onboarding.short_address}`)
+
+        // Units are created at Step 2 when property type is known — skip here
+      }
+    } catch (err) {
+      console.error('[AppFolio Step1 sync] Property create failed:', err.message)
+      await supabase.from('onboarding_flags').insert({
+        onboarding_id: onboarding.id,
+        flag_type:     'appfolio_sync_error',
+        message:       `AppFolio property create failed (Step 1 sync) for ${onboarding.short_address}: ${err.message}`,
+      })
+    }
+  }
+}
+
+/**
+ * Fire-and-forget sync triggered after Step 2 (Property Questionnaire) completes.
+ * Updates the AppFolio property record with the full form details if the property
+ * was already created by syncAfterStep1. If the property ID is not set yet, skips silently.
+ */
+export async function syncAfterStep2(onboardingId, supabase) {
+  // Re-fetch to get latest property ID and insurance status
+  const { data: onboarding } = await supabase
+    .from('onboardings')
+    .select('*')
+    .eq('id', onboardingId)
+    .single()
+
+  if (!onboarding?.appfolio_property_id) {
+    // Property not yet created — Step 1 sync may not have run yet; skip silently
+    return
+  }
+
+  const authHeader = buildAuthHeader()
+  if (!authHeader) {
+    console.warn('[AppFolio Step2 sync] Missing credentials — skipping')
+    return
+  }
+
+  try {
+    const { data: step2Row } = await supabase
+      .from('onboarding_steps')
+      .select('data_json')
+      .eq('onboarding_id', onboardingId)
+      .eq('step_number', 2)
+      .single()
+
+    const s2               = step2Row?.data_json || {}
+    const insuranceStatus  = onboarding.insurance_coverage_status     || null
+    const surevestorApproved = onboarding.insurance_surevestor_approved || false
+
+    await updateAppFolioProperty(authHeader, onboarding.appfolio_property_id, onboarding, s2, insuranceStatus, surevestorApproved)
+    console.log(`[AppFolio Step2 sync] Property updated for ${onboarding.short_address}`)
+  } catch (err) {
+    console.error('[AppFolio Step2 sync] Property update failed:', err.message)
+    await supabase.from('onboarding_flags').insert({
+      onboarding_id: onboarding.id,
+      flag_type:     'appfolio_sync_error',
+      message:       `AppFolio property update failed (Step 2 sync) for ${onboarding.short_address}: ${err.message}`,
+    })
   }
 }

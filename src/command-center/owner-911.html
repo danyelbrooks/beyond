@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>911 Take to 100% — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+
+    /* ── Section headers ───────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 11px;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+    .badge-red   { background: #fee2e2; color: #dc2626; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+
+    /* ── 911 card ──────────────────────────────────────── */
+    .card-911 {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .card-911-pulse {
+      flex-shrink: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #dc2626;
+      margin-top: 5px;
+      animation: pulse911 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse911 {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+      50%       { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+    }
+    .card-911-body { flex: 1; min-width: 0; }
+    .card-911-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .card-911-concern {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+      line-height: 1.45;
+    }
+    .card-911-meta {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .card-911-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .btn-resolve {
+      background: #22c55e;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-resolve:hover { background: #16a34a; }
+
+    /* ── Email outbox card ─────────────────────────────── */
+    .card-outbox {
+      background: var(--color-surface);
+      border: 1px solid #fbbf24;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    .card-outbox-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .card-outbox-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .card-outbox-meta {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+    .card-outbox-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-copy {
+      background: var(--color-accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-copy:hover { opacity: 0.88; }
+    .btn-copy.copied {
+      background: #22c55e;
+    }
+    .btn-email-sent {
+      background: transparent;
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-email-sent:hover { border-color: #22c55e; color: #22c55e; }
+
+    /* ── Email block ───────────────────────────────────── */
+    .email-block {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--color-text);
+      user-select: all;
+    }
+    .email-to-line {
+      font-weight: 700;
+      color: var(--color-accent);
+      font-size: 0.85rem;
+      margin-bottom: 2px;
+    }
+
+    /* ── Empty state ───────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      border: 1px dashed var(--color-border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+    .empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+    /* ── Modals ────────────────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--color-surface);
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+    .modal-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .modal-input, .modal-select, .modal-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: var(--color-bg);
+      color: var(--color-text);
+      box-sizing: border-box;
+      margin-bottom: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+    .modal-input:focus, .modal-select:focus, .modal-textarea:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(52,152,219,.15);
+    }
+    .modal-textarea { min-height: 100px; resize: vertical; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+    .btn-primary {
+      background: var(--color-accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 9px 16px;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { border-color: var(--color-text-muted); }
+
+    /* ── Toast ─────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.25s;
+      z-index: 200;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Page header ───────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .page-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-title-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .btn-flag {
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+    }
+    .btn-flag:hover { background: #b91c1c; }
+
+    .section-divider { margin: 28px 0 20px; }
+
+  </style>
+</head>
+<body>
+  <div id="app-header" class="app-header"></div>
+  <div class="app-shell">
+    <nav id="app-sidebar" class="app-sidebar"></nav>
+    <main class="app-main">
+
+      <div class="page-header">
+        <div class="page-title">
+          <span>911 Take to 100%</span>
+          <span class="page-title-badge">Urgent</span>
+        </div>
+        <button class="btn-flag" id="btn-flag-owner">+ Flag Owner</button>
+      </div>
+
+      <!-- Active 911 list -->
+      <div class="section-header">
+        <div class="section-title">
+          Needs Attention Now
+          <span class="section-badge badge-red" id="badge-active">0</span>
+        </div>
+      </div>
+      <div id="active-list">
+        <div class="empty-state"><div class="empty-icon">✓</div>No owners on the 911 list right now.</div>
+      </div>
+
+      <div class="section-divider">
+        <div class="section-header">
+          <div class="section-title">
+            Email Outbox — Send Closeout to help@
+            <span class="section-badge badge-amber" id="badge-outbox">0</span>
+          </div>
+        </div>
+      </div>
+      <div id="outbox-list">
+        <div class="empty-state"><div class="empty-icon">✉</div>No emails waiting to be sent.</div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Modal: Flag owner -->
+  <div class="modal-backdrop" id="modal-flag">
+    <div class="modal-box">
+      <div class="modal-title">Flag Owner for 911 List</div>
+      <div class="modal-label">Owner</div>
+      <input class="modal-input" id="flag-owner-search" type="text" placeholder="Type owner name to search..." autocomplete="off">
+      <div id="owner-dropdown" style="display:none; border:1px solid var(--color-border); border-radius:6px; max-height:180px; overflow-y:auto; margin-top:-10px; margin-bottom:14px; background:var(--color-surface);"></div>
+      <input type="hidden" id="flag-owner-id">
+      <input type="hidden" id="flag-owner-name">
+      <div class="modal-label">What is the concern?</div>
+      <textarea class="modal-textarea" id="flag-concern" placeholder="Describe the owner's issue or request that needs to be resolved to 100%..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="btn-flag-cancel">Cancel</button>
+        <button class="btn-primary" id="btn-flag-save">Add to 911 List</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Mark resolved -->
+  <div class="modal-backdrop" id="modal-resolve">
+    <div class="modal-box">
+      <div class="modal-title">Mark as Resolved</div>
+      <div class="modal-label">How was this resolved? (optional)</div>
+      <textarea class="modal-textarea" id="resolve-notes" placeholder="Briefly describe what was done to resolve this concern..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="btn-resolve-cancel">Cancel</button>
+        <button class="btn-primary" id="btn-resolve-save">Mark Resolved — Move to Outbox</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth, renderHeader, renderSidebar, supabase } from './auth.js'
+
+    let currentUser = null
+    let resolveTargetId = null
+    let allOwners = []
+
+    // ── Init ────────────────────────────────────────────────────────
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+    currentUser = auth
+    renderHeader(auth.profile)
+    renderSidebar('owner-911', auth.profile.role, auth.user.email)
+
+    allOwners = await loadOwners()
+    await refresh()
+
+    // ── Data ─────────────────────────────────────────────────────────
+    async function loadOwners() {
+      const { data, error } = await supabase
+        .from('owners')
+        .select('id, name, email')
+        .order('name')
+      if (error) { showToast('Could not load owners'); return [] }
+      return data ?? []
+    }
+
+    async function refresh() {
+      const { data, error } = await supabase
+        .from('owner_911')
+        .select('*, owners(id, name, email)')
+        .in('status', ['active', 'resolved'])
+        .order('flagged_at', { ascending: false })
+
+      if (error) { showToast('Could not load 911 list'); return }
+
+      const active   = (data ?? []).filter(r => r.status === 'active')
+      const resolved = (data ?? []).filter(r => r.status === 'resolved')
+
+      document.getElementById('badge-active').textContent  = active.length
+      document.getElementById('badge-outbox').textContent  = resolved.length
+
+      renderActive(active)
+      renderOutbox(resolved)
+    }
+
+    // ── Render: Active ────────────────────────────────────────────────
+    function renderActive(rows) {
+      const el = document.getElementById('active-list')
+      if (rows.length === 0) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div>No owners on the 911 list right now.</div>'
+        return
+      }
+      el.innerHTML = rows.map(r => {
+        const owner = r.owners ?? {}
+        const name  = owner.name ?? 'Unknown Owner'
+        const email = owner.email ?? ''
+        const since = timeAgo(r.flagged_at)
+        return `
+          <div class="card-911">
+            <div class="card-911-pulse"></div>
+            <div class="card-911-body">
+              <div class="card-911-name">${esc(displayName(name))}</div>
+              <div class="card-911-concern">${esc(r.concern)}</div>
+              <div class="card-911-meta">
+                <span>Flagged ${since}</span>
+                ${email ? `<span>${esc(email)}</span>` : ''}
+              </div>
+            </div>
+            <div class="card-911-actions">
+              <button class="btn-resolve" onclick="openResolve('${r.id}')">Mark Resolved</button>
+            </div>
+          </div>
+        `
+      }).join('')
+    }
+
+    // ── Render: Email Outbox ──────────────────────────────────────────
+    function renderOutbox(rows) {
+      const el = document.getElementById('outbox-list')
+      if (rows.length === 0) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">✉</div>No emails waiting to be sent.</div>'
+        return
+      }
+      el.innerHTML = rows.map(r => {
+        const owner     = r.owners ?? {}
+        const name      = owner.name ?? 'Unknown Owner'
+        const email     = owner.email ?? ''
+        const firstName = extractFirstName(name)
+        const resolvedAgo = timeAgo(r.resolved_at)
+
+        const emailBody = buildEmailBlock(email, firstName)
+
+        return `
+          <div class="card-outbox" id="outbox-${r.id}">
+            <div class="card-outbox-header">
+              <div>
+                <div class="card-outbox-name">${esc(displayName(name))}</div>
+                <div class="card-outbox-meta">Resolved ${resolvedAgo}</div>
+              </div>
+              <div class="card-outbox-actions">
+                <button class="btn-copy" onclick="copyEmail('${r.id}', this)">Copy Email</button>
+                <button class="btn-email-sent" onclick="markEmailSent('${r.id}')">Email Sent ✓</button>
+              </div>
+            </div>
+            <div class="email-to-line">To: ${esc(email || '(no email on file)')}</div>
+            <div class="email-block" id="email-block-${r.id}">${esc(emailBody)}</div>
+          </div>
+        `
+      }).join('')
+    }
+
+    function buildEmailBlock(email, firstName) {
+      return [
+        `To: ${email || '(no email on file)'}`,
+        ``,
+        `Subject: Your request has been resolved — no further action needed`,
+        ``,
+        `Hi ${firstName},`,
+        ``,
+        `At this time, we have fulfilled your request/concern and no other action is needed at this time. Please don't hesitate to reach out if anything changes.`,
+        ``,
+        `Thank you,`,
+        `Beyond Property Management`,
+        `help@bpmsd.com`,
+      ].join('\n')
+    }
+
+    // ── Actions ───────────────────────────────────────────────────────
+    window.openResolve = function(id) {
+      resolveTargetId = id
+      document.getElementById('resolve-notes').value = ''
+      document.getElementById('modal-resolve').classList.add('open')
+    }
+
+    window.copyEmail = function(id, btn) {
+      const block = document.getElementById(`email-block-${id}`)
+      if (!block) return
+      navigator.clipboard.writeText(block.textContent).then(() => {
+        btn.textContent = 'Copied!'
+        btn.classList.add('copied')
+        setTimeout(() => {
+          btn.textContent = 'Copy Email'
+          btn.classList.remove('copied')
+        }, 2500)
+      })
+    }
+
+    window.markEmailSent = async function(id) {
+      const { error } = await supabase
+        .from('owner_911')
+        .update({ status: 'email_sent', email_sent_at: new Date().toISOString() })
+        .eq('id', id)
+
+      if (error) { showToast('Could not mark as sent'); return }
+      showToast('Marked as email sent — removed from outbox')
+      document.getElementById(`outbox-${id}`)?.remove()
+      const remaining = document.querySelectorAll('#outbox-list .card-outbox').length
+      document.getElementById('badge-outbox').textContent = remaining
+      if (remaining === 0) {
+        document.getElementById('outbox-list').innerHTML =
+          '<div class="empty-state"><div class="empty-icon">✉</div>No emails waiting to be sent.</div>'
+      }
+    }
+
+    // ── Resolve modal ─────────────────────────────────────────────────
+    document.getElementById('btn-resolve-cancel').addEventListener('click', () => {
+      document.getElementById('modal-resolve').classList.remove('open')
+    })
+
+    document.getElementById('btn-resolve-save').addEventListener('click', async () => {
+      if (!resolveTargetId) return
+      const notes = document.getElementById('resolve-notes').value.trim()
+
+      const { error } = await supabase
+        .from('owner_911')
+        .update({
+          status:           'resolved',
+          resolved_by:      currentUser.user.id,
+          resolved_at:      new Date().toISOString(),
+          resolution_notes: notes || null,
+        })
+        .eq('id', resolveTargetId)
+
+      if (error) { showToast('Could not mark as resolved'); return }
+      document.getElementById('modal-resolve').classList.remove('open')
+      showToast('Moved to Email Outbox — help@ can now send the closeout')
+      resolveTargetId = null
+      await refresh()
+    })
+
+    // ── Flag modal ────────────────────────────────────────────────────
+    document.getElementById('btn-flag-owner').addEventListener('click', () => {
+      document.getElementById('flag-owner-search').value = ''
+      document.getElementById('flag-owner-id').value    = ''
+      document.getElementById('flag-owner-name').value  = ''
+      document.getElementById('flag-concern').value     = ''
+      document.getElementById('owner-dropdown').style.display = 'none'
+      document.getElementById('modal-flag').classList.add('open')
+      setTimeout(() => document.getElementById('flag-owner-search').focus(), 80)
+    })
+
+    document.getElementById('btn-flag-cancel').addEventListener('click', () => {
+      document.getElementById('modal-flag').classList.remove('open')
+    })
+
+    // Owner search dropdown
+    const searchInput    = document.getElementById('flag-owner-search')
+    const dropdown       = document.getElementById('owner-dropdown')
+
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase().trim()
+      if (!q) { dropdown.style.display = 'none'; return }
+
+      const matches = allOwners
+        .filter(o => o.name?.toLowerCase().includes(q) || o.email?.toLowerCase().includes(q))
+        .slice(0, 8)
+
+      if (matches.length === 0) { dropdown.style.display = 'none'; return }
+
+      dropdown.style.display = 'block'
+      dropdown.innerHTML = matches.map(o => `
+        <div
+          onclick="selectOwner('${o.id}', ${JSON.stringify(esc(o.name ?? ''))})"
+          style="padding:9px 14px; cursor:pointer; font-size:0.875rem; border-bottom:1px solid var(--color-border);"
+          onmouseover="this.style.background='var(--color-bg)'"
+          onmouseout="this.style.background=''"
+        >
+          <div style="font-weight:600">${esc(displayName(o.name ?? ''))}</div>
+          ${o.email ? `<div style="font-size:0.75rem;color:var(--color-text-muted)">${esc(o.email)}</div>` : ''}
+        </div>
+      `).join('')
+    })
+
+    window.selectOwner = function(id, name) {
+      document.getElementById('flag-owner-id').value   = id
+      document.getElementById('flag-owner-name').value = name
+      document.getElementById('flag-owner-search').value = name
+      dropdown.style.display = 'none'
+    }
+
+    document.getElementById('btn-flag-save').addEventListener('click', async () => {
+      const ownerId  = document.getElementById('flag-owner-id').value.trim()
+      const concern  = document.getElementById('flag-concern').value.trim()
+
+      if (!ownerId)  { showToast('Please select an owner'); return }
+      if (!concern)  { showToast('Please describe the concern'); return }
+
+      const { error } = await supabase
+        .from('owner_911')
+        .insert({
+          owner_id:   ownerId,
+          concern,
+          flagged_by: currentUser.user.id,
+          status:     'active',
+        })
+
+      if (error) { showToast('Could not add to 911 list'); return }
+      document.getElementById('modal-flag').classList.remove('open')
+      showToast('Owner added to 911 list')
+      await refresh()
+    })
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.modal-backdrop').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open') })
+    })
+
+    // ── Helpers ───────────────────────────────────────────────────────
+    function displayName(name) {
+      if (!name) return 'Unknown'
+      const idx = name.indexOf(',')
+      if (idx > 0) {
+        const last  = name.slice(0, idx).trim()
+        const first = name.slice(idx + 1).trim()
+        return first ? `${first} ${last}` : last
+      }
+      return name
+    }
+
+    function extractFirstName(name) {
+      if (!name) return 'Owner'
+      const idx = name.indexOf(',')
+      if (idx > 0) {
+        const first = name.slice(idx + 1).trim().split(/\s+/)[0]
+        return first || 'Owner'
+      }
+      return name.split(/\s+/)[0] || 'Owner'
+    }
+
+    function timeAgo(isoStr) {
+      if (!isoStr) return ''
+      const diff = Date.now() - new Date(isoStr).getTime()
+      const mins  = Math.floor(diff / 60000)
+      const hours = Math.floor(diff / 3600000)
+      const days  = Math.floor(diff / 86400000)
+      if (days  > 0) return `${days}d ago`
+      if (hours > 0) return `${hours}h ago`
+      if (mins  > 0) return `${mins}m ago`
+      return 'just now'
+    }
+
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+
+    let _toastTimer = null
+    function showToast(msg) {
+      const el = document.getElementById('toast')
+      el.textContent = msg
+      el.classList.add('show')
+      clearTimeout(_toastTimer)
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 3200)
+    }
+  </script>
+</body>
+</html>

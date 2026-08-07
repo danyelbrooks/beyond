@@ -1,0 +1,961 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPI Entry — [YOUR COMPANY] Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <style>
+    .entry-month-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .entry-month-bar .form-select {
+      width: auto;
+      min-width: 180px;
+    }
+
+    .section-card {
+      background: var(--color-surface);
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      cursor: pointer;
+      user-select: none;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      gap: 12px;
+    }
+
+    .section-header:hover {
+      background: #f8f9fa;
+    }
+
+    .section-header-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--color-text);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-toggle {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .section-toggle.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .section-body {
+      padding: 20px 24px;
+    }
+
+    .section-body.hidden {
+      display: none;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .field-input {
+      padding: 9px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: var(--color-text);
+      background: var(--color-surface);
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .field-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.15);
+    }
+
+    .field-input[readonly] {
+      background: #f8f9fa;
+      color: var(--color-text-muted);
+      cursor: default;
+    }
+
+    .field-hint {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .wellness-display {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .wellness-stat {
+      background: var(--color-bg);
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid var(--color-border);
+    }
+
+    .wellness-stat-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .wellness-stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1;
+    }
+
+    .wellness-milestone {
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .wellness-milestone.hit {
+      background: #f0fff4;
+      border-color: #9ae6b4;
+      color: #22543d;
+    }
+
+    .wellness-milestone.not-hit {
+      background: #fffbeb;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
+
+    .milestone-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .milestone-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .milestone-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .milestone-dot.green { background: var(--color-success); }
+    .milestone-dot.gray  { background: var(--color-border); }
+
+    .save-bar {
+      position: sticky;
+      bottom: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding: 16px 24px;
+      margin: 28px -32px -28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      z-index: 200;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      transition: opacity 0.3s;
+    }
+
+    .toast-success {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      color: #22543d;
+    }
+
+    .toast-error {
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      color: #9b2c2c;
+    }
+
+    .access-denied {
+      text-align: center;
+      padding: 60px 20px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .access-denied h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 12px;
+    }
+
+    .access-denied p {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <span>Loading...</span>
+      </div>
+
+      <div id="accessDenied" style="display:none;">
+        <div class="access-denied">
+          <h2>Data entry is handled by our team.</h2>
+          <p>You can view the <a href="kpi-tracker.html">KPI Dashboard</a> instead.</p>
+        </div>
+      </div>
+
+      <div id="entryContent" style="display:none;">
+
+        <div class="page-header flex justify-between items-center flex-wrap gap-16">
+          <div>
+            <div class="page-title">KPI Entry</div>
+            <div class="page-subtitle">Enter monthly performance data</div>
+          </div>
+        </div>
+
+        <!-- Month selector -->
+        <div class="entry-month-bar">
+          <label class="field-label" for="monthSelect">Reporting Month</label>
+          <select class="form-select" id="monthSelect" style="width:auto; min-width:180px;"></select>
+          <span id="monthLoadStatus" class="text-muted" style="font-size:0.82rem;"></span>
+        </div>
+
+        <!-- ================================================================
+             CELEBRATION
+        ================================================================= -->
+        <div class="section-card" id="sec-celebration">
+          <div class="section-header" onclick="toggleSection('celebration')">
+            <span class="section-header-title">Celebration</span>
+            <span class="section-toggle" id="toggle-celebration">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-celebration">
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">Resident Celebration</label>
+                <input class="field-input" type="text" data-cat="celebration" data-key="resident_celebration" data-type="text" placeholder="Who / what">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Owner Celebration</label>
+                <input class="field-input" type="text" data-cat="celebration" data-key="owner_celebration" data-type="text" placeholder="Who / what">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Vendor Celebration</label>
+                <input class="field-input" type="text" data-cat="celebration" data-key="vendor_celebration" data-type="text" placeholder="Who / what">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Team Member Celebration</label>
+                <input class="field-input" type="text" data-cat="celebration" data-key="team_celebration" data-type="text" placeholder="Who / what">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             LEASING
+        ================================================================= -->
+        <div class="section-card" id="sec-leasing">
+          <div class="section-header" onclick="toggleSection('leasing')">
+            <span class="section-header-title">Leasing</span>
+            <span class="section-toggle" id="toggle-leasing">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-leasing">
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">Inquiries Received</label>
+                <input class="field-input" type="number" data-cat="leasing" data-key="inquiries_received" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Applications Received</label>
+                <input class="field-input" type="number" data-cat="leasing" data-key="applications_received" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Move-Ins</label>
+                <input class="field-input" type="number" data-cat="leasing" data-key="move_ins" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Move-Outs</label>
+                <input class="field-input" type="number" data-cat="leasing" data-key="move_outs" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Total Vacant Units</label>
+                <input class="field-input" type="number" data-cat="leasing" data-key="total_vacant_units" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Days to Lease (avg)</label>
+                <input class="field-input" type="number" step="0.1" data-cat="leasing" data-key="days_to_lease" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Vacancy %</label>
+                <input class="field-input" type="number" step="0.01" data-cat="leasing" data-key="vacancy_pct" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Hold %</label>
+                <input class="field-input" type="number" step="0.01" data-cat="leasing" data-key="hold_pct" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Turnover %</label>
+                <input class="field-input" type="number" step="0.01" data-cat="leasing" data-key="turnover_pct" placeholder="0.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             BUSINESS DEV
+        ================================================================= -->
+        <div class="section-card" id="sec-business_dev">
+          <div class="section-header" onclick="toggleSection('business_dev')">
+            <span class="section-header-title">Business Dev</span>
+            <span class="section-toggle" id="toggle-business_dev">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-business_dev">
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">New Positive Google Reviews</label>
+                <input class="field-input" type="number" data-cat="business_dev" data-key="new_positive_reviews" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">New Negative Google Reviews</label>
+                <input class="field-input" type="number" data-cat="business_dev" data-key="new_negative_reviews" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Total Google Reviews (cumulative)</label>
+                <input class="field-input" type="number" data-cat="business_dev" data-key="total_reviews" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Current Google Rating</label>
+                <input class="field-input" type="number" step="0.1" data-cat="business_dev" data-key="google_rating" placeholder="4.5">
+              </div>
+              <div class="field-group">
+                <label class="field-label">New Units Signed</label>
+                <input class="field-input" type="number" data-cat="business_dev" data-key="new_units_signed" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Outgoing Units (lost mgmt)</label>
+                <input class="field-input" type="number" data-cat="business_dev" data-key="outgoing_units" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Total Units Under Management</label>
+                <input class="field-input" type="number" data-cat="business_dev" data-key="total_units" placeholder="0" oninput="updateWellness()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             RENEWALS
+        ================================================================= -->
+        <div class="section-card" id="sec-renewals">
+          <div class="section-header" onclick="toggleSection('renewals')">
+            <span class="section-header-title">Renewals</span>
+            <span class="section-toggle" id="toggle-renewals">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-renewals">
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">Renewals Sent</label>
+                <input class="field-input" type="number" id="renewal_sent" data-cat="renewals" data-key="renewals_sent" placeholder="0" oninput="calcRenewalRates()">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Renewal Responses</label>
+                <input class="field-input" type="number" id="renewal_responses" data-cat="renewals" data-key="renewal_responses" placeholder="0" oninput="calcRenewalRates()">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Signed Leases</label>
+                <input class="field-input" type="number" id="renewal_signed" data-cat="renewals" data-key="signed_leases" placeholder="0" oninput="calcRenewalRates()">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Signed Month-to-Month</label>
+                <input class="field-input" type="number" data-cat="renewals" data-key="signed_mtm" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">No Response / Default to MTM</label>
+                <input class="field-input" type="number" data-cat="renewals" data-key="no_response_mtm" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Response Rate %</label>
+                <input class="field-input" type="number" step="0.01" id="renewal_response_rate" data-cat="renewals" data-key="response_rate_pct" placeholder="Auto-calculated">
+                <span class="field-hint">Auto-filled from Responses / Sent. Edit to override.</span>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Signed Lease %</label>
+                <input class="field-input" type="number" step="0.01" id="renewal_signed_pct" data-cat="renewals" data-key="signed_lease_pct" placeholder="Auto-calculated">
+                <span class="field-hint">Auto-filled from Signed / Sent. Edit to override.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             DELINQUENCIES
+        ================================================================= -->
+        <div class="section-card" id="sec-delinquencies">
+          <div class="section-header" onclick="toggleSection('delinquencies')">
+            <span class="section-header-title">Delinquencies</span>
+            <span class="section-toggle" id="toggle-delinquencies">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-delinquencies">
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">Non-Payment Notices Sent</label>
+                <input class="field-input" type="number" data-cat="delinquencies" data-key="nonpayment_notices" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Non-Payment as % of Total Units</label>
+                <input class="field-input" type="number" step="0.01" data-cat="delinquencies" data-key="nonpayment_pct" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Total $ Delinquent (as of 8th)</label>
+                <input class="field-input" type="number" step="0.01" data-cat="delinquencies" data-key="total_delinquent_dollars" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Delinquency as % of Revenue</label>
+                <input class="field-input" type="number" step="0.01" data-cat="delinquencies" data-key="delinquency_revenue_pct" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label"># Delinquencies Over $100</label>
+                <input class="field-input" type="number" data-cat="delinquencies" data-key="delinquencies_over_100" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label"># Delinquencies Under $100</label>
+                <input class="field-input" type="number" data-cat="delinquencies" data-key="delinquencies_under_100" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">End-of-Month Balance ($)</label>
+                <input class="field-input" type="number" step="0.01" data-cat="delinquencies" data-key="eom_balance_dollars" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">End-of-Month Balance (%)</label>
+                <input class="field-input" type="number" step="0.01" data-cat="delinquencies" data-key="eom_balance_pct" placeholder="0.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             MAINTENANCE
+        ================================================================= -->
+        <div class="section-card" id="sec-maintenance">
+          <div class="section-header" onclick="toggleSection('maintenance')">
+            <span class="section-header-title">Maintenance</span>
+            <span class="section-toggle" id="toggle-maintenance">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-maintenance">
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">Total Work Orders Open at EOM</label>
+                <input class="field-input" type="number" data-cat="maintenance" data-key="wo_open_eom" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Work Orders Created This Month</label>
+                <input class="field-input" type="number" data-cat="maintenance" data-key="wo_created" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Work Orders Completed This Month</label>
+                <input class="field-input" type="number" data-cat="maintenance" data-key="wo_completed" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Avg Days to Complete</label>
+                <input class="field-input" type="number" step="0.1" data-cat="maintenance" data-key="avg_days_complete" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">% Open Over 7 Days</label>
+                <input class="field-input" type="number" step="0.01" data-cat="maintenance" data-key="pct_open_7days" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Vendor Acceptance Speed (hours)</label>
+                <input class="field-input" type="number" step="0.1" data-cat="maintenance" data-key="vendor_accept_hours" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Resident Satisfaction Score (1–5)</label>
+                <input class="field-input" type="number" step="0.1" min="1" max="5" data-cat="maintenance" data-key="resident_satisfaction" placeholder="0.0">
+              </div>
+            </div>
+
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+              <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); margin-bottom: 14px;">Gael's Work Orders</div>
+              <div class="field-grid">
+                <div class="field-group">
+                  <label class="field-label">Gael — Open Work Orders</label>
+                  <input class="field-input" type="number" data-cat="maintenance" data-key="gael_open_wo" placeholder="0">
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Gael — Completed This Month</label>
+                  <input class="field-input" type="number" data-cat="maintenance" data-key="gael_completed" placeholder="0">
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Gael — Avg Days to Complete</label>
+                  <input class="field-input" type="number" step="0.1" data-cat="maintenance" data-key="gael_avg_days" placeholder="0">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             FINANCIALS
+        ================================================================= -->
+        <div class="section-card" id="sec-financials">
+          <div class="section-header" onclick="toggleSection('financials')">
+            <span class="section-header-title">Financials</span>
+            <span class="section-toggle" id="toggle-financials">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-financials">
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">PM Profit %</label>
+                <input class="field-input" type="number" step="0.01" data-cat="financials" data-key="pm_profit_pct" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Revenue Per Unit ($)</label>
+                <input class="field-input" type="number" step="0.01" data-cat="financials" data-key="revenue_per_unit" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Unit Acquisition Cost ($)</label>
+                <input class="field-input" type="number" step="0.01" data-cat="financials" data-key="unit_acquisition_cost" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Annual Churn %</label>
+                <input class="field-input" type="number" step="0.01" data-cat="financials" data-key="annual_churn_pct" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Facilities &amp; OpEx %</label>
+                <input class="field-input" type="number" step="0.01" data-cat="financials" data-key="facilities_opex_pct" placeholder="0.00">
+              </div>
+              <div class="field-group">
+                <label class="field-label">DLER</label>
+                <input class="field-input" type="number" step="0.01" data-cat="financials" data-key="dler" placeholder="0.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             TEAM TEXTS
+        ================================================================= -->
+        <div class="section-card" id="sec-team_texts">
+          <div class="section-header" onclick="toggleSection('team_texts')">
+            <span class="section-header-title">Team Texts (Outbound)</span>
+            <span class="section-toggle" id="toggle-team_texts">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-team_texts">
+            <p style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:16px;">
+              Enter the number of outbound texts each team member sent this month. Target is <strong>0</strong> for everyone. Any number above 0 will show red on the dashboard.
+            </p>
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label">Marianne Sison (manager@)</label>
+                <input class="field-input" type="number" min="0" data-cat="team_texts" data-key="texts_marianne" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Moira Tupay (accounts@)</label>
+                <input class="field-input" type="number" min="0" data-cat="team_texts" data-key="texts_moira" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Ruben Randolph (help@)</label>
+                <input class="field-input" type="number" min="0" data-cat="team_texts" data-key="texts_ruben" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Ella Ignacio (admin@)</label>
+                <input class="field-input" type="number" min="0" data-cat="team_texts" data-key="texts_ella" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Gael Aguilar (home@)</label>
+                <input class="field-input" type="number" min="0" data-cat="team_texts" data-key="texts_gael" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Laura Solorio (results@)</label>
+                <input class="field-input" type="number" min="0" data-cat="team_texts" data-key="texts_laura" placeholder="0">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Mark Davidson (success@)</label>
+                <input class="field-input" type="number" min="0" data-cat="team_texts" data-key="texts_mark" placeholder="0">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             WELLNESS (read-only display)
+        ================================================================= -->
+        <div class="section-card" id="sec-wellness">
+          <div class="section-header" onclick="toggleSection('wellness')">
+            <span class="section-header-title">Wellness</span>
+            <span class="section-toggle" id="toggle-wellness">&#9660;</span>
+          </div>
+          <div class="section-body" id="body-wellness">
+            <div class="wellness-display">
+              <div class="wellness-stat">
+                <div class="wellness-stat-label">Total Units Under Management</div>
+                <div class="wellness-stat-value" id="wellnessUnits">—</div>
+              </div>
+              <div class="wellness-stat">
+                <div class="wellness-stat-label">Current Google Rating</div>
+                <div class="wellness-stat-value" id="wellnessRating">—</div>
+              </div>
+            </div>
+            <div id="wellnessMilestones" class="wellness-milestone not-hit" style="margin-top: 20px;">
+              <div class="milestone-row">
+                <div class="milestone-dot gray" id="dot-units"></div>
+                <span id="msg-units">Enter Total Units to check progress</span>
+              </div>
+              <div class="milestone-row">
+                <div class="milestone-dot gray" id="dot-rating"></div>
+                <span id="msg-rating">Enter Google Rating to check progress</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save bar -->
+        <div class="save-bar">
+          <button class="btn btn-primary" id="btnSave" onclick="saveMonth()">Save This Month</button>
+          <span id="saveStatus" class="text-muted" style="font-size:0.82rem;"></span>
+        </div>
+
+      </div>
+      <!-- /entryContent -->
+
+    </div>
+  </main>
+
+  <div id="toast" style="display:none;" class="toast"></div>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    const ENTRY_EMAIL = 'care@yourdomain.com'
+
+    // =========================================================================
+    // BOOT
+    // =========================================================================
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+
+    const { user, profile } = auth
+
+    renderHeader(profile)
+    renderSidebar('kpi-entry', profile.role, user.email)
+
+    document.getElementById('loadingState').style.display = 'none'
+
+    if (user.email !== ENTRY_EMAIL) {
+      document.getElementById('accessDenied').style.display = ''
+      throw new Error('Access denied')
+    }
+
+    document.getElementById('entryContent').style.display = ''
+
+    buildMonthDropdown()
+    await loadMonth()
+
+    // =========================================================================
+    // MONTH DROPDOWN — current month + previous 11
+    // =========================================================================
+    function buildMonthDropdown() {
+      const sel = document.getElementById('monthSelect')
+      const now = new Date()
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+        const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        const opt = document.createElement('option')
+        opt.value = value
+        opt.textContent = label
+        sel.appendChild(opt)
+      }
+      sel.addEventListener('change', loadMonth)
+    }
+
+    // =========================================================================
+    // LOAD SAVED VALUES FOR SELECTED MONTH
+    // =========================================================================
+    async function loadMonth() {
+      const month = document.getElementById('monthSelect').value
+      document.getElementById('monthLoadStatus').textContent = 'Loading...'
+
+      const { data, error } = await supabase
+        .from('kpi_entries')
+        .select('category, metric_key, metric_value, metric_text')
+        .eq('reporting_month', month)
+
+      if (error) {
+        document.getElementById('monthLoadStatus').textContent = 'Error loading saved data.'
+        showToast('Could not load saved data: ' + error.message, 'error')
+        return
+      }
+
+      // Clear all inputs first
+      document.querySelectorAll('[data-cat]').forEach(el => {
+        if (el.dataset.type === 'text') {
+          el.value = ''
+        } else {
+          el.value = ''
+        }
+      })
+
+      // Populate from saved rows
+      const map = {}
+      ;(data || []).forEach(row => {
+        map[`${row.category}::${row.metric_key}`] = row
+      })
+
+      document.querySelectorAll('[data-cat]').forEach(el => {
+        const key = `${el.dataset.cat}::${el.dataset.key}`
+        const row = map[key]
+        if (!row) return
+        if (el.dataset.type === 'text') {
+          el.value = row.metric_text || ''
+        } else {
+          el.value = row.metric_value != null ? row.metric_value : ''
+        }
+      })
+
+      const count = data ? data.length : 0
+      document.getElementById('monthLoadStatus').textContent =
+        count > 0 ? `${count} saved values loaded` : 'No data saved yet for this month'
+
+      updateWellness()
+      calcRenewalRates()
+    }
+
+    // =========================================================================
+    // AUTO-CALCULATE RENEWAL RATES
+    // =========================================================================
+    window.calcRenewalRates = function() {
+      const sent     = parseFloat(document.getElementById('renewal_sent').value)
+      const responses = parseFloat(document.getElementById('renewal_responses').value)
+      const signed   = parseFloat(document.getElementById('renewal_signed').value)
+
+      const rrField  = document.getElementById('renewal_response_rate')
+      const spField  = document.getElementById('renewal_signed_pct')
+
+      if (!isNaN(sent) && sent > 0 && !isNaN(responses)) {
+        rrField.value = ((responses / sent) * 100).toFixed(2)
+      }
+      if (!isNaN(sent) && sent > 0 && !isNaN(signed)) {
+        spField.value = ((signed / sent) * 100).toFixed(2)
+      }
+    }
+
+    // =========================================================================
+    // WELLNESS PANEL
+    // =========================================================================
+    window.updateWellness = function() {
+      const unitsInput  = document.querySelector('[data-cat="business_dev"][data-key="total_units"]')
+      const ratingInput = document.querySelector('[data-cat="business_dev"][data-key="google_rating"]')
+
+      const units  = parseFloat(unitsInput?.value)
+      const rating = parseFloat(ratingInput?.value)
+
+      document.getElementById('wellnessUnits').textContent  = isNaN(units)  ? '—' : units
+      document.getElementById('wellnessRating').textContent = isNaN(rating) ? '—' : rating.toFixed(1)
+
+      const unitsHit  = !isNaN(units)  && units  >= 500
+      const ratingHit = !isNaN(rating) && rating >= 4.5
+
+      const dotUnits  = document.getElementById('dot-units')
+      const dotRating = document.getElementById('dot-rating')
+      const msgUnits  = document.getElementById('msg-units')
+      const msgRating = document.getElementById('msg-rating')
+      const box       = document.getElementById('wellnessMilestones')
+
+      dotUnits.className  = 'milestone-dot ' + (unitsHit  ? 'green' : 'gray')
+      dotRating.className = 'milestone-dot ' + (ratingHit ? 'green' : 'gray')
+
+      if (!isNaN(units)) {
+        msgUnits.textContent = unitsHit
+          ? '500-unit milestone hit'
+          : `${500 - Math.round(units)} away from 500 units`
+      } else {
+        msgUnits.textContent = 'Enter Total Units to check progress'
+      }
+
+      if (!isNaN(rating)) {
+        msgRating.textContent = ratingHit
+          ? '4.5 Google Rating milestone hit'
+          : `${(4.5 - rating).toFixed(1)} points away from 4.5 rating`
+      } else {
+        msgRating.textContent = 'Enter Google Rating to check progress'
+      }
+
+      box.className = 'wellness-milestone ' + (unitsHit && ratingHit ? 'hit' : 'not-hit')
+
+      if (unitsHit && ratingHit) {
+        const extra = box.querySelector('.milestone-extra')
+        if (!extra) {
+          const div = document.createElement('div')
+          div.className = 'milestone-extra'
+          div.style.cssText = 'margin-top:10px; font-weight:700;'
+          div.textContent = 'Wellness milestone unlocked!'
+          box.appendChild(div)
+        }
+      } else {
+        const extra = box.querySelector('.milestone-extra')
+        if (extra) extra.remove()
+      }
+    }
+
+    // =========================================================================
+    // SAVE
+    // =========================================================================
+    window.saveMonth = async function() {
+      const month  = document.getElementById('monthSelect').value
+      const btn    = document.getElementById('btnSave')
+      const status = document.getElementById('saveStatus')
+
+      btn.disabled = true
+      status.textContent = 'Saving...'
+
+      const rows = []
+      document.querySelectorAll('[data-cat]').forEach(el => {
+        const cat  = el.dataset.cat
+        const key  = el.dataset.key
+        const isText = el.dataset.type === 'text'
+
+        if (isText) {
+          const val = el.value.trim()
+          if (val === '') return
+          rows.push({
+            reporting_month: month,
+            category:        cat,
+            metric_key:      key,
+            metric_value:    null,
+            metric_text:     val,
+            entered_by:      user.email
+          })
+        } else {
+          const val = el.value.trim()
+          if (val === '') return
+          rows.push({
+            reporting_month: month,
+            category:        cat,
+            metric_key:      key,
+            metric_value:    parseFloat(val),
+            metric_text:     null,
+            entered_by:      user.email
+          })
+        }
+      })
+
+      if (rows.length === 0) {
+        status.textContent = ''
+        btn.disabled = false
+        showToast('No data entered — nothing to save.', 'error')
+        return
+      }
+
+      const { error } = await supabase
+        .from('kpi_entries')
+        .upsert(rows, { onConflict: 'reporting_month,category,metric_key' })
+
+      btn.disabled = false
+
+      if (error) {
+        status.textContent = 'Save failed.'
+        showToast('Save failed: ' + error.message, 'error')
+      } else {
+        status.textContent = `${rows.length} values saved.`
+        showToast('Saved successfully.', 'success')
+      }
+    }
+
+    // =========================================================================
+    // SECTION COLLAPSE
+    // =========================================================================
+    window.toggleSection = function(name) {
+      const body   = document.getElementById('body-' + name)
+      const toggle = document.getElementById('toggle-' + name)
+      const hidden = body.classList.toggle('hidden')
+      toggle.classList.toggle('collapsed', hidden)
+    }
+
+    // =========================================================================
+    // TOAST
+    // =========================================================================
+    function showToast(msg, type) {
+      const el = document.getElementById('toast')
+      el.textContent = msg
+      el.className = 'toast toast-' + type
+      el.style.display = ''
+      clearTimeout(el._timer)
+      el._timer = setTimeout(() => { el.style.display = 'none' }, 4000)
+    }
+
+    function escHtml(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+  </script>
+
+</body>
+</html>

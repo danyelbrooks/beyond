@@ -265,12 +265,22 @@ export function generateCA588(data) {
 // =============================================================================
 
 /**
- * @param {object} data          The questionnaire data_json from step 2
- * @param {string} shortAddress  e.g. "Ash 123"
+ * @param {object}   data           The questionnaire data_json from step 2
+ * @param {string}   shortAddress   e.g. "Ash 123"
+ * @param {Array}    bankingByOwner [{routing, account}, ...] — one entry per owner (index 0 = owner 1).
+ *                                  Empty entries are null. NEVER stored in DB — PDF only.
  * @returns {Promise<Buffer>}
  */
-export function generateQuestionnairePDF(data, shortAddress) {
+export function generateQuestionnairePDF(data, shortAddress, bankingByOwner) {
+  function listField(doc, label, arr) {
+    if (!Array.isArray(arr) || arr.length === 0) return
+    const clean = arr.map(v => v.replace(/^(appl-|amen-|comm-|park-)/, '').replace(/-/g, ' '))
+    doc.font('Helvetica-Bold').text(`${label}: `, { continued: true })
+      .font('Helvetica').text(clean.join(', '))
+  }
+
   return buildPDF(doc => {
+    // ── Header ────────────────────────────────────────────────────────────────
     doc.fontSize(9).font('Helvetica').fillColor('#555')
       .text('Beyond Property Management', { align: 'right' })
     doc.moveDown(0.5)
@@ -280,52 +290,250 @@ export function generateQuestionnairePDF(data, shortAddress) {
     doc.fontSize(9).font('Helvetica').fillColor('#555')
       .text(`Submitted: ${new Date().toLocaleString('en-US', { timeZone: 'UTC' })} UTC`, { align: 'center' })
 
+    // ── 1. Property Details ───────────────────────────────────────────────────
     sectionHeader(doc, 'Property Details')
-    field(doc, 'Property Address',   data.propertyAddress)
-    field(doc, 'Units',              data.units)
-    field(doc, 'Current Occupancy',  data.tenantOccupancy || 'None')
+    field(doc, 'Property Type',  data.propertyType || data.propertyTypeOther)
+    field(doc, 'Year Built',     data.yearBuilt)
+    field(doc, 'Square Footage', data.squareFootage)
+    field(doc, 'Bedrooms',       data.bedrooms)
+    field(doc, 'Full Baths',     data.fullBaths)
+    field(doc, 'Half Baths',     data.halfBaths)
+    field(doc, 'Neighborhood',   data.neighborhood)
 
-    if (data.tenantOccupancy === 'staying' || data.tenantOccupancy === 'leaving') {
-      sectionHeader(doc, 'Current Tenant')
-      field(doc, 'Tenant Name',   data.tenantName)
-      field(doc, 'Tenant Phone',  data.tenantPhone)
-      field(doc, 'Tenant Email',  data.tenantEmail)
-      if (data.tenantOccupancy === 'leaving') {
-        field(doc, 'Expected Move-Out', data.moveOutDate)
-      }
-      if (data.tenantOccupancy === 'staying') {
-        field(doc, 'Security Deposit', data.securityDeposit ? `$${data.securityDeposit}` : 'N/A')
-        field(doc, 'Past-Due Rent',    data.pastDueRent ? `Yes — $${data.pastDueAmount}` : 'No')
-      }
+    // ── 2. Rental Terms ───────────────────────────────────────────────────────
+    sectionHeader(doc, 'Rental Terms')
+    field(doc, 'Lease Term',   data.leaseTerm)
+    field(doc, 'Rent Type',    data.rentType)
+    field(doc, 'Rent Amount',  data.rentAmount ? `$${data.rentAmount}` : null)
+    field(doc, 'Deposit Type', data.depositType)
+    if (data.depositType === 'custom') field(doc, 'Custom Deposit Amount', data.depositAmountCustom ? `$${data.depositAmountCustom}` : null)
+    field(doc, 'Furnished',    data.furnished)
+
+    // ── 3. Unit Occupancy ─────────────────────────────────────────────────────
+    const units = Array.isArray(data.unitOccupancy) ? data.unitOccupancy : []
+    if (units.length > 0) {
+      sectionHeader(doc, 'Unit Occupancy')
+      units.forEach(u => {
+        const unitLabel = units.length > 1 ? `Unit ${u.unit}` : 'Occupancy'
+        field(doc, `${unitLabel} Status`, u.occupancy)
+        if (u.occupancy === 'staying' || u.occupancy === 'leaving') {
+          if (u.tenantName)      field(doc, `${unitLabel} Tenant Name`,      u.tenantName)
+          if (u.tenantPhone)     field(doc, `${unitLabel} Tenant Phone`,     u.tenantPhone)
+          if (u.tenantEmail)     field(doc, `${unitLabel} Tenant Email`,     u.tenantEmail)
+          if (u.rent)            field(doc, `${unitLabel} Monthly Rent`,     `$${u.rent}`)
+          if (u.securityDeposit) field(doc, `${unitLabel} Security Deposit`, `$${u.securityDeposit}`)
+          if (u.moveOutDate)     field(doc, `${unitLabel} Move-Out Date`,    u.moveOutDate)
+        }
+      })
     }
 
-    sectionHeader(doc, 'Property Condition & Access')
-    field(doc, 'Known Maintenance Issues', data.maintenanceIssues || 'None reported')
-    field(doc, 'Entry Notice',             data.entryNotice || 'Not specified')
-    field(doc, 'Maintenance Threshold',    data.maintenanceThreshold ? `$${data.maintenanceThreshold}` : '$300')
-    field(doc, 'Key Location',             data.keyLocation || 'Not provided')
-    field(doc, 'Gate / Access',            data.gateCode || 'N/A')
+    // ── 4. Appliances & Features ──────────────────────────────────────────────
+    if (data.appliances?.length || data.amenities?.length || data.communityFeatures?.length) {
+      sectionHeader(doc, 'Appliances & Features')
+      listField(doc, 'Appliances',         data.appliances)
+      listField(doc, 'Amenities',          data.amenities)
+      listField(doc, 'Community Features', data.communityFeatures)
+    }
 
-    if (data.hoaName || data.hasHoa === 'yes') {
+    // ── 5. Access & Keys ──────────────────────────────────────────────────────
+    sectionHeader(doc, 'Access & Keys')
+    field(doc, 'Front Door Keys',    data.keysFrontDoor)
+    field(doc, 'Common Area Keys',   data.keysCommon)
+    field(doc, 'Mailbox Keys',       data.keysMailbox)
+    field(doc, 'Parking Keys',       data.keysParking)
+    field(doc, 'Garage Remotes',     data.keysGarageRemote)
+    field(doc, 'Garage Keypad Code', data.garageKeypadCode)
+    field(doc, 'Gate Code',          data.gateCode)
+    field(doc, 'Alarm Code',         data.alarmCode)
+    field(doc, 'Mailbox Location',   data.mailboxLocation)
+    field(doc, 'Mailbox Number',     data.mailboxNumber)
+    if (data.keysOtherCount) {
+      field(doc, 'Other Keys Count', data.keysOtherCount)
+      field(doc, 'Other Keys Desc',  data.keysOtherDesc)
+    }
+
+    // ── 6. Parking ────────────────────────────────────────────────────────────
+    if (data.parking?.length || data.parkingRestrictions) {
+      sectionHeader(doc, 'Parking')
+      listField(doc, 'Parking Types', data.parking)
+      field(doc, 'Restrictions',      data.parkingRestrictions)
+      field(doc, 'Garage Space #s',   data.garageSpaceNumbers)
+      field(doc, 'Garage Location',   data.garageLocation)
+    }
+
+    // ── 7. HOA ────────────────────────────────────────────────────────────────
+    if (data.hasHoa === 'yes' || data.hoaName) {
       sectionHeader(doc, 'HOA')
-      field(doc, 'HOA Name',       data.hoaName)
-      field(doc, 'HOA Contact',    data.hoaContact)
-      field(doc, 'HOA Monthly Fee', data.hoaFee ? `$${data.hoaFee}` : 'N/A')
+      field(doc, 'HOA Name',           data.hoaName)
+      field(doc, 'Management Company', data.hoaCompany)
+      field(doc, 'Phone',              data.hoaPhone)
+      field(doc, 'Email',              data.hoaEmail)
+      field(doc, 'Website',            data.hoaWebsite)
+      field(doc, 'Portal Login',       data.hoaLoginName)
+      field(doc, 'Portal Password',    data.hoaLoginPassword)
     }
 
-    sectionHeader(doc, 'Pets')
-    field(doc, 'Pets Allowed',    data.petsAllowed || 'Not specified')
-    if (data.petsAllowed === 'yes' || data.petsAllowed === 'discretion') {
-      field(doc, 'Pet Deposit',   data.petDeposit ? `$${data.petDeposit}` : 'N/A')
-      field(doc, 'Allowed Breeds/Types', data.petTypes || 'Not specified')
+    // ── 8. Utilities ──────────────────────────────────────────────────────────
+    sectionHeader(doc, 'Utilities')
+    if (data.tenantPays?.length) field(doc, 'Tenant Pays', data.tenantPays.join(', '))
+    if (data.ownerPays?.length)  field(doc, 'Owner Pays',  data.ownerPays.join(', '))
+    field(doc, 'Sewer Type', data.sewerType)
+    if (data.septicTank) field(doc, 'Septic Tank', data.septicTank === 'yes' ? 'Yes' : 'No')
+    if (data.gasType) {
+      const gasLabel = data.gasType === 'natural' ? 'Natural Gas (SDG&E)' : data.gasType === 'propane' ? 'Propane' : 'None — all electric'
+      field(doc, 'Gas Type', gasLabel)
+      if (data.gasType === 'natural' && data.gasBillType) {
+        field(doc, 'Gas Bill', data.gasBillType === 'combined' ? 'Combined with electricity' : 'Separate gas bill')
+      }
+      if (data.gasType === 'propane') {
+        const co = data.gasPropaneCompany === 'Other' ? data.gasPropaneOther : data.gasPropaneCompany
+        if (co) field(doc, 'Propane Provider', co)
+        if (data.gasPropaneLogin) field(doc, 'Propane Login', data.gasPropaneLogin)
+        if (data.gasPropanePassword) field(doc, 'Propane Password', data.gasPropanePassword)
+      }
     }
 
-    sectionHeader(doc, 'Special Instructions')
-    field(doc, 'Additional Notes',    data.additionalNotes || 'None')
-    field(doc, 'Preferred Vendors',   data.preferredVendors || 'None')
-    field(doc, 'Emergency Contact',   data.emergencyName
-      ? `${data.emergencyName} (${data.emergencyRelation}) — ${data.emergencyPhone}`
-      : 'Not provided')
+    // ── 9. Utility Accounts ───────────────────────────────────────────────────
+    if (data.waterCompanyName || data.trashCompany || data.elecCompanyName || data.solarStatus || data.solarCompanyName) {
+      sectionHeader(doc, 'Utility Accounts')
+      if (data.waterCompanyName) {
+        field(doc, 'Water Company',   data.waterCompanyName)
+        field(doc, 'Water Website',   data.waterWebsite)
+        field(doc, 'Water Login',     data.waterLoginName)
+        field(doc, 'Water Password',  data.waterLoginPassword)
+        if (data.waterMeteringType) field(doc, 'Water Metering', data.waterMeteringType === 'individual' ? 'Individually metered per unit' : 'One master meter — RUBS')
+      }
+      const trashCo = data.trashCompany === 'other' ? data.trashCompanyOther : data.trashCompany
+      if (trashCo) {
+        field(doc, 'Trash Company',   trashCo)
+        field(doc, 'Trash Website',   data.trashWebsite)
+        field(doc, 'Trash Login',     data.trashLoginName)
+        field(doc, 'Trash Password',  data.trashLoginPassword)
+      }
+      if (data.elecCompanyName) {
+        field(doc, 'Electric Company',  data.elecCompanyName)
+        field(doc, 'Electric Website',  data.elecWebsite)
+        field(doc, 'Electric Login',    data.elecLoginName)
+        field(doc, 'Electric Password', data.elecLoginPassword)
+        if (data.elecMeteringType) field(doc, 'Elec Metering', data.elecMeteringType === 'individual' ? 'Individually metered per unit' : 'One master meter — RUBS')
+        if (data.elecHouseMeter)   field(doc, 'House Meter',   data.elecHouseMeter === 'yes' ? 'Yes' : 'No')
+      }
+      if (data.solarCompanyName || data.solarStatus) {
+        field(doc, 'Solar Status',   data.solarStatus)
+        field(doc, 'Solar Company',  data.solarCompanyName)
+        field(doc, 'Solar URL',      data.solarCompanyUrl)
+        field(doc, 'Solar Login',    data.solarLoginName)
+        field(doc, 'Solar Password', data.solarLoginPassword)
+      }
+    }
+
+    // ── 10. Pool Vendor ───────────────────────────────────────────────────────
+    if (data.poolVendorName || data.ownerPays?.includes('pool')) {
+      sectionHeader(doc, 'Pool Vendor')
+      field(doc, 'Pool Vendor',         data.poolVendorName)
+      field(doc, 'Pool Vendor Email',   data.poolVendorEmail)
+      field(doc, 'Pool Vendor Website', data.poolVendorWebsite)
+      field(doc, 'Pool Vendor Phone',   data.poolVendorPhone)
+    }
+
+    // ── 11. Gardener ──────────────────────────────────────────────────────────
+    if (data.gardenerName || data.gardenerBpmBid) {
+      sectionHeader(doc, 'Gardener')
+      field(doc, 'Gardener',       data.gardenerBpmBid ? 'BPM to bid' : data.gardenerName)
+      field(doc, 'Gardener Phone', data.gardenerPhone)
+      field(doc, 'Gardener Email', data.gardenerEmail)
+      field(doc, 'Gardener URL',   data.gardenerUrl)
+    }
+
+    // ── 12. Disclosures ───────────────────────────────────────────────────────
+    sectionHeader(doc, 'Disclosures')
+    field(doc, 'Lead Paint',            data.leadPaint)
+    field(doc, 'Flood Zone',            data.floodZone)
+    field(doc, 'Asbestos',              data.asbestos)
+    field(doc, 'Bed Bugs',              data.bedBugs)
+    field(doc, 'Mold',                  data.mold)
+    if (data.moldOther)                 field(doc, 'Mold Detail', data.moldOther)
+    field(doc, 'Death on Property',     data.deathOnProperty)
+    if (data.deathDetail)               field(doc, 'Death Detail', data.deathDetail)
+    field(doc, 'Tankless Water Heater', data.tanklessWaterHeater)
+    if (data.tanklessServiceDate)       field(doc, 'Tankless Service Date', data.tanklessServiceDate)
+    if (data.tanklessOther)             field(doc, 'Tankless Notes', data.tanklessOther)
+    field(doc, 'Heat Source',           data.heatSource || data.heatSourceOther)
+    if (data.heaterFilterCount) {
+      field(doc, 'Heater Filter Count', data.heaterFilterCount)
+      if (data.heaterFilterSizes?.length) field(doc, 'Filter Sizes', data.heaterFilterSizes.join(', '))
+    }
+
+    // ── 13. Home Warranty ─────────────────────────────────────────────────────
+    if (data.homeWarranty === 'yes') {
+      sectionHeader(doc, 'Home Warranty')
+      field(doc, 'Warranty Company',  data.warrantyCompany)
+      field(doc, 'Warranty Phone',    data.warrantyPhone)
+      field(doc, 'Warranty Policy #', data.warrantyPolicy)
+      field(doc, 'Warranty Expires',  data.warrantyExpiry)
+      field(doc, 'Warranty URL',      data.warrantyUrl)
+      field(doc, 'Warranty Login',    data.warrantyLoginName)
+      field(doc, 'Warranty Password', data.warrantyLoginPassword)
+    }
+
+    // ── 14. Current Management ────────────────────────────────────────────────
+    if (data.currentlyManaged === 'yes') {
+      sectionHeader(doc, 'Current Management Company')
+      field(doc, 'Company Name', data.mgmtCompanyName)
+      field(doc, 'Website',      data.mgmtCompanyUrl)
+      field(doc, 'Phone',        data.mgmtCompanyPhone)
+      field(doc, 'Contact Name', data.mgmtContactName)
+      field(doc, 'Email',        data.mgmtCompanyEmail)
+    }
+
+    // ── 15. Owner Draw & Banking (CRITICAL — only copy of routing/account) ────
+    const numOwners = parseInt(data.numOwners) || 1
+    const banking   = Array.isArray(bankingByOwner) ? bankingByOwner : []
+    sectionHeader(doc, 'Owner Draw & Banking')
+    doc.fontSize(9).fillColor('#b45309')
+      .text('CONFIDENTIAL — Contains banking information. Do not distribute. Shred after entering into AppFolio.')
+      .fillColor('#000').fontSize(10)
+    doc.moveDown(0.3)
+    field(doc, 'Draw Method', data.ownerDrawMethod || 'ACH')
+    for (let i = 0; i < numOwners; i++) {
+      const prefix  = i === 0 ? 'owner' : `owner${i + 1}`
+      const name    = [data[`${prefix}First`], data[`${prefix}Last`]].filter(Boolean).join(' ')
+      const acctKey = i === 0 ? 'ownerDrawAccountType' : `owner${i + 1}DrawAccountType`
+      const label   = numOwners > 1 ? `Owner ${i + 1}` : 'Owner'
+      if (name) field(doc, `${label} Name`,         name)
+      field(doc, `${label} Account Type`,   data[acctKey] || 'checking')
+      field(doc, `${label} Routing Number`, banking[i]?.routing || 'Not provided')
+      field(doc, `${label} Account Number`, banking[i]?.account || 'Not provided')
+    }
+    doc.moveDown(0.3)
+    doc.fontSize(9).font('Helvetica').fillColor('#888')
+      .text('This PDF is the only record of these numbers — they are not stored in the database.')
+      .fillColor('#000').fontSize(10)
+
+    // ── 16. Preferred Vendors ─────────────────────────────────────────────────
+    if (Array.isArray(data.preferredVendors) && data.preferredVendors.length > 0) {
+      sectionHeader(doc, 'Preferred Vendors')
+      data.preferredVendors.forEach((v, i) => {
+        const label = data.preferredVendors.length > 1 ? `Vendor ${i + 1}` : 'Preferred Vendor'
+        if (v.name)    field(doc, `${label} Name`,    v.name)
+        if (v.email)   field(doc, `${label} Email`,   v.email)
+        if (v.website) field(doc, `${label} Website`, v.website)
+      })
+    }
+
+    // ── 17. Additional Notes ──────────────────────────────────────────────────
+    if (data.additionalNotes) {
+      sectionHeader(doc, 'Additional Notes')
+      field(doc, 'Notes', data.additionalNotes)
+    }
+
+    // ── 18. Referral ──────────────────────────────────────────────────────────
+    if (data.referralSource) {
+      sectionHeader(doc, 'Referral Source')
+      const refLabel = data.referralSource === 'other' ? data.referralOther : data.referralSource
+      field(doc, 'How They Found Us', refLabel)
+      field(doc, 'Referral Contact',  data.referralContact)
+    }
 
     hr(doc)
     doc.fontSize(8).fillColor('#888')
@@ -561,11 +769,26 @@ export function generateIntakeSummary(onboarding, steps) {
     if (s2.tenantPays?.length) field(doc, 'Tenant Pays',   s2.tenantPays.join(', '))
     if (s2.ownerPays?.length)  field(doc, 'Owner Pays',    s2.ownerPays.join(', '))
     field(doc, 'Sewer Type',    s2.sewerType)
+    if (s2.septicTank) field(doc, 'Septic Tank', s2.septicTank === 'yes' ? 'Yes' : 'No')
+    if (s2.gasType) {
+      const gasLabel = s2.gasType === 'natural' ? 'Natural Gas (SDG&E)' : s2.gasType === 'propane' ? 'Propane' : 'None — all electric'
+      field(doc, 'Gas Type', gasLabel)
+      if (s2.gasType === 'natural' && s2.gasBillType) {
+        field(doc, 'Gas Bill', s2.gasBillType === 'combined' ? 'Combined with electricity' : 'Separate gas bill')
+      }
+      if (s2.gasType === 'propane') {
+        const co = s2.gasPropaneCompany === 'Other' ? s2.gasPropaneOther : s2.gasPropaneCompany
+        if (co) field(doc, 'Propane Provider', co)
+        if (s2.gasPropaneLogin)    field(doc, 'Propane Login',    s2.gasPropaneLogin)
+        if (s2.gasPropanePassword) field(doc, 'Propane Password', s2.gasPropanePassword)
+      }
+    }
     if (s2.waterCompanyName) {
       field(doc, 'Water Company',       s2.waterCompanyName)
       field(doc, 'Water Website',       s2.waterWebsite)
       field(doc, 'Water Login',         s2.waterLoginName)
       field(doc, 'Water Password',      s2.waterLoginPassword)
+      if (s2.waterMeteringType) field(doc, 'Water Metering', s2.waterMeteringType === 'individual' ? 'Individually metered per unit' : 'One master meter — RUBS')
     }
     const trashCo = s2.trashCompany === 'other' ? s2.trashCompanyOther : s2.trashCompany
     if (trashCo) {
@@ -579,6 +802,8 @@ export function generateIntakeSummary(onboarding, steps) {
       field(doc, 'Electric Website',    s2.elecWebsite)
       field(doc, 'Electric Login',      s2.elecLoginName)
       field(doc, 'Electric Password',   s2.elecLoginPassword)
+      if (s2.elecMeteringType) field(doc, 'Elec Metering', s2.elecMeteringType === 'individual' ? 'Individually metered per unit' : 'One master meter — RUBS')
+      if (s2.elecHouseMeter)   field(doc, 'House Meter',   s2.elecHouseMeter === 'yes' ? 'Yes' : 'No')
     }
     if (s2.solarCompanyName || s2.solarStatus) {
       field(doc, 'Solar Status',        s2.solarStatus)
@@ -587,7 +812,12 @@ export function generateIntakeSummary(onboarding, steps) {
       field(doc, 'Solar Login',         s2.solarLoginName)
       field(doc, 'Solar Password',      s2.solarLoginPassword)
     }
-    if (s2.poolCompany) field(doc, 'Pool Company', s2.poolCompany)
+    if (s2.poolVendorName || s2.ownerPays?.includes('pool')) {
+      field(doc, 'Pool Vendor',         s2.poolVendorName)
+      field(doc, 'Pool Vendor Email',   s2.poolVendorEmail)
+      field(doc, 'Pool Vendor Website', s2.poolVendorWebsite)
+      field(doc, 'Pool Vendor Phone',   s2.poolVendorPhone)
+    }
     if (s2.gardenerName || s2.gardenerBpmBid) {
       field(doc, 'Gardener',            s2.gardenerBpmBid ? 'BPM to bid' : s2.gardenerName)
       field(doc, 'Gardener Phone',      s2.gardenerPhone)
@@ -700,10 +930,17 @@ export function generateIntakeSummary(onboarding, steps) {
     }
 
     // ── Additional Notes ──────────────────────────────────────────────────────
-    if (s2.preferredVendors || s2.additionalNotes) {
+    if ((Array.isArray(s2.preferredVendors) && s2.preferredVendors.length > 0) || s2.additionalNotes) {
       sectionHeader(doc, 'Additional Notes')
-      if (s2.preferredVendors) field(doc, 'Preferred Vendors', s2.preferredVendors)
-      if (s2.additionalNotes)  field(doc, 'Additional Notes',  s2.additionalNotes)
+      if (Array.isArray(s2.preferredVendors) && s2.preferredVendors.length > 0) {
+        s2.preferredVendors.forEach((v, i) => {
+          const label = s2.preferredVendors.length > 1 ? `Vendor ${i + 1}` : 'Preferred Vendor'
+          if (v.name)    field(doc, `${label} Name`,    v.name)
+          if (v.email)   field(doc, `${label} Email`,   v.email)
+          if (v.website) field(doc, `${label} Website`, v.website)
+        })
+      }
+      if (s2.additionalNotes) field(doc, 'Additional Notes', s2.additionalNotes)
     }
 
     // ── Signatures & Completion Timeline ─────────────────────────────────────

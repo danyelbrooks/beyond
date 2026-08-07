@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Thread — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    .thread-header {
+      margin-bottom: 24px;
+    }
+    .thread-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .thread-sub {
+      font-size: .82rem;
+      color: var(--color-text-muted);
+    }
+    .thread-count {
+      font-size: .78rem;
+      color: var(--color-text-muted);
+      margin-top: 12px;
+    }
+
+    .email-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .email-card {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: var(--color-surface);
+      overflow: hidden;
+    }
+    .email-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      gap: 12px;
+    }
+    .email-card-header:hover { background: var(--color-bg); }
+
+    .email-direction {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 4px;
+    }
+    .email-direction.inbound  { background: #dbeafe; color: #1d4ed8; }
+    .email-direction.outbound { background: #dcfce7; color: #15803d; }
+
+    .email-subject {
+      font-size: .875rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+    .email-meta {
+      font-size: .75rem;
+      color: var(--color-text-muted);
+    }
+    .email-date {
+      font-size: .75rem;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .email-body {
+      display: none;
+      padding: 0 16px 16px;
+      font-size: .875rem;
+      line-height: 1.6;
+      color: var(--color-text);
+      border-top: 1px solid var(--color-border);
+      padding-top: 12px;
+    }
+    .email-body.open { display: block; }
+    .email-body-text { white-space: pre-wrap; word-break: break-word; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-muted);
+      font-size: .875rem;
+    }
+
+    .loading-state {
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; padding: 60px 20px;
+      color: var(--color-text-muted); font-size: .875rem;
+    }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--color-border);
+      border-top-color: var(--color-accent); border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="app-header" class="app-header"></div>
+  <div class="app-shell">
+    <nav id="app-sidebar" class="app-sidebar"></nav>
+    <main class="app-main">
+
+      <div id="loadingState" class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading emails…</span>
+      </div>
+
+      <div id="mainContent" style="display:none;">
+        <div class="thread-header">
+          <div style="margin-bottom:12px;">
+            <a href="resident-health.html" style="font-size:.8rem;color:var(--color-accent);text-decoration:none;">← Back to Resident Health</a>
+          </div>
+          <div class="thread-title" id="threadTitle">Email Thread</div>
+          <div class="thread-sub" id="threadSub"></div>
+          <div class="thread-count" id="threadCount"></div>
+        </div>
+
+        <div class="email-list" id="emailList"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    const params   = new URLSearchParams(location.search)
+    const email    = params.get('email') || ''
+    const name     = params.get('name')  || email
+
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+    renderHeader(auth.profile)
+    renderSidebar('resident-health', auth.profile.role, auth.user.email)
+
+    document.getElementById('threadTitle').textContent = name ? `${name} — Email Thread` : 'Email Thread'
+    document.getElementById('threadSub').textContent   = email
+
+    if (!email) {
+      document.getElementById('loadingState').innerHTML = '<div class="empty-state">No email address provided.</div>'
+      return
+    }
+
+    // Load all emails to or from this resident, newest first
+    const { data: emails, error } = await supabase
+      .from('email_cache')
+      .select('id, subject, from_address, from_name, to_address, received_at, body_preview, body_html, status')
+      .or(`from_address.ilike.%${email}%,to_address.ilike.%${email}%`)
+      .order('received_at', { ascending: false })
+      .limit(200)
+
+    document.getElementById('loadingState').style.display = 'none'
+    document.getElementById('mainContent').style.display  = ''
+
+    if (error || !emails || emails.length === 0) {
+      document.getElementById('emailList').innerHTML = `
+        <div class="empty-state">No emails found for ${esc(email)}.</div>`
+      document.getElementById('threadCount').textContent = '0 emails'
+      return
+    }
+
+    document.getElementById('threadCount').textContent =
+      `${emails.length} email${emails.length === 1 ? '' : 's'}`
+
+    document.getElementById('emailList').innerHTML = emails.map((e, i) => {
+      const isInbound = (e.from_address || '').toLowerCase().includes(email.toLowerCase())
+      const direction = isInbound ? 'inbound' : 'outbound'
+      const dirLabel  = isInbound ? 'From Resident' : 'To Resident'
+      const date      = new Date(e.received_at).toLocaleDateString('en-US',
+        { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' })
+      const from = isInbound
+        ? esc(e.from_name || e.from_address || '—')
+        : `BPM → ${esc(e.to_address || '—')}`
+      const body = e.body_preview || '(no preview)'
+
+      return `
+        <div class="email-card">
+          <div class="email-card-header" onclick="toggleBody(${i})">
+            <div style="flex:1;min-width:0;">
+              <div><span class="email-direction ${direction}">${dirLabel}</span></div>
+              <div class="email-subject">${esc(e.subject || '(no subject)')}</div>
+              <div class="email-meta">${from}</div>
+            </div>
+            <div class="email-date">${date}</div>
+          </div>
+          <div class="email-body" id="body-${i}">
+            <div class="email-body-text">${esc(body)}</div>
+          </div>
+        </div>
+      `
+    }).join('')
+
+    window.toggleBody = function(i) {
+      document.getElementById(`body-${i}`)?.classList.toggle('open')
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+  </script>
+</body>
+</html>

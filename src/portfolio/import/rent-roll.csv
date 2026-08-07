@@ -1,0 +1,637 @@
+Unit,Tags,BD/BA,Tenant,Status,Sqft,Market Rent,Rent,Deposit,Lease From,Lease To,Move-in,Move-out,Past Due,NSF Count,Late Count
+
+"-> 10th Ave. 253 #328 (David) - 253 10th Avenue Unit 328 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Park Terrace East Village HOA, David Medrano, S=OT, I=O, SDGE, RBP, HVAC Filter 12x24x1, RBP12/01/2023, 03/19/2025 RBP",0/1.00,Sandra Aviles,Current,619,"1,988.00","1,988.00","1,963.00",03/19/2025,03/18/2026,03/19/2025,,-184.93,0,0
+"-> 10th Ave.321 Unit 514 (US Bank NA) - 321 10th Ave. Unit 514 San Diego, CA 92101-7471","","","","","","","","","","","","","","",""
+,"U. S. Bank NA as Trustee c/o John Vitale, Icon HOA, RBP12/16/2023, City Of San Diego-Water, I=O, S=OT, Wilkie Leighton A Irrevocable Trust 01-05-45, HVAC Filter 24X17.5",2/2.50,Sydney I. Serratos,Current,"1,309","3,588.00","3,588.00","3,563.00",05/22/2026,05/21/2027,05/22/2026,,0.00,0,0
+"-> 11th Ave. 350 Unit 526 (Scout Separate Property Trust) - 350 11th Ave Unit 526 San Diego, CA 92101-7477","","","","","","","","","","","","","","",""
+,"Scout Separate Property Trust 01-12-17, Icon HOA, I=O, S=OT, RBP, HVAC filter 18x25x1, John Reeves - Reef Point Realty",1/1.00,Joel J. Svenson,Current,674,"2,504.00","2,579.00","2,263.00",01/11/2024,04/30/2027,01/11/2024,,"-2,642.00",0,1
+"-> 12th St 821 (Julio) - 821 12th St Imperial Beach, CA 91932","","","","","","","","","","","","","","",""
+,"JULIO GRULLON, City of San Diego Water, American Water, SDGE, Select Home Warranty, No HOA, HVAC Filter 16”x25”x5",3/1.00,Herman Olguin,Current,"1,784","3,188.00","3,188.00","3,163.00",04/26/2025,04/25/2027,04/26/2025,,0.00,0,0
+"-> 15th St. 550 Unit 408 (Brett) - 550 15th St. Unit 408 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Brett Bulkley, 550 15th St., I=O S=OT, Element HOA, RBP, HVAC Filter size 16X25X1",1/1.00,Cruz Yanez,Current,691,"2,088.00","2,088.00","2,063.00",04/18/2025,04/22/2027,04/18/2025,,0.00,0,0
+"-> 2nd Ave. 2770 Unit 312 (Linda) - 2770 2nd Ave. Unit 312 San Diego, CA 92103-6259","","","","","","","","","","","","","","",""
+,"Thierry Jacquemin, Linda Rodriguez, Bridgewater HOA, S=OT, I=O, Filter Size 20x30x1, RBP",1/1.00,Mario A. Colon,Current,867,"2,588.00","2,663.00","2,563.00",03/05/2025,03/16/2027,03/05/2025,,0.00,0,2
+"-> 36th St. 4772 #5 (Carol) - 4772 36th St. Apt 5 San Diego, CA 92116-2265","","","","","","","","","","","","","","",""
+,"City of San Diego Water, SDGE, S=OT, I=O, 4772 36th Street HOA, Carol Dexheimer, RBP, No A/C, Central Heater, 12x24x1",2/2.00,Felipe Andrade,Current,850,"2,588.00","2,688.00","2,563.00",07/27/2022,,07/26/2022,,"-2,716.00",0,0
+"-> 38th St. 4346 (Rebecca Anne) - 4346 38th St. San Diego, CA 92105","","","","","","","","","","","","","","",""
+,"Rebecca Anne Greenberg, SDGE, NO HOA, Wall Heater, City Of San Diego-Water, City of San Diego Water- Sewer, RBP09/28/2023, Realtor referred- Brandon George",2/1.00,Ruben A. Negrete,Current,846,"3,636.00","3,681.00","3,563.00",09/28/2023,10/09/2026,09/28/2023,,0.00,0,0
+"-> 39th St. 3341 (Luke) - 3341 39th St. San Diego, CA 92105","","","","","","","","","","","","","","",""
+,"Luke Walton, Lon Walton, NO HOA, City of San Diego Water, Solar Loan Company: Goodleap, Central Heater - 1 filter, HVAC=14x25x1, RBP 06/28/2024",3/2.50,Adam J. Cole,Current,"1,554","3,688.00","3,866.00","3,668.00",06/26/2024,06/27/2027,06/26/2024,,"-4,044.00",0,0
+"-> 3rd Ave 1940 Unit 101 (Dylan & Katharine) - 1940 3rd Ave Unit 101 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Dylan Weisser, Katharine Mikula, Heritage House HOA, HVAC?, I=O, S=OT, No Home Warranty",2/2.00,Mia Taapken,Current,"1,037","3,188.00","3,315.00","3,163.00",04/01/2024,,04/01/2024,,"-2,232.00",0,1
+"-> 49th St. 1304-1308 (Alec and John) - 1304-1308 49th St. San Diego, CA 92102","","","","","","","","","","","","","","",""
+1304 49th St- Main House,"John Salazar, Alec Webster, City of San Diego Water- Water & Sewer, City of San Diego- Trash, Washable Filter, Split system AC Heat, SDGE RUBS, RUBS 4 Occupants",2/1.00,Carlos  Navarro,Current,"1,301",,"3,200.00","1,500.00",08/31/2025,01/31/2027,08/31/2025,,0.00,0,2
+1306 49th St,"John Salazar, Alec Webster, Wall Heater, City of San Diego Water- Sewer, City of San Diego Water – Water & Trash",1/1.00,Carmela Corpuz,Current,485,"1,788.00","1,788.00","1,763.00",01/01/2026,12/31/2026,01/01/2026,,"-1,653.00",2,1
+1308 49th St,"John Salazar, Alec Webster, City of San Diego Water- Water & Sewer, City of San Diego- Trash, Wall Heater",1/1.00,Johvontae Q. Orr,Current,500,"1,888.00","1,888.00","1,863.00",05/29/2026,05/28/2027,05/29/2026,,"-1,974.60",0,0
+3 Units,,,,100.0% Occupied,"2,286","3,676.00","6,876.00","5,126.00",,,,,"-3,627.60",2,3
+"-> 4th Ave. 895(Kin) - 895 4th Ave. Chula Vista, CA 91911","","","","","","","","","","","","","","",""
+,"Kin Fung, SDGE, NO HOA, No Home Warranty, City of San Diego Water- Sewer, Republic Service- Trash, City Of San Diego-Water, Wall Heater, No A/C",3/1.00,Vanessa Cardenas,Current,"1,156","3,036.00","3,487.00","2,963.00",09/23/2023,,09/23/2023,,90.41,3,20
+"-> 4th Ave. 897 (Kin) - 897 4th Ave. Chula Vista, CA 91911","","","","","","","","","","","","","","",""
+,"Kin Fung, City of San Diego Water- Water & Sewer, Republic Service- Trash, Republic Waste-Other Sewer, No HOA, Wall Heater, ADU",1/1.00,Julia R. Martinez,Current,437,"2,088.00","2,088.00","2,063.00",12/15/2024,12/14/2025,12/15/2024,,0.00,3,4
+"-> 5th Ave. 4220 Apt 2 (Joseph) - 4220 5th Ave. Apt 2 San Diego, CA 92103-1405","","","","","","","","","","","","","","",""
+,"Property Management Consultant HOA, Hillcrest Villas, I=O, S=OT, Joseph Peter Barone, Ronnie Eva Friedman-Barone, WALL HEATER, No Filter",0/1.00,Eric K. Chen,Current,,"2,011.00","2,011.00","1,663.00",04/01/2023,,01/25/2020,,"-2,239.00",0,1
+"-> 60th St. 3912  Unit 6 (Michele) - 3912 60th St Unit 6 San Diego, CA 92115-7506","","","","","","","","","","","","","","",""
+,"Michele Austin, College Park HOA, I=O, S=OT, Michele (Austin) Dew, HOA DUES PAID BY OWNER, HVAC Filter Size 16x25x1, RBP 04/25/2023",3/2.50,Victor S. Morris,Current,"1,147","3,088.00","3,180.00","3,063.00",04/25/2023,05/20/2027,04/25/2023,,0.00,2,9
+"-> 60th St. 3934 #161 (Solange) - 3934 60th Street #161 San Diego, CA 92115","","","","","","","","","","","","","","",""
+,"HW 1/1/11, Solange Randolph, David Randolph, College Park HOA, I=HOA, S=OT, Filter Size - 20X20X1",3/2.50,Sam D. Marton,Current,"1,147","2,924.60","3,174.00","2,063.00",09/01/2024,,09/14/2017,,0.00,1,0
+"-> 6th Ave, 777 Unit 129 (Tyler) - 777 6th Ave, Unit 129 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Tyler P Jankowski, Megan Jankowski, Realtor Referred: Melissa Tucci, Lofts at 777 HOA, I=O, S=OT, FirstService Residential, Central Heater 2 filters, Filter size 32x24x1, Filter Size 14x14x1",1/1.00,Jonathan W. BongardChism,Current,"1,108","2,888.00","2,946.00","2,863.00",09/16/2024,05/31/2027,09/16/2024,,0.00,0,0
+"-> 841-3 3rd St. Encinitas, CA 92024 - 843 3rd St. Encinitas, CA 92024","","","","","","","","","","","","","","",""
+841 3rd St.,"Aka Rugged Trains LLC C/O Jennifer A Moores, NO HOA, City of San Diego Water- Sewer, San Dieguito Water District, EDCO-Trash, HVAC?, Central Heater, Filter Size 14X25X1, RBP01/02/2024",3/2.50,Joseph R. Schuster,Current,"1,800","6,936.00","6,936.00","6,868.00",01/02/2024,07/02/2025,01/02/2024,,"-6,964.00",0,0
+843 3rd St,"Aka Rugged Trains LLC C/O Jennifer A Moores, NO HOA, San Dieguito Water District, EDCO-Trash, HVAC?, Central Heater, RBP04/01/2024, San Dieguito Water District - Sewer",3/2.50,James M. Pushner,Current,"1,800","6,988.00","6,988.00","6,963.00",09/20/2025,09/19/2026,09/20/2025,,"-2,650.00",0,0
+2 Units,,,,100.0% Occupied,"3,600","13,924.00","13,924.00","13,831.00",,,,,"-9,614.00",0,0
+"-> 9th Ave 1441 #1103(Adam & Christine) - 1441 9th Ave. #1103 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Adam Phillips, Christine Phillips, Aria HOA, City of San Diego Water, Waste Management, S=OT, I=O, REALTOR REFERRED MICHELLE HERNHOLM DANZO, Realtor referred- Melissa Hernholm, HVAC 20x30x1",2/2.00,Alexander R. Afghani,Current,"1,370","3,732.00","3,769.00","3,563.00",06/01/2023,10/27/2025,06/01/2022,,0.00,1,2
+"-> 9th Ave 427 Unit 701 (Ryan) - 427 9th Ave Unit 701 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Ryan Le Ho, Diamond Terrace Owners Association, I=O, S=OT, Preferred Vendor-Mark's Heating and Air, HVAC?, Realtor Referred-Will Jordan",1/1.00,RODNEY A. BOOKER,Current,843,"2,288.00","2,380.00","2,263.00",03/01/2025,04/13/2027,03/01/2025,,"-2,508.00",0,0
+"-> Affinity Ct. 11355 Unit 183 (Prager Family Revocable Trust) - 11355 Affinity Ct. Unit 183 San Diego, CA 92131","","","","","","","","","","","","","","",""
+,"Steven Pragerager, Alison Parager, Prager Family Revocable Trust 09-13-19, Realtor Referred-Bryan Devore, Affinity HOA, I=O, S=OT, Central Heater, 28x14x3",2/2.00,Jenna R. Mayer,Notice-Unrented,"1,032","2,888.00","2,966.00","2,863.00",07/25/2025,07/24/2026,07/25/2025,07/24/2026,"-3,094.00",0,0
+"-> Alagria Pl 671 (Carlos & Andrea) - 671 Alagria Pl Chula Vista, CA 91910","","","","","","","","","","","","","","",""
+,"Andrea Capela, Carlos Capela, City of Chula Vista  Sweetwater Authority- Water & Sewer, Republic Service- Trash, Blue Water Pools, NO HOA, HVAC Filter Size 20X25X1",5/3.00,Brenda Josefina Estrada,Current,"2,366","4,073.00","8,472.00","6,000.00",09/14/2023,05/04/2027,09/14/2023,,0.00,0,0
+"-> Alpha St 3944 (Ashley & John) - 3944 Alpha St San Diego, CA 92113","","","","","","","","","","","","","","",""
+,"Ashley Jensen, John Prusinovski, City Of San Diego-Water, City of San Diego- Sewer, EDCO-Trash, Mosaic-Solar Company, Central Heater - 1 filter, 25x36x1, NO HOA",3/2.50,Oscar D. Perez,Current,"1,550","3,200.00","3,325.00","3,175.00",11/05/2022,11/04/2025,11/05/2022,,"-3,353.00",4,9
+"-> Alta Vista Dr. 1763 (Geoffrey) - 1763 Alta Vista Dr. Vista, CA 92084","","","","","","","","","","","","","","",""
+1763 A Alta Vista Dr.,"Geoffrey Forster, Lorraine Pfahl, Gardener-Jose Cruz, WALL HEATER, HVACWALL, 2020CAP=$104.38, EDCO-Trash",1/1.00,Susumu Nakano,Current,"1,000","2,388.00","2,544.00","2,363.00",10/16/2025,10/15/2026,10/16/2025,,0.00,0,0
+1763 Alta Vista Dr.,"Geoffrey Forster, Lorraine Pfahl, Gardener-Jose Cruz, 2020CAP=$151.16, Central Heater, HVAC Size = 20x30x1",3/2.00,Kyle C. Daley,Current,"1,842","3,288.00","3,288.00","3,263.00",12/28/2024,05/28/2025,12/28/2024,,710.48,0,0
+2 Units,,,,100.0% Occupied,"2,842","5,676.00","5,832.00","5,626.00",,,,,710.48,0,0
+"-> Altisma Way 2352 (Kara) - 2352 Altisma Way Unit #10 Carlsbad, CA 92009","","","","","","","","","","","","","","",""
+,"Kara E Gaydosz, City of Carlsbad Water District-Water, HVAC?, Central AC, I=O, S=OT, Rancho La Costa HOA",2/2.00,Anthony G. Pinzone,Current,"1,040","3,188.00","3,188.00","3,163.00",11/01/2025,10/31/2026,11/01/2025,,"-3,259.60",0,0
+"-> Ames St. 3598 (Duffin Trust 11-06-17) - 3598 Ames St San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"Duffin Trust 11-06-17, Ryan Duffin, Jacqueline Duffin, City Of San Diego-Water, Waste Management, SDGE, NO HOA, Filter 14X25X1",3/2.00,Alyanna Mattson,Current,"1,476","4,288.00","4,366.00","4,263.00",06/20/2026,06/19/2027,06/20/2026,,"-4,394.00",1,0
+"-> Anthony Dr 2155  (Kin) - 2155 Anthony Dr San Diego, CA 92113-4319","","","","","","","","","","","","","","",""
+,"Kin Fung, SDGE (Gas&Electric), City of San Diego- Sewer, City Of San Diego-Water, HVAC Filter Size 12x30x1",3/1.00,Vianey Rivera,Evict,"1,268","2,988.00","3,542.00","3,703.75",06/16/2023,,06/14/2023,,"13,549.70",11,22
+"-> Antiem Street 4012 (Blakeley Family Trust) - 4012 Antiem Street San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"Gary W Blakley, Gary Blakely, Dale Imoto #1 Plumber, Junior Aguirre Handyman, Central Heater, HVAC=14x25x1, Mail owner statements",5/3.00,Alexander Shin,Current,"1,900","4,100.00","4,223.00","4,800.00",05/01/2022,11/14/2025,08/27/2016,,0.00,3,2
+"-> Aquarius Drive 8523 (Beach) - 8523 Aquarius Drive San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Beach Daymon C & Muneera A C/O Wells Fargo Home Mortgage, HVAC, 14X25X1",3/2.00,Farukh A. Farooq,Current,"1,283","3,688.00","3,724.00","3,663.00",06/22/2024,,06/22/2024,,"-3,752.00",0,0
+"-> Ascella Dr 1810 Unit #3 (Alejandro) - 1810 Ascella Dr Unit 3 Chula Vista, CA 91915","","","","","","","","","","","","","","",""
+,"Alejandro Favila, First Service Residential, I=O, S=OT, American Modern Insurance Group Home Warranty, SDGE, Republic Service- Trash, City Of San Diego-Water, City of San Diego- Sewer, SunStreet Solar, California Submeter- Water, BOULEVARD AT MILLENIA NEIGHBORHOOD, HOA DUES PAID BY OWNER, California Submeter, HVAC Filter 20X20X1",3/3.00,Ivan Soto,Current,"1,681","3,688.00","3,872.00","3,663.00",05/12/2025,,05/12/2024,,"-2,013.74",0,2
+"-> Ashton Ct 972 (Matthew) - 972 Ashton Ct Vista, CA 92081","","","","","","","","","","","","","","",""
+,"Matthew Smith, City of Vista Irrigation District, EDCO-Trash, Central Heater, Shadowridge Cottages, I=O, S=OT, Current Client-Referred, Alex Sin-reffered, Central HVAC",3/2.50,,Vacant-Rented,"1,482","4,388.00",,0.00,,,,,,,
+"-> Aurora Ave 248 (Prashant) - 248 Aurora Ave San Marcos, CA 92078","","","","","","","","","","","","","","",""
+,"Prashant Pradeep, HVAC?, American Home Shield = Home Warranty, I=O, S=OT, Seabreeze Management Company, Meternet, Central Heater, Filter Size - 14X30X1, Campana at Rancho Coronado HOA",2/2.00,Monica T. Garcia,Current,"1,027","2,788.00","2,898.00","2,763.00",02/05/2024,03/31/2027,02/05/2024,,"-2,926.00",0,0
+"-> Avenida De Los Lirios 1595 (Kai & Virag) - 1595 Avenida De Los Lirios Encinitas, CA 92024","","","","","","","","","","","","","","",""
+,"Kai & Virag Shah, Kai Shah, Virag Shah, HVAC?, EDCO-Trash, Olivenhain Municipal Water District, NO HOA, 14×24×1",4/2.50,Colin T. Palmer,Current,"2,728","6,788.00","6,866.00","13,526.00",05/01/2026,04/30/2027,05/01/2026,,0.00,0,0
+"-> Avenida Fragata 1275 (Scott) - 1275 Avenida Fragata San Marcos, CA 92069","","","","","","","","","","","","","","",""
+,"Scott Jacobson, NO HOA, EDCO-Trash, Sewer - City of San Marcos Vallecitos Water District, Water - City of San Marcos Vallecitos Water District, HVAC FILTER 18x30x1",3/2.50,MargaritaNashieli O. DelaTorre,Current,"1,762","3,788.00","3,788.00","3,763.00",01/06/2026,01/05/2027,01/06/2026,,0.00,0,0
+"-> Avenida Magnifica 10244 (White-Whitepubs Trust) - 10244 Avenida Magnifica San Diego, CA 92131","","","","","","","","","","","","","","",""
+,"White-Whitepubs Trust 06-11-19, NO HOA, No Home Warranty, Central Heater - 1 filter, 14X25X1",4/2.50,Ertugrul Akbas,Current,"2,784","5,088.00","5,153.00","5,063.00",01/01/2024,12/31/2025,01/01/2024,,"-5,181.00",0,0
+"-> Avenida Manana 6536 (Guilbert Family Trust) - 6536 Avenida Manana La Jolla, CA 92037","","","","","","","","","","","","","","",""
+,"Guilbert Family Trust 04-14-15, Claire Guilbert, Electronic Filters, Jose Alejandro Landscaping-Gardener, NO HOA, Current Client Referred-Nader Berenjian, HVAC= 15X20X1",3/2.00,,Vacant-Rented,"1,829","7,588.00",,0.00,,,,,,,
+"-> Avenida Senecio, #12 1904 (Justin) - 1904 Avenida Senecio, #12 Chula Vista, CA 91913","","","","","","","","","","","","","","",""
+,"Justin Barta, HVAC?, Village Of Escaya Community Association, S=OT, I=O, Flora & Strata at the Village of Escaya, California Sub-Meters, City Of San Diego-Water, Republic Service-Trash, HVAC Filter 20X36X1, Cox Communication, RBP 07/13/2024",3/2.50,Artavian V. Pray,Current,"1,710","3,988.00","3,988.00","3,963.00",11/01/2024,04/30/2025,11/01/2024,,669.72,0,2
+"-> Avenida Venusto 14954 Unit 85 (Melissa) - 14954 Avenida Venusto Unit 85 San Diego, CA 92128","","","","","","","","","","","","","","",""
+,"Melissa Y Caudillo, Carmel Trails HOA, I=O, S=OT, HVAC = 20×20×1",2/2.00,Lorena MartinezContreras,Current,"1,036","2,688.00","2,788.00","3,328.75",10/15/2024,10/14/2026,10/15/2024,,-840.00,0,0
+"-> Avery Rd. 1633 (Srivatsan) - 1633 Avery Rd. San Marcos, CA 92078-1048","","","","","","","","","","","","","","",""
+,"Annalisa Clink, Srivatsan Thiruvengadam, Morgans Corner HOA, I=O, S=OT, California Submeter, HOA DUES PAID BY OWNER, California Sub-Meter, Central A/C, Filter Size - 20X20X1",3/3.50,Natalee M. Romero,Current,"1,740","3,688.00","3,600.00","3,475.00",11/02/2024,02/01/2027,11/02/2024,,"-3,628.00",0,1
+"-> Baltimore Dr. 5704  Unit 296 (Kevin) - 5704 Baltimore Dr Unit 296 La Mesa, CA 91942-1662","","","","","","","","","","","","","","",""
+,"Kevin Eichholz, Lake Park Condominium Association, S=OT, I=O, LOCKBOXNOTALLOWEDFULLTIME, Wall Heater - No filter",0/1.00,Joseph A. Allen,Current,475,"2,088.00","2,088.00","4,126.00",02/05/2022,02/04/2023,02/05/2022,,0.00,0,0
+"-> Beach Grass Ln 5405 Unit 139 (Koral) - 5405 Beach Grass Ln Unit 139 San Diego, CA 92154","","","","","","","","","","","","","","",""
+,"Playa Del Sol Master  HOA, Playa Del  Sol North HOA, S=OT, I=O, Koral P. Graham, California Sub-Meters, City of San Diego Water, Central Heater, HVAC Size = 20x30x1",2/2.00,John F. Poindexter II,Current,"1,325","2,888.00","2,888.00","2,863.00",12/26/2025,12/25/2026,12/26/2025,,0.00,0,0
+"-> Beach Grass Ln 5405 Unit 140 (Tiffany and James) - 5405 Beach Grass Ln Unit 140 San Diego, CA 92154","","","","","","","","","","","","","","",""
+,"Tiffany Julessa Heathe, James Johnston II, City of San Diego Water- Water & Sewer, Allied Waste-Trash, Playa del Sol HOA, I=O, S=OT, HVAC Filter 20x30x1, California Sub-Meter",2/2.00,Irit Raya,Current,"1,325","2,988.00","2,988.00","2,963.00",12/21/2024,12/20/2025,12/21/2024,,0.00,0,1
+"-> Belle Isle Dr. 3211 (Kristen) - 3211 Belle Isle Dr. San Diego, CA 92105-2906","","","","","","","","","","","","","","",""
+,"Kristen Kavanaugh, Chloe Kavanaugh, San Diego Water- Sewer, Heater Filter 14x30x1, HVAC18e, RBP08/11/2023, John Reeves - Reef Point Realty, No HOA",2/1.00,Noah P. Tingle,Current,744,"2,788.00","2,788.00","2,768.00",08/11/2023,05/31/2027,08/11/2023,,"-2,912.00",0,0
+"-> Benavente St. 9642 (Jarman Lowell & Janis Living 2004 Trust) - 9642 Benavente St San Diego, CA 92129","","","","","","","","","","","","","","",""
+,"Jarman Lowell & Janis Living 2004 Trust, HVAC Filter Size 20x25x1, City of San Diego Water, City of San Diego- Trash, Central Heater, Janus Jarman, Lowell Jarman",5/3.00,Jill M. Bolden,Current,"2,208","5,288.00","5,366.00","5,263.00",06/29/2025,06/28/2027,06/29/2025,,"-5,394.00",0,4
+"-> Beverly Ave. 950 (Lauren) - 950 Beverly Ave. Imperial Beach, CA 91932-3405","","","","","","","","","","","","","","",""
+,"Lauren Hamilton, No Home Warranty, No HOA, Wall Heater - No filter",4/2.00,Benjamin V. Walker,Current,"1,632","3,420.00","3,591.00","2,763.00",06/19/2019,05/31/2027,06/19/2019,,"-3,619.00",2,0
+"-> Black Duck Way 4288 (Scott) - 4288 Black Duck Way Oceanside, CA 92057","","","","","","","","","","","","","","",""
+,"Norbert Matson, Black Duck, I=O, S=OT, HVAC?, OCEANA MISSION IV COMMUNITY ASSOCIATION HOA, HOA DUES PAID BY OWNER, Property Advantage HOA, Central HVAC, Filter Size 12x27x1",2/2.00,Susan A. Geib,Current,"1,056","2,588.00","2,588.00","2,463.00",04/15/2022,04/30/2024,04/15/2022,,"-2,616.00",0,0
+"-> Bloomfield 953 (Rob) - 953 Bloomfield Ave. San Marcos, CA 92078","","","","","","","","","","","","","","",""
+,"Robert Kim, Young Mi Kang, HW 1/1/11, I=O, S=OT, HVAC SIZE=, 20x20x1, ASPM-San Diego HOA, The Bluffs 1 Condominium Owners Association, HOA DUES PAID BY OWNER, Savona at Rancho Coronado Homeowners Association",3/2.50,Andrea M. Rios,Current,"1,554","2,784.00","2,784.00","2,963.00",04/17/2014,02/29/2024,04/17/2014,,"-2,812.00",0,0
+"-> Blue Jean Way 1295 Unit 4 (Alan & Mikayla) - 1295 Blue Jean Way Unit 4 Chula Vista, CA 91913","","","","","","","","","","","","","","",""
+,"Alan Cebreros, Mikayla Cebreros, California Submeter- Water, Trash-HOA, I=O, S=OT, 5 Peaks Referred-Steph Rivera, HVAC?, Hearthstone Village at Otay Ranch HOA, 07/01/2025 RBP",2/2.50,Dominic Camacho,Current,"1,438","3,150.00","3,150.00","3,150.00",06/28/2024,06/30/2027,06/27/2024,,0.00,0,0
+"-> Boundary St 2941 (Isaiah) - 2941 Boundary St San Diego, CA 92104","","","","","","","","","","","","","","",""
+,"WALL HEATER, HVACWALL, Isaiah D. Klavitter, 2020CAP=$205.22, NO HOA",3/2.00,Caitlin H. Hansen,Current,"1,400","3,788.00","3,788.00","3,763.00",05/01/2026,04/30/2027,05/01/2026,,"-3,869.60",0,0
+"-> Boundary St 2943 (Isaiah) - 2943 Boundary St San Diego, CA 92104-5206","","","","","","","","","","","","","","",""
+,"Klavitter Isaiah, 2020CAP=$144.02, RUBS, Wall Heater - No filter, NO HOA",2/1.00,Melissa  R. Hutzell,Current,"1,000","2,316.00","2,316.00","2,063.00",12/27/2019,,12/27/2019,,"-2,344.00",0,2
+"-> Brant St. 3341 (Rosen Stanley M Living Trust) - 3341 Brant St San Diego, CA 92103-5505","","","","","","","","","","","","","","",""
+,"Rosen Stanley M Living Trust 04-03-86, HVAC Filter size 16X25X1, Central A/C, NO HOA",4/3.00,Mayra A. Abeli,Current,"2,775","6,088.00","6,388.00","6,068.00",11/13/2023,11/12/2025,11/13/2023,,"-6,416.00",0,0
+"-> Brewley Ln, 1155 (Lila) - 1155 Brewley Lane Vista, CA 92081","","","","","","","","","","","","","","",""
+,"Shadowridge Home Owners Association, S=OT, I=O, Sergio Loza, Hilda Loza, HVAC8?05012020, HOA DUES PAID BY OWNER, Filter Size - 14x25x1",3/2.00,Julie Nelson,Current,"1,503","2,763.00","2,987.00","2,323.00",02/01/2022,01/05/2027,01/16/2017,,0.00,0,0
+"-> Brewley Ln. 1372  (Matthew) - 1372 Brewley Ln. Vista, CA 92081","","","","","","","","","","","","","","",""
+,"Tomomi Marcinkiewicz, Matthew Marcinkiewicz, Shadowridge HOA, I=O, S=OT, HOA DUES PAID BY OWNER, HVAC Filter Size 14X30X1, HVAC Filter Size 14X24X1, RBP07/12/2023",3/2.00,Maksym Hutovskyi,Current,"1,990","3,880.00","4,074.00","4,817.50",07/12/2023,,07/12/2023,,"-4,102.00",1,0
+"-> Bush St. 1405-1407 Oceanside CA 92058 - 1405-1407 Bush St. Oceanside, CA 92058","","","","","","","","","","","","","","",""
+MI 031826 -1405 Bush St.,"1405 Bush St., 1407 Bush St., Mo Trinka, Leslie Trinka, 2020CAP=$104.38, RUBS, 100% bill back water no common area, Wall Heater - No filter, NO HOA",2/1.00,Michelle J. Ritchie,Current,750,"2,688.00","2,844.00","2,663.00",03/18/2026,03/17/2027,03/18/2026,,-0.13,0,0
+1407 Bush St.,"Mohit, 1407 Bush St., 2020CAP=$102.74, RUBS, HOA DUES PAID BY OWNER, 100% bill back water no common area, Wall Heater - No filter",2/1.00,Danielle N. Swearingen,Current,750,"2,888.00","2,888.00","2,863.00",11/01/2025,07/31/2026,11/01/2025,,"-2,926.00",0,0
+2 Units,,,,100.0% Occupied,"1,500","5,576.00","5,732.00","5,526.00",,,,,"-2,926.13",0,0
+"-> Cactusview Dr. 3661 (Alex & Ian) - 3661 Cactusview Dr. San Diego, CA 92105","","","","","","","","","","","","","","",""
+,"Bay Ridge HOA, S=OT, I=O, Alexandra Lowry, Ian Lowry, City of San Diego Water- Water & Sewer, Filter Size - 20X12X1, RBP06/18/2023, City of San Diego- Trash",3/2.00,Lacey Gamez,Current,"1,357","3,688.00","3,766.00","3,663.00",02/06/2026,02/05/2027,02/06/2026,,0.00,0,1
+"-> Calle Avila 1590 (Belinda & Jason) - 1590 Calle Avila Chula Vista, CA 91913","","","","","","","","","","","","","","",""
+,"Belinda Adams, Jason Adams, Casitas de Avila at Otay Ranch HOA, S=OT, I=O, HVAC=20X24X1, HVAC=14X24X1, Waste Management, City of Chula Vista  Sweetwater Authority- Water & Sewer, California Submeter, RBP06/16/2023",3/2.50,Victor A. Nunez,Current,"1,648","4,288.00","4,288.00","4,263.00",09/01/2024,03/31/2027,09/01/2024,,0.00,0,1
+"-> Calle Trevino #8 17023 (Rui Wen 2009 Family Trust) - 17023 Calle Trevino Unit 8 San Diego, CA 92127-8813","","","","","","","","","","","","","","",""
+,"Tracy Han, Rui Wen, Wen Rui Rui Wen 2009 Family Trust, SDGE, I=O, S=OT, Gianni @ 4S Ranch HOA, Central AC, Filter Size 20x20x1, California SubMeters",3/3.50,Dana C. Barber,Current,"1,460","3,836.00","3,986.00","3,463.00",10/26/2022,02/28/2027,10/26/2022,,"-4,014.00",1,0
+"-> Caminito Arcada (Ramakrishna) - 10992 Caminito Arcada San Diego, CA 92131","","","","","","","","","","","","","","",""
+,"Ramakrishna Kintada, I=O, S=OT, NNJ HOA, San Diego Rancho La Cresta HOA, HVACSIZE=, 20x30x1, Aspire-Encore at Scripps Ranch Villages HOA, Scripps Ranch Villages HOA",3/3.00,Hossein Mahmoodi,Current,"1,299","3,638.00","3,788.00","2,963.00",10/01/2025,06/30/2027,07/28/2020,,0.00,0,2
+"-> Caminito Bravura 10728 (James) - 10728 Caminito Bravura San Diego, CA 92108","","","","","","","","","","","","","","",""
+,"James Pulsifer, Radiant Heater - No filter, I=O, I=O S=OT, RBP No Filter, Atlantic & Pacific Management Corp.",3/1.50,Anthony M. DiRuscio,Current,"1,334","3,688.00","3,688.00","3,663.00",09/21/2022,12/07/2026,09/21/2022,,0.00,0,0
+"-> Caminito Corriente 11374 (Zara) - 11374 Caminito Corriente San Diego, CA 92128","","","","","","","","","","","","","","",""
+,"Zara Sadeghian, Bernardo Village and Bernardo Heights HOA, Owners Handyman-Ben (858) 360-0831, S=OT, Filter 10X30X1, I=O, Yes Bpm Pays HOA",3/2.00,Shawn P. Heyl,Current,"1,710","3,698.00","4,013.00","2,963.00",12/15/2022,10/09/2026,04/01/2015,,"-4,041.00",0,0
+"-> Caminito Derecho 10676 (Pete) - 10676 Caminito Derecho San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Caminito Derecho, HW 1/1/11, Pete Maroudas, Carla Maroudas, Mesa Village HOA, S=OT, I=O, HOA DUES PAID BY OWNER, HVAC filter size 14x25x1",2/2.00,Juliana Bordowitz-Cardinal,Current,"1,195","2,288.00","2,274.00","1,873.00",07/30/2015,06/20/2027,07/30/2015,,0.00,0,0
+"-> Caminito Juanico 6285 (The Jacobs Family Trust) - 6285 Caminito Juanico San Diego, CA 92108","","","","","","","","","","","","","","",""
+,"The Jacobs Family Trust dated 12/22/98, HVAC?, Friars Village HOA, SDGE, RADIANT HEATER, I=O, S=OT, Realto Referred-Greg Cummings",4/2.00,Joann Sam,Current,"1,530","4,308.00","4,525.04","6,244.50",12/01/2022,11/30/2026,12/01/2022,,0.00,0,2
+"-> Caminito Mallorca 8072 (Lai Cary Trust) - 8072 Caminito Mallorca La Jolla, CA 92037","","","","","","","","","","","","","","",""
+,"Lai Cary Trust 06-16-95, HVAC?, La Jolla Village Southpointe HOA, I=O, S=OT, No Home Warranty, Filter Size - 16X20X1",2/2.00,Rosemary S. Schairer,Current,"1,111","3,288.00","3,288.00","3,263.00",09/01/2025,08/31/2026,09/01/2025,,0.00,0,0
+"-> Caminito Montanoso 6876 Unit 53 (Charlotte) - 6876 Caminito Montanoso Unit 53 San Diego, CA 92119-2333","","","","","","","","","","","","","","",""
+,"Charlotte C. Germundson, Woodlands HOA, Pernicano Realty Management Inc HOA, I=O, S=OT, Central Heater, Woodlands of San Diego Condominium Association, 25X12X1",2/2.00,Robert D. Macfie,Current,"1,044","2,800.00","2,800.00","2,775.00",10/01/2025,09/30/2026,10/01/2025,,"-2,928.00",0,0
+"-> Caminito Santiago #2 1520 (Justin & Monica) - 1520 Caminito Santiago # 2 Chula Vista, CA 91913-2500","","","","","","","","","","","","","","",""
+,"JUSTIN ROSE, MONICA ROSE, Tesla-Solar, SDGE, California Sub-Meters, Waste Management- Trash, First American Home Warranty, HVAC?, Central Heater, I=O, S=OT, Villas de Avila HOA, Montecito HOA, Filter size 20x24x1, FILTER SIZE 12X24X1, Strategic HOA, RBP 10/11/2023",3/2.50,Maria R. Sawyer,Current,"1,342","3,688.00","3,688.00","3,663.00",10/11/2023,12/10/2026,10/11/2023,,0.00,0,0
+"-> Caminito Septimo 1335 (Aka Dirty Pigs LLC) - 1335 Caminito Septimo Cardiff, CA 92077","","","","","","","","","","","","","","",""
+,"Jennifer A Moores, Aka Dirty Pigs LLC C/O Jennifer Moores, I=O, S=OT, No Home Warranty, HVAC?, Park Place Homeowners Association, 24×14×1",3/2.50,Andrea Oettinger,Current,"1,258","4,088.00","4,088.00","4,063.00",02/21/2026,02/20/2027,02/21/2026,,0.00,0,0
+"-> Caminito Zar 10123 (Andrew) - 10123 Caminito Zar San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"S=OT, I=O, Andrew Tran, Quest HOA, radiant heater no filter, RBP07/07/2023",3/1.50,Fidelia F. Mbaneme,Current,"1,264","3,288.00","3,288.00","3,263.00",10/06/2025,10/05/2026,10/06/2025,,"-2,507.81",0,0
+"-> Camino Del Sol 911 (Randall & Arteria) - 911 Camino Del Sol Chula Vista, CA 91910","","","","","","","","","","","","","","",""
+,"Randall Jones, Arteria Jones, SDGE, NO HOA, The City of Spring Valley Otay Water DIstrict- Water, City of Spring Valley Otay Water District, Republic Service-Trash, Central Heater - 1 filter, 32""x20"", American Home Shield = Home Warranty, HVAC 20x32x1, There is no HOA",4/2.50,Ana M. Khosho,Current,"1,814","4,388.00","4,388.00","4,363.00",09/01/2025,08/31/2026,09/01/2025,,0.00,0,0
+"-> Camino Huerta 7881  (Anthony) - 7881 Camino Huerta San Diego, CA 92122","","","","","","","","","","","","","","",""
+,"Anthony Ronco, ASPM San Diego, Genesee Highlands Association, I=O, S=OT, SDGE, radiant heat and in wall heaters, No Filter",3/1.50,Alexis E. Gonzalez,Current,"1,053","3,488.00","3,488.00","3,463.00",12/01/2022,11/30/2023,12/01/2022,,0.00,0,2
+"-> Camino Mateo 430 (Antonio) - 430 Camino Mateo San Marcos, CA 92069","","","","","","","","","","","","","","",""
+,"Antonio A Sena Jr, SDGE, No HOA, Sun Power- Solar, Vallecitos Water District, EDCO-Trash, Central Heater - 1 filter, 16x25x5 MERV 10",3/2.00,Marcelo Matiaz,Current,"1,400","3,688.00","3,688.00","3,568.00",01/23/2025,01/22/2026,01/23/2025,,0.00,1,0
+"-> Camino Mira Del Mar, 12665 Unit 208 (Dimitrios) - 12665 Camino Mira Del Mar, Unit 208 San Diego, CA 92130","","","","","","","","","","","","","","",""
+,"Liarokapis Dimitrios, Del Mar Villas Condominium Association, I=O, S=OT, Wall Heater",2/2.00,Jean  Greeff,Current,864,"1,800.00","2,143.00","1,000.00",08/27/2016,,08/27/2016,,0.00,0,1
+"-> Camino Playa Malaga 5215 (Chung) - 5215 Camino Playa Malaga San Diego, CA 92124","","","","","","","","","","","","","","",""
+,"Chung Family Revocable Trust 05-03-07, An Associa Company, Tierrasanta Norte Patio Homeowners Association, I=O, S=OT, HVAC SIZE=, 20X25X1, HOA DUES PAID BY OWNER",4/2.50,Brianna V. Lewars,Current,"1,904","3,417.00","3,417.00","4,294.50",02/01/2022,,09/15/2019,,"-1,866.25",0,2
+"-> Canyon Back Ln. 13316 (Bruce) - 13316 Canyon Back Ln. Poway, CA 92064-2909","","","","","","","","","","","","","","",""
+,"Bruce Mehus, Denise Mehus, HVAC?OL02272021, 14X25X1, No HOA",3/2.00,Eric S. Meermans,Current,"1,760","3,575.00","3,682.00","2,963.00",03/10/2021,04/30/2027,03/10/2021,,"-3,710.00",1,1
+"-> Canyon Creek Way 120 - 120 Canyon Creek Way Oceanside, CA 92057","","","","","","","","","","","","","","",""
+,"Maggie Hsin-I Lee, Yao Wen Hu, City of Oceanside Water, Waste Management, Preferred Vendor-Rivera's Landscaping, 20x30x1, HVAC?, Central Heater, Sierra Ridge HOA, I=O, S=OT",4/2.50,Alisha S. LaHogue,Current,"2,012","4,188.00","4,344.00","4,163.00",12/29/2025,12/28/2026,12/29/2025,,"-4,494.00",0,0
+"-> Carmel Brooks Way 3978 (GPCarmel LLC) - 3978 Carmel Brooks Way San Diego, CA 92130","","","","","","","","","","","","","","",""
+,"GPCarmel LLC, No HOA, Rajesh Gadiyar, Smitha Devaiah, Referred: Google, 2x24x1",3/3.00,Michael Hromadik,Current,"1,758","5,088.00","5,166.00","5,063.00",06/15/2026,06/14/2027,06/15/2026,,"-5,194.00",0,0
+"-> Carmel Country 12376 #202 (Stephen) - 12376 Carmel Country Road #202 San Diego, CA 92130","","","","","","","","","","","","","","",""
+,"Carmel Country, The Heights HOA, HW 1/1/11, Stephen Hansen, I=HOA, S=OT, The Heights at Carmel Valley Association, WALL HEATER, HVACWALL, Filter Size 20x20x1, Owner pays HOA via ACH",2/2.00,Samuel A. Hull,Current,"1,010","3,488.00","3,566.00","3,463.00",05/27/2026,05/26/2027,05/27/2026,,"-3,694.00",0,0
+"-> Carmel Creek 12580 #43 (Daniel) - 12580 Carmel Creek #43 San Diego, CA 92130","","","","","","","","","","","","","","",""
+,"HW 1/1/11, Del Mar Villas HOA, Daniel & Cecilia Romero, I=HOA, S=OT, WALL HEATER, HVACWALL, RBP030223",2/2.00,Natalie F. Neils,Current,866,"3,088.00","3,088.00","3,063.00",06/23/2026,06/23/2027,06/24/2026,,"-3,216.00",0,0
+"-> Carmel Creek Rd #45 12580 (Robert & Leah) - 12580 Carmel Creek Rd #45 San Diego, CA 92130-2379","","","","","","","","","","","","","","",""
+,"RBP05182023, I=HOA, S=OT, WALL HEATER, HVACWALL, Robert & Leah Davis, Del Mar Villas HOA, Robert Davis, Leah Davis, Current Client Referred-Diane Campbell",2/2.00,Jacob D. Wright,Current,864,"3,288.00","3,288.00","3,263.00",07/29/2025,07/28/2026,07/29/2025,,0.00,0,0
+"-> Caspi Gardens 9821 , Dr Unit 8 (Advantage Acquisitions LLC) - 9821 Caspi Gardens Dr Unit 8 Santee, CA 92071","","","","","","","","","","","","","","",""
+,"Diane Alexander, Advantage Acquisitions LLC, Waste Management, Central Heater, Riderwood Gardens HOA, I=O, S=OT, HVAC?, Filter Size 20x20x1",2/1.50,Hannah  Burton,Current,962,,"2,595.00","2,295.00",10/01/2025,09/30/2026,10/01/2025,,0.00,0,0
+"-> Central Ave 5942 (Zander and Colleen) - 5942 Central Ave Bonita, CA 91902","","","","","","","","","","","","","","",""
+,"Zander Hidalgo, Colleen Hidalgo, EDCO-Trash, City of San Diego Water, Bonita Highlands HOA, 20×25×1",4/2.00,Don Dumas,Current,"2,107","5,388.00","5,388.00","5,366.00",10/01/2025,09/30/2026,10/01/2025,,0.00,0,0
+"-> Cerco Rosado 183 (Marcelle) - 183 Cerco Rosado San Marcos, CA 92069","","","","","","","","","","","","","","",""
+,"Marcelle Torbert, Vallecitos Townhouse Protection Association, I=O, S=OT, EDCO, City of Vista Irrigation District, TESLA, HVAC?, Central Heater, ASAP Drain Guys & Plumbing, HVACSIZE=14x24x1",2/2.00,Christopher R. Doerning,Current,"1,175","2,888.00","2,888.00","2,863.00",05/24/2025,,05/24/2025,,0.00,0,0
+"-> Cheames Way 6522 (Tony & Minh) - 6522 Cheames Way San Diego, CA 92117","","","","","","","","","","","","","","",""
+,"Tony Lam, Minh Phung, Referred by: Sophia Trinh, 16x25x1",4/2.00,Samantha D. Haworth,Current,"1,527","4,488.00","4,566.00","4,463.00",06/18/2026,06/17/2027,06/18/2026,,"-4,744.00",0,0
+"-> Cherokee Avenue 4164,Apt E (Elyce) - 4164 Cherokee Avenue, Apt E San Diego, CA 92104","","","","","","","","","","","","","","",""
+,"Elyce M Colona, Cherokee Heights HOA",2/1.50,,Vacant-Unrented,806,"2,388.00",,0.00,,,,,,,
+"-> Cirrus St. 5975 (Qing &Jiahong) - 5975 Cirrus St. San Diego, CA 92110","","","","","","","","","","","","","","",""
+,"Qing Mo, Jiahong Chen, HVAC Filter 12x24x1, Realtor Referred-Karen Pyles, Central Heater - 1 filter, 12 X 24 X 1, SDGE, Park Place Estates HOA",2/2.00,Abigail A. Higgins,Current,"1,058","3,636.00","3,636.00","3,563.00",05/10/2023,05/31/2026,05/10/2023,,"-4,064.00",0,0
+"-> Cole St. 4885  #3 (Nguyen) - 4885 Cole St. #3 San Diego, CA 92117-1831","","","","","","","","","","","","","","",""
+,"Nguyen Tran, Cole Manor North, Kelvin Tran, I=O, S=OT, W=bill TCO, WALL HEATER, HVACWALL, Yes Energy Management",2/1.00,,Vacant-Unrented,840,"2,288.00",,0.00,,,,,,,
+"-> Colibri 2605 (Mark) - 2605 Colibri Lane Carlsbad, CA 92009","","","","","","","","","","","","","","",""
+,"Colibri, HW 1/1/11, HVACSIZE=, 14X25X1, NO HOA",3/2.00,Thomas Marshall,Current,"1,320","3,898.00","3,898.00","2,820.00",06/08/2012,,06/08/2012,,0.00,0,0
+"-> College Ave. 3711 (Chiem) - 3711 College Ave. San Diego, CA 92115-7013","","","","","","","","","","","","","","",""
+,"Van Chiem, Wei Zhou, Eddy & Alex Berducido- Handyman, No Filter, Wall Heater, No HOA",3/1.00,Miguel A. Lopez,Current,"1,044","2,623.00","2,754.00","2,263.00",09/01/2019,,09/01/2019,,"-2,782.00",1,0
+"-> Collwood Ln. 4606 (Ebrahim & Soheyla) - 4606 Collwood Ln. San Diego, CA 92115-2020","","","","","","","","","","","","","","",""
+,"SDGE, COLLWOOD PARK ASSOCIATION, S=OT, I=O, Mr Scape inc., Terminix, Soheyla Javanbakht, Ebrahim Javanbakht, California Submeter, Central A/C, Filter size 16x25x1",3/2.00,Charles E. Berotte,Current,"1,695","2,923.00","2,923.00","2,563.00",08/16/2021,03/31/2025,08/16/2021,,"-2,951.00",0,3
+"-> Comanche Dr. 4985 - 4985 Comanche Dr La Mesa, CA 91942","","","","","","","","","","","","","","",""
+Comanche Dr Unit 1,"Krysia Angle, Jon Angle, City of La Mesa Helix Water District, City of La Mesa Helix Water District-Sewer, EDCO, NO HOA, HVAC?, Wall Heater, Trash Bill - Divide Manually ( Trash RUBS), Water/Sewer- DIvide Manually ( Water/Sewer RUBS)",1/1.00,Stephen M. Honda,Current,600,"1,988.00","2,038.00","1,963.00",10/26/2024,07/25/2026,10/26/2024,,"-2,081.00",0,0
+Comanche Dr Unit 3,"City of La Mesa Helix Water District, City of La Mesa Helix Water District-Sewer, HVAC?, WALL HEATER, Jon Angle, Krysia Angle, EDCO, Trash Bill - Divide Manually ( Trash RUBS), Water/Sewer- DIvide Manually ( Water/Sewer RUBS), NO HOA",1/1.00,Dashira A. Hart,Current,600,"1,988.00","2,038.00","2,453.75",11/01/2024,07/31/2026,11/01/2024,,"-2,081.00",4,10
+Comanche Dr Unit 4,"Krysia Angle, Jon Angle, Realtor Referred-Stephanie Rivera 5 Peaks, City of La Mesa Helix Water District, City of La Mesa Helix Water District-Sewer, Wall Heater, HVAC?, EDCO, No HOA, Water/Sewer- DIvide Manually ( Water/Sewer RUBS), Trash Bill - Divide Manually ( Trash RUBS)",3/1.00,Rebekah J. Denning,Current,865,"2,588.00","2,588.00","2,563.00",03/15/2025,03/14/2026,03/15/2025,,317.21,0,0
+3 Units,,,,100.0% Occupied,"2,065","6,564.00","6,664.00","6,979.75",,,,,"-3,844.79",4,10
+"-> Connecticut St. 903 (The Trikha Family Trust) - 903 Connecticut St. Imperial Beach, CA 91932-2119","","","","","","","","","","","","","","",""
+,"The Trikha Family Trust dated 8/24/2006, HVAC SIZE=, 15x25x1, NO HOA",3/2.00,Alexis Oronia,Current,"1,390","4,088.00","4,166.00","4,063.00",12/10/2025,05/09/2027,12/10/2025,,"-4,194.00",0,0
+"-> Cordillera Court 3395 (Heather & Matthew) - 3395 Cordillera Court Carlsbad, CA 92010","","","","","","","","","","","","","","",""
+,"Heather Wilkey, Matthew Wilkey, Meternet, Republic Service- Trash, Sea Breeze Management Company, I=O, S=OT, HVAC?, Omar-Gardener, The Preserve at Carlsbad Owners Association HOA, HVAC Filter 20x30x1",3/2.50,Irina V. Kulyamina,Current,"1,420","3,763.00","3,763.00","3,663.00",10/01/2022,04/09/2027,10/01/2022,,0.00,0,1
+"-> Corporate BPM - 123 Template St. San Diego, CA 12345","","","","","","","","","","","","","","",""
+,,--/--,PLACE HOLDER,Current,,,0.00,0.00,01/01/2021,,01/01/2021,,0.00,0,0
+"-> Corte Bagalso 1361 (Julian) - 1361 Corte Bagalso San Marcos, CA 92069","","","","","","","","","","","","","","",""
+,"HW 1/1/11, Julian Mota, HVAC SIZE=, 18x30x1, Central Heater, NO HOA",5/3.00,Mikela R. Thomas,Current,"2,866","4,288.00","4,649.79","4,268.00",09/24/2024,11/05/2026,09/24/2024,,0.00,0,4
+"-> Corte Belleza 11242 (Xiangdong Liu) - 11242 Corte Belleza San Diego, CA 92130","","","","","","","","","","","","","","",""
+,"Yuanlin Li, Xiangdong Liu, Torrey Hills Master Association, Walters Management, Sunrun-Solar, City Of San Diego trash, City Of San Diego-Water, City of San Diego Water, I=O, S=OT, Central Heater, HVAC?, RBP 07/17/2024",4/3.00,Kelly L. Baker,Current,"2,834","6,488.00","6,727.00","6,463.00",07/17/2024,07/16/2026,07/17/2024,,"-6,955.00",0,0
+"-> Corte Diana 2949 (Viveka) - 2949 Corte Diana Carlsbad, CA 92009","","","","","","","","","","","","","","",""
+,"HOME WARRANTY, First American Home Buyers Protection, Viveka Arya, La Costa Meadows Condominium Association, I=O, S=OT, HVAC8?05102020, AIR FILTER SIZE 14 x 25 x 1 in., Realtor referred- Ebin Smith",2/2.00,Stephan Pochon,Current,"1,300","2,365.00","2,435.00","1,750.00",12/16/2022,01/14/2026,08/20/2011,,0.00,0,1
+"-> Corte Pintura 5211 - 5211 Corte Pintura Oceanside, CA 92057","","","","","","","","","","","","","","",""
+,"Daniel Katzman, Rachel Katzman, Sunrun-Solar, City of Oceanside Water- Water & Sewer, Waste Management- Trash, Filter Size 20x25x1, Central Heater, Current Client-Referred",4/3.00,Courtny Smead,Current,"2,372","4,088.00","4,088.00","4,563.00",10/13/2025,10/12/2026,10/13/2025,,"-4,316.00",0,0
+"-> Cowley Way 3615 (Chiem) - 3615 Cowley Way San Diego, CA 92117","","","","","","","","","","","","","","",""
+,"Van Chiem, Wei Zhou, Eddy Jafeth Berducido Turcios- Handyman, Filter size 16x25x1, NO HOA",4/2.50,Seth A. Choi,Current,"1,832","3,793.00","3,793.00","3,463.00",04/04/2021,04/08/2024,04/04/2021,,0.00,0,0
+"-> Cuyamaca College Dr,12191 (Nancy & Jose) - 12191 Cuyamaca College Dr, E Unit 313 El Cajon, CA 92019","","","","","","","","","","","","","","",""
+,"Nancy Acuna, Jose Osornio, Villa Montevina HOA, S=OT, I=O, City of San Diego Water, Waste Management, HVAC Filter size 12x24x1, RBP 04/01/2024",2/2.00,Karen N. Young,Current,850,"2,488.00","2,488.00","2,463.00",06/01/2026,05/31/2027,05/29/2026,,0.00,0,0
+"-> Dabney Dr, 2 10790 (Tran Chinh Revocable Living Trust 07-28- 16) - 10790 Dabney Dr, 2 San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Tran Chinh Revocable Living Trust 07-28- 16, Chinh Tran, Nick Nicolas, HVAC?, I=O, S=OT, SDGE, High Ridge at Mesa Summit HOA, Filter Size 30X12X1",1/1.00,Nicholas H. Cropper,Current,598,"2,276.00","2,300.00","2,163.00",11/05/2022,09/22/2026,11/05/2022,,"-2,328.00",0,0
+"-> Date St.  889 Unit 114 (Erin) - 889 Date St. Unit 114 San Diego, CA 92101-8641","","","","","","","","","","","","","","",""
+,"Action Property Management, Erin Spiewak, Aloft HOA, I=O, S=OT, HVACSIZE=, 20 x20 x1, Aloft on Cortez Hill, Realtor referred- Collin Clifford",0/1.00,Hazen F. Becker,Current,608,"2,388.00","2,496.00","2,263.00",01/27/2022,05/16/2027,01/27/2022,,0.00,0,1
+"-> Diamond St. 1775 #103 (The Diamond Trust) - 1775 Diamond St. #103 San Diego, CA 92109","","","","","","","","","","","","","","",""
+,"The Plaza Condominium Association c/o Landmark Inc., The Plaza Condominium Association, ASAP Plumbing, I=O, S=OT, RADIANT HEATER, Providence HOA, Executed on January 30, The Diamond Trust Executed on January 30 2020",2/2.00,Shayna M. Ellis,Current,"1,032","3,013.00","3,133.52","2,563.00",08/10/2019,09/06/2025,08/10/2019,,0.00,1,0
+"-> DOWN Gilman Drive 8807 #B (Teddy) - 8807 Gilman Drive #B La Jolla, CA 92037","","","","","","","","","","","","","","",""
+,"Teddy Zhang, I=O, S=OT, OLBX Keys 03/25/2019, La Jolla Terrace HOA c/o Castle Breckenridge Mgt., Filter 10x25x1, Central Heater - 1 filter",3/2.00,,Vacant-Unrented,"1,406","3,788.00",,0.00,,,,,,,
+"-> Drescher St 2151 (Edwin) - 2151 Drescher St. San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"HW 1/1/11, Edwin Widjojo, FLOOR HEATER, WALL HEATER, No Filter, NO HOA",2/1.00,Santiago A. Speyer,Current,"1,248","2,384.00","2,504.00","2,268.00",02/03/2024,04/23/2026,02/03/2024,,0.00,0,0
+"-> Drescher St. 2161 (Edwin) - 2161-63 Drescher St San Diego, CA 92111","","","","","","","","","","","","","","",""
+2161 Drescher St,"Edwin Widjojo, City of San Diego Water, Wall Heater - No filter, RBPVOIDTILLVACATE0223, No HOA",1/1.00,Amador Gomez,Current,,948.00,"1,008.00",750.00,04/01/2024,,08/11/2022,,"-1,056.00",0,5
+2163 Drescher St,"Edwin Widjojo, City of San Diego Water, Wall Heater - No filter, RBP07/01/2023, No HOA",2/2.00,Hung Vi Lam,Current,,900.00,957.00,750.00,08/11/2022,,08/11/2022,,499.89,0,3
+2 Units,,,,100.0% Occupied,0,"1,848.00","1,965.00","1,500.00",,,,,-556.11,0,8
+"-> E Oneida Ct. 9 (Ryley) - 9 E Oneida Ct. Chula Vista, CA 91911","","","","","","","","","","","","","","",""
+,"Ryley D Duong, SDGE, NO HOA, City of Chula Vista  Sweetwater Authority, The City of Chula Vista Sewer, H&J Garden Maintenance-Gardener, Central Heater - 1 filter, 16x25x1, Select Home Warranty",3/2.00,Priscilla Mumpower,Current,"1,385","3,400.00","3,468.00","3,975.00",08/09/2023,08/31/2025,08/09/2023,,"-3,496.00",0,0
+"-> Eagle Summit Pl 1919 (Tyler) - 1919 Eagle Summit Pl Escondido, CA 92026","","","","","","","","","","","","","","",""
+,"Tyler B. Evans, Caitlin Evans, City of Escondido Wastewater Division-Water, City of Escondido Wastewater Division-Sewer, Central Heater, NO HOA, HVAC FILTER 18 X30X1",3/2.50,Yaretzi E. Pulido,Current,"1,831","3,688.00","3,738.00","3,663.00",12/28/2023,06/27/2027,12/28/2023,,0.00,0,1
+"-> Edgehill Ln. 432 Unit 34 (Antonia) - 432 Edgehill Ln. Unit 34 Oceanside, CA 92054-4727","","","","","","","","","","","","","","",""
+,"I=O, S=OT, Arbor Hill Owners Association, Antonia Sep, WALL HEATER, HVACWALL, Mauzy Management HOA",2/1.00,Dana  M. Mugol,Current,802,"2,088.00","2,267.00","2,063.00",02/17/2024,02/16/2025,02/17/2024,,0.00,0,0
+"-> Elkelton Blvd. 1302 (Joshua) - 1302 Elkelton Blvd Spring Valley, CA 91977","","","","","","","","","","","","","","",""
+,"Joshua Twenter, SDGE, The City of Spring Valley Otay Water DIstrict- Water, EDCO-Trash, Wall Heater, No HOA, No Home Warranty, RBP12/01/2023",3/1.00,JuvyAnn Y. Infante,Current,"1,022","3,288.00","3,444.00","3,263.00",10/15/2025,10/14/2026,10/15/2025,,"-1,000.00",0,0
+"-> Escobar 10678(Allison) - 10678 Escobar Dr San Diego, CA 92124","","","","","","","","","","","","","","",""
+,"S=OT, I=O, Fine Port LLC, City of San Diego Water- Water & Sewer, City of San Diego- Trash, Villa Portofino HOA, Central Heater, HVAC Filter 16X24X1",3/1.50,Joshua A. Larson,Current,"1,625","3,718.00","3,718.00","3,693.00",03/01/2024,02/28/2027,03/09/2024,,0.00,1,1
+"-> F St San Diego 2558 (Dago) - 2558 F St San Diego, CA 92102-2736","","","","","","","","","","","","","","",""
+,"Cahue Dagoberto Reynaldo, Split System AIr & Heat",1/1.00,Cameron J. Littlecreek,Current,504,"2,588.00","2,866.00","2,563.00",03/17/2025,,03/17/2025,,0.00,0,0
+"-> Fanita 8436 (Daryl) - 8436 Fanita Dr. Santee, CA 92071","","","","","","","","","","","","","","",""
+,"HW 1/1/11, Daryl & Carol Steslicki, Central A/C, HVAC 30x15x1, RBP 01/06/2025, No HOA",3/2.00,Edward L. Andrews,Current,"1,600","3,388.00","3,466.00","3,363.00",01/06/2025,01/05/2026,01/06/2025,,"-3,494.00",0,0
+"-> Fargo 1891 #2 (Clay) - 1891 Fargo Ln. #2 Chula Vista, CA 91913","","","","","","","","","","","","","","",""
+,"Lydia Niebla, Clay Robbins, Stetson@Otay Ranch HOA BPM will pay, I=HOA, S=OT, W=bill TC, Central Heater, HVAC 14x24x1",2/2.00,John A. McCord,Current,"1,209","1,998.00","2,197.00","1,873.00",02/27/2017,,02/27/2017,,0.00,3,13
+"-> Felspar St. 2231  (Todd) - 2231 Felspar St. San Diego, CA 92109","","","","","","","","","","","","","","",""
+,"Todd Fisher, Nexus HOA, HVAC size 14x24x1",2/2.50,Colin D. Smallcombe,Current,"1,152","4,088.00","4,088.00","4,063.00",06/14/2026,06/13/2027,06/14/2026,,0.00,0,0
+"-> Ferncrest Pl 12104 (Aadit) - 12104 Ferncrest Pl San Diego, CA 92128","","","","","","","","","","","","","","",""
+,"Aadit N Patel, HVAC?, 10/06/2023 RBP, Carmel Mountain Association HOA, American Home Shield = Home Warranty, City of San Diego Water- Water, City of San Diego Water- Sewer, Central Heater, I=O, S=OT, Ferncrest, HVAC Filter size 16X25X1",3/2.50,James H. McNown,Current,"2,058","4,408.00","4,673.00","4,168.00",05/06/2026,,10/06/2023,,0.00,0,1
+"-> Fino Dr. 5124 (Fine Port LLC) - 5124 Fino Drive San Diego, CA 92124","","","","","","","","","","","","","","",""
+,"Allison Raets, Villa Portafino HOA, No Home Warranty, HVAC?, I=O S=OT, HVACSIZE=, 20x20x1, Fine Port LLC",2/1.00,Jasmine  M. Gibbs,Current,"1,050","2,788.00","2,788.00","2,588.00",08/19/2020,08/18/2021,08/19/2020,,0.00,1,4
+"-> Flanders Drive 8740 (Tran Chinh Revocable Living Trust 07-28- 16) - 8740 Flanders Drive San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Chinh Tran, NO HOA, SDGE, City of San Diego- Trash, City of San Diego-Sewer, City Of San Diego-Water, Nick Nicolas, Ellie (House Cleaning), No Filter - Wall Heater, Elia Rodriguez-House Cleaning",3/2.00,Santa Montejo,Current,"1,384","3,888.00","3,888.00","3,863.00",03/01/2026,02/28/2027,03/01/2026,,0.00,0,0
+"-> Florida St. 3628-30 ( Stillwell Family Trust 11-29-01) - 3628-30 Florida St. San Diego, CA, CA 92104","","","","","","","","","","","","","","",""
+DOWN 3628 Florida,"Stillwell Family Trust 11-29-01, City Treasurer, Sotos Gardening Service, Wall Heater - No filter, RBP 04/01/2024, No HOA",1/1.00,,Vacant-Unrented,525,"1,700.00",,0.00,,,,,,,
+3630,"Stillwell Family Trust 11-29-01, Sotos Gardening Service., City Treasurer, Wall Heater - No filter, RBP02/01/2022, NO HOA",2/1.00,Sarah Dunn,Current,950,"1,700.00","1,785.00","1,700.00",08/01/2020,04/14/2026,08/01/2020,,0.00,0,0
+2 Units,,,,50.0% Occupied,"1,475","3,400.00","1,785.00","1,700.00",,,,,0.00,0,0
+"-> Friars Road 5605 #327 (Gary) - 5605 Friars Road #327 San Diego, CA 92110","","","","","","","","","","","","","","",""
+,"Gary Lewis, I=O, S=OT, Presidio Place Condominium Association, Central Heater, Filter Size 12x24x1, American Home Shield = Home Warranty",1/1.50,Craig A. Justus,Current,854,"2,202.21","2,370.00","1,863.00",02/25/2021,05/11/2027,02/25/2021,,"-2,398.00",0,0
+"-> Gilbert Dr. 5464 (Solange) - 5464 Gilbert Dr. San Diego, CA 92115-3625","","","","","","","","","","","","","","",""
+,"Solange Jacob Randolph, Wall Heater - No filter, Realtor referred- Danyel Brooks, NO HOA",0/1.00,,Vacant-Unrented,500,"1,688.00",,0.00,,,,,,,
+"-> Glacier Ave. 4654 (Wagner) - 4654 Glacier Ave. San Diego, CA 92120","","","","","","","","","","","","","","",""
+,"Wagner H Muhly, NO HOA, SDGE, Bright Planet Solar, City Of San Diego-Water, City of San Diego-Sewer, Waste Management, Central Heater - 1 filter, HVAC Filter size 16X25X1, RBP07/01/2023",3/2.00,Dina L. Lyon,Current,"1,291","3,888.00","4,122.00","5,794.50",02/01/2026,01/31/2027,02/01/2026,,0.00,13,1
+"-> Goldfinch St.  3768 (Kalindi) - 3768 Goldfinch St. San Diego, CA 92103-3956","","","","","","","","","","","","","","",""
+,"Nathaniel Camp, Kalindi Vora, I=O, S=OT, T: SDGE, T: water-sewer-trash City of San Diego, RBP 04/13/2024, Central Heater, Filter Size 12x24x1, NO HOA",3/1.00,Adrien Y. Nabonne,Current,"1,094","3,888.00","3,966.00","3,863.00",08/12/2024,08/11/2025,08/12/2024,,"-4,119.00",0,0
+"-> Grand 1107-1113 (Mona) - 1107-1113 Grand Ave Escondido, CA 92025","","","","","","","","","","","","","","",""
+1107 Grand Ave,"Wall Heater - No filter, Mona Epstein, Realtor referred- Josh Epstein, NO HOA",2/1.00,Jesus Rodriguez Sr.,Current,500,"1,400.00","1,733.00","1,150.00",02/01/2022,03/31/2024,04/05/2013,,0.00,0,1
+1109 Grand Ave,"Mona Epstein, Wall Heater - No filter, Realtor referred- Josh Epstein, NO HOA",2/1.00,Fernando Mitre,Current,828,"2,188.00","2,188.00","2,163.00",10/01/2023,09/30/2025,10/01/2023,,-0.33,2,3
+1113 Grand Ave,"Mona Epstein, Wall Heater - No filter, Realtor referred- Josh Epstein, RBP 080124, NO HOA",2/1.00,Wyatt A. Moilanen,Current,,"2,188.00","2,266.00","2,703.75",08/15/2024,08/14/2025,08/15/2024,,-362.25,1,5
+3 Units,,,,100.0% Occupied,"1,328","5,776.00","6,187.00","6,016.75",,,,,-362.58,3,9
+"-> Granger St. 962 (Aaron & Amelia) - 962 Granger Street San Diego, CA 92154","","","","","","","","","","","","","","",""
+,"Aaron Goldan, Amelia Goldan, SDAC Heating & Air, Unique Solar, Heater: 20x16x1, Owner Occupied - Move Out: 8/28/2021, No HOA",3/2.00,Sofia Villanueva,Current,"1,427","3,963.00","3,963.00","4,578.75",09/17/2021,01/31/2024,09/17/2021,,"-3,991.00",0,0
+"-> Gresham Street  4442  (Pkt Villa LLC) - 4442 Gresham Street San Diego, CA 92109","","","","","","","","","","","","","","",""
+,"Patric Trinh, Pkt Villa LLC, Wall Heater, City of San Diego Water- Water, City of San Diego Water- Sewer, No Home Warranty, No HOA, Referred by: Sophia Trinh",2/1.00,Chloe A. Momet,Current,750,"3,100.00","3,100.00","3,075.00",07/01/2024,06/30/2025,07/01/2024,,0.00,0,0
+"-> Griffith Park Way 8844 (Jordan) - 8844 Griffith Park Way Santee, CA 92071","","","","","","","","","","","","","","",""
+,"Jordan D Tootill, City of Santee Padredam Municipal Water District, Waste Management, John Paullus- Gardener, NO HOA, Central Heater - 1 filter, 16x25x1, Sunrun-Solar",3/2.00,Natalie Mattazaro,Current,"1,419","3,888.00","4,044.00","3,863.00",06/01/2025,05/31/2027,06/01/2025,,"-4,346.00",0,0
+"-> Grim Ave 3436 (Ryan) - 3436 Grim Ave San Diego, CA 92104","","","","","","","","","","","","","","",""
+,"Ryan P Healy, NO HOA, City of San Diego Water- Water, City of San Diego Water- Sewer, City of San Diego- Trash, No Home Warranty, HVAC?",2/1.00,Misha F. Biden,Current,728,"3,700.00","3,700.00","3,675.00",08/29/2025,08/28/2026,08/29/2025,,0.00,0,0
+"-> Grove Ave. 803 (Iris & Samuel) - 803 Grove Ave. Imperial Beach, CA 91932","","","","","","","","","","","","","","",""
+,"Iris Wood, Samuel Wood, S=OT, EDCO, American water-Sewer & Water, SDGE, HVAC Size 14x25x1, Central Heater, No HOA",3/2.00,Sarahanne Simpson,Current,"1,240","3,350.00","3,470.00","3,300.00",10/01/2023,07/20/2026,05/10/2019,,0.00,1,0
+"-> Haight Trail 4879 (Eric) - 4879 Haight Trail San Diego, CA 92123","","","","","","","","","","","","","","",""
+,"Haight Terrance 4879, I=O S=OT, HOA?, Tribeca at Spectrum HOA, Action Property Management - HOA, HVAC filter 20x20x1, GUEST PARKING: Register with QR Code on Sign PASSKEY for Unit is 9376 maximum 360 hours per month, California SubMeters",2/2.00,Ella V. Stickradt,Current,"1,008","3,188.00","3,266.00","3,163.00",10/10/2024,10/09/2026,10/10/2024,,156.11,0,0
+"-> Harris St. 3817 (Shelton) - 3817 Harris St. La Mesa, CA 91941","","","","","","","","","","","","","","",""
+,"Shelton B Byrd, HVAC?, SDGE, City Of San Diego-Water, Noe Diaz Landscaping-Gardener, Central Heater, 24x30x1, NO HOA, No Home Warranty, Realtor referred- Kathleen Richards",3/2.00,Christy GatesBowes,Current,"1,038","3,588.00","3,695.00","3,563.00",04/19/2025,04/30/2027,04/19/2025,,0.00,0,0
+"-> Hatfield Dr 739 (Trent & Ashley) - 739 Hatfield Dr San Marcos, CA 92078","","","","","","","","","","","","","","",""
+,"HVAC?, Ashley Rawlins, Trent Rawlins, Realtor Referred- Melissa Goldstein Tucci, EDCO-Trash, California Sub-Meters, Coronado Ranch Master & Seabreeze Management, I=O, S=OT, Central Heater-4 filters",3/3.50,Erica M. Joyce,Current,"1,886","3,536.00","3,677.00","3,463.00",09/11/2024,01/31/2027,09/11/2024,,0.00,4,2
+"-> Hector Ave 9235 (Gary) - 9235 Hector Ave San Diego, CA 92123","","","","","","","","","","","","","","",""
+,"Gary Quayle, Clairemont Plumbing Service, WALL HEATER, HVACWALL, NO HOA",3/2.00,IHu Lin,Current,"1,053","3,488.00","3,488.00","3,463.00",05/19/2025,,05/19/2025,,"-3,516.00",0,0
+"-> Helix Ave 992 (Elissa & Robert) - 992 Helix Ave Chula Vista, CA 91911","","","","","","","","","","","","","","",""
+Helix Ave 992 (Main Unit),"City of Chula Vista  Sweetwater Authority- Water & Sewer, Republic Service- Trash, Ric's landscaping-Gardener, Central Heater, Elissa Scotland, Robert Brown, Realtor Referred-Tammy Robbins, NO HOA",2/1.00,Jessica L. Corning,Current,820,"2,588.00","2,691.00","2,568.00",05/20/2024,05/26/2027,05/20/2024,,"-2,739.00",0,1
+Helix Ave 992 ADU,"Robert Brown, Elissa Scotland, City of Chula Vista  Sweetwater Authority- Water & Sewer, Republic Service- Trash, Ric's landscaping-Gardener, Central Heater, Realtor Referred-Tammy Robbins, NO HOA",0/1.00,Patricia L. Nicolay,Current,160,"1,388.00","1,416.00","1,710.00",04/27/2024,05/14/2027,04/27/2024,,121.47,0,2
+2 Units,,,,100.0% Occupied,980,"3,976.00","4,107.00","4,278.00",,,,,"-2,617.53",0,3
+"-> HIDE  Manzana Way 1683 (Colleen) - 1683 Manzana Way San Diego, CA 92139","","","","","","","","","","","","","","",""
+,"Colleen Hidalgo, City of San Diego Water, Republic Service- Trash, Preferred Vendor-RnR Handy Home Solutions, Preferred Vendor-Sergio Escalante, Zander Hidalgo, Hillsborough Greens HOA, Reffered: Google, Guardian Water and Power",3/2.50,,Vacant-Unrented,"1,428","3,288.00",,0.00,,,,,,,
+"-> Howard Avenue 2534 (Fernando) - 2534 Howard Avenue San Diego, CA 92104","","","","","","","","","","","","","","",""
+,"Fernando Pelayo, City of San Diego Water, Waste Management, HVAC=14x25x1, Central Heater, SDGE, NO HOA",2/2.00,Bethany D. Wiles,Current,825,"3,588.00","3,702.00","3,563.00",05/04/2024,,05/04/2024,,0.00,1,0
+"-> Hyde Park Dr 6924 Unit 108 (Douglas Trust) - 6924 Hyde Park Dr Unit 108 San Diego, CA 92119-2252","","","","","","","","","","","","","","",""
+,"Douglas McCalla, McCalla Douglas B Trust 01-19-00, Hyde Park Villas HOA, I=O, S=OT, JC Plumbing-Preferred Vendor, Radiant Heat - No Filter, 5 Peaks Referred-Steph Rivera, NO HVAC Filter Wall Heater",1/1.00,Savannah Carpenter,Current,688,,"1,950.00","1,950.00",01/08/2024,,01/08/2024,,0.00,0,1
+"-> India St. 1601 #215 (Smith Ernestine Family Trust) - 1601 India St. Unit 215 San Diego, CA 92101-2544","","","","","","","","","","","","","","",""
+,"Smith Ernestine Family Trust 11-07-91, I=O, S=OT, HVACSIZE=16x36x1, Central Heater, Bella Via HOA, Porto Siena HOA",1/1.50,Kiarash A.  Banisadre,Current,932,"2,448.00","2,448.00","2,200.00",04/20/2020,,04/20/2020,,"-2,476.00",0,1
+"-> Iowa St Apt 2 4111 (Hagop) - 4111 Iowa St Apt 2 San Diego, CA 92104-1961","","","","","","","","","","","","","","",""
+,"Hagop Vahe Melkonian, Cavendish House HOA, I=O S=OT, Radiant Heater - No filter",2/2.00,Alexandria M. Norman,Current,846,"2,684.00","2,884.00","2,568.00",10/25/2023,,10/25/2023,,0.00,0,0
+"-> Island Ave 1225 Unit 114 (Justin) - 1225 Island Ave Unit 114 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Justin Woods, Aislinn Woods, Current Client referred-Gary Madsen, Park Boulevard East Owners Association, I=O, S=OT, HVAC?, Central 20x20x1",1/1.00,Clive A. Lara,Current,892,"2,488.00","2,388.00","2,953.75",10/23/2024,01/22/2027,10/23/2024,,0.00,3,8
+"-> Jade Coast Ln 8987 (Brian & Grace) - 8987 Jade Coast Ln San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Brian H Park, Grace Kwak, Realtor Referred- Melissa Goldstein Tucci, NO HOA, City of San Diego Water- Water & Sewer, City of San Diego- Trash, HVAC 20x30x1",5/3.00,James Vidal,Current,"2,158","5,488.00","5,488.00","5,463.00",06/14/2026,06/13/2027,06/14/2026,,"-2,041.94",0,0
+"-> Jeanne Ter 10787 Unit C (Alexander) - 10787 Jeanne Ter Unit C Santee, CA 92071","","","","","","","","","","","","","","",""
+,"Alexander S Convis, Riderwood Terrace HOA, Waste Management- Trash, HVAC?, I=O, S=OT, Realtor Referred-Stephanie Rivera 5 Peaks",2/2.50,Charles Wells,Current,"1,017",,"2,500.00","2,500.00",06/01/2022,,06/01/2022,,0.00,0,0
+"-> K St 2945 (Ward) - 2945 K St San Diego, CA 92102","","","","","","","","","","","","","","",""
+DOWN 2945 K St. Front House  1 story,,--/--,,Vacant-Unrented,,,,0.00,,,,,,,
+2945 K St. Back house 2 story,"Ward F Gavin, Sunpower Solar Corp, Current Client Referred-Wyatt Dunn, No HOA",--/0.00,John T. Nash,Current,,,"3,400.00","3,375.00",11/07/2025,11/06/2026,11/07/2025,,0.00,0,0
+2 Units,,,,50.0% Occupied,0,0.00,"3,400.00","3,375.00",,,,,0.00,0,0
+"-> Keegan Pl. 13360 (James) - 13360 Keegan Pl. San Diego, CA 92130-1240","","","","","","","","","","","","","","",""
+,"James Taylor, Christine Taylor, Del Mar Highlands HOA, I=O, S=OT, Antonio Gomez- Lanscaper, HVAC?OL6/13/2021, 20X25X1, Text the owner before completing any work orders., Golden State Plumbing (owner's preferred plumber) Salipe (owner of Golden State Plumbing) (619) 857-7473' Marcus Asst Plumber (619) 357-3361",4/3.50,Khalid  Mahmood,Current,"3,071","5,853.00","6,145.00","5,063.00",02/01/2022,07/22/2025,12/14/2019,,0.00,0,1
+"-> Kellington 1711 Pl. Unit 4 (Anthony) - 1711 Kellington Pl  #4 Encinitas, CA 92024-4218","","","","","","","","","","","","","","",""
+,"Anthony Ronco, S=OT, I=O, Village Park Townhome Corp #3 HOA, Village Park Rec Club #3 HOA, City of Encinitas San Dieguito Water District, EDCO, Radiant Heat - No Filter",2/2.00,Stacie Jane Davis,Current,936,"1,500.00","1,779.00","1,400.00",12/15/2023,,05/01/2013,,0.00,2,5
+"-> Kensington Way 2232 Unit 8 (Ryan) - 2232 Kensington Way Unit 8 Chula Vista, CA 91915","","","","","","","","","","","","","","",""
+,"Leigh B. Fassett Groves, Ryan E. Groves, S=OT, I=O, HVACSIZE=24x10x1, HVACSIZE=20x20x1, HVACSIZE=14x14x1, California SubMeters, Cordova By Winding Walk HOA, Republic Service-Trash, Winding Walk Master Association, Sun Power- Solar, Realtor referred- Jessica Darling",4/3.00,Said O. Said,Current,"2,008","4,188.00","4,188.00","4,163.00",12/01/2024,11/30/2025,12/01/2024,,0.00,0,1
+"-> Kent St 1975 (Dylan & Ashley) - 1975 Kent St Chula Vista, CA 91913","","","","","","","","","","","","","","",""
+,"Dylan DiMarzio, Ashley Herrera, Republic Service- Trash, Otay water district, HVAC?, 12x30x1 Filter size, No HOA",6/3.00,Khadar A. Mohamed,Current,"2,630","5,888.00","6,034.00","5,868.00",09/01/2024,,09/01/2024,,0.00,0,1
+"-> Kika Ct. 9823 (Ernesto) - 9823 Kika Ct. San Diego, CA 92129","","","","","","","","","","","","","","",""
+,"I=O S=OT, Ernesto & Norma Raymundo, HVAC8?06152020, 14x30x1, Hudson Management HOA, allegra san diego homeowner",3/2.50,Brandon J. Alber,Current,"1,514","4,088.00","4,166.00","4,063.00",02/19/2025,04/03/2028,02/19/2025,,"-4,209.00",0,0
+"-> Kings Way 4837 (Nathan & Candace) - 4837 Kings Way San Diego, CA 92117","","","","","","","","","","","","","","",""
+,"Nathan Santos, Candace Wong, Referred by Nancy Santos, LA Solar Group, City of San Diego Water, In Wall Split AC No Filter, NO HOA",2/1.00,Olivia Gaitan,Current,700,"2,588.00","2,860.00","2,568.00",05/28/2025,,05/28/2025,,0.00,0,0
+"-> Klauber Ave. 1709 (David) - 1709 Klauber Ave. #B San Diego, CA 92114","","","","","","","","","","","","","","",""
+,"David R Almonte, Sunline Energy, City of San Diego Water, Jimenez Landscaping, Central A/C, HVAC FILTER 18x30x1, Unique Solar, NO HOA",4/2.00,Jaelyn R. Epps,Current,"2,068","3,944.00","3,788.00","3,763.00",05/28/2024,05/25/2027,05/28/2024,,-642.69,2,2
+"-> Lamont 4011 Unit 2E (Drew) - 4011 Lamont Street Unit 2E San Diego, CA 92109","","","","","","","","","","","","","","",""
+,"Drew McCallum Miller, S=OT, I=O, Fortuna On Lamont HOA, Wall Heater - No filter",1/1.00,Matthew R. Nelli,Current,769,"2,743.00","2,743.00","2,863.00",04/01/2023,04/09/2027,04/01/2023,,"-2,771.00",0,0
+"-> Larkhaven Glen 1734 (Jacinta & Sigfredo) - 1734 Larkhaven Glen Escondido, CA 92026","","","","","","","","","","","","","","",""
+,"Jacinta Camacho, Sigfredo Camacho, SDGE, City of Escondido Wastewater Division-Water, City of Escondido Wastewater Division-Sewer, City of Escondido-Trash, Baltazarr Hernandez-Gardener, Central Heater, Dynamic Air Cleaner 20 X 25, Country Club Woods HOA, No Home Warranty, I=O, S=OT, HVAC SIZE 19x23x1",3/2.00,Michael J. Oleston,Current,"1,962","3,436.00","3,645.00","3,363.00",08/31/2023,08/31/2026,08/31/2023,,0.00,0,4
+"-> Laurel St 12720 Unit 211 (Larry & FengYan) - 12720 Laurel St Unit 211 Lakeside, CA 92040-2115","","","","","","","","","","","","","","",""
+,"Wang Fengyan, Larry D Kreiter, Stone Canyon Condominiums HOA, I=O, S=OT, HVAC?, Central Heater",2/1.00,Branden D. Zalewski,Current,891,"2,000.00","2,241.00","1,975.00",11/09/2024,06/13/2028,11/09/2024,,0.00,0,0
+"-> Law St. 921 Unit 2 (The Diamond Trust) - 921 Law St. Apt 2 San Diego, CA 92109-2578","","","","","","","","","","","","","","",""
+,"S=OT, I=O, Michelle Van Noord, Brandon Van Noord, City of San Diego Water, SDGE, Central A/C, Filter Size 23x17x1, NO HOA",3/3.00,Adam J. Eidelson,Current,"1,298","4,488.00","4,638.00","4,163.00",02/25/2021,09/06/2025,02/25/2021,,"-1,500.00",0,5
+"-> Lemon St. 1615-1617 - 1615-1617 Lemon St. Oceanside, CA 92058","","","","","","","","","","","","","","",""
+Lemon St. 1615 (Front Unit),"The Trikha Family Trust dated 8/24/2006, WALL HEATER, HVACWALL, RUBS, 2020CAP=$121.58, NO HOA",2/1.00,Fallon N. Rusing,Current,750,"2,400.00","2,400.00","2,375.00",03/31/2025,05/04/2027,03/31/2025,,"-2,428.00",0,1
+Lemon St. 1617 (Back Unit),"The Trikha Family Trust dated 8/24/2006, HVACWALL, WALL HEATER, RUBS, 2020CAP=$105.40, NO HOA",2/1.00,Pedro Garcia,Current,750,"2,014.00","2,215.00","1,000.00",05/15/2024,05/14/2027,10/01/2018,,0.00,1,2
+2 Units,,,,100.0% Occupied,"1,500","4,414.00","4,615.00","3,375.00",,,,,"-2,428.00",1,3
+"-> Limerick Ct. 5416 (Norma) - 5416 Limerick Ct. San Diego, CA 92117","","","","","","","","","","","","","","",""
+,"Adam Mihalik, Norma Autry, Central Heater, HVAC 16x25x5, NO HOA",3/1.50,Janice M. Vitale,Current,"1,066","3,788.00","3,788.00","3,783.00",11/11/2023,11/10/2025,11/11/2023,,0.00,1,1
+"-> Lincoln 7987 (back unit) - 7987 Lincoln St. Lemon Grove, CA 91945","","","","","","","","","","","","","","",""
+Lincoln 7987 (back unit),"Wall Heater, NO HOA, RBP08/10/2025",1/1.00,Christina T. Lakomy,Notice-Unrented,600,"1,988.00","2,144.00","1,963.00",08/10/2025,08/09/2026,08/10/2025,07/13/2026,0.00,0,0
+"-> LINCOLN ST 7989 (SUNSET) - 7989 Lincoln Street Lemon Grove, CA 91945","","","","","","","","","","","","","","",""
+,"Heartland Associates Real Estate, Wall Heater - No filter, NO HOA",2/1.00,Mhel V. Cabatbat,Current,,"2,382.00","2,382.00","2,794.50",08/01/2021,,08/01/2021,,"-2,420.00",0,0
+"-> Linda Vista Rd. 7668 ( JSG Housing Ca LLC) - 7668 Linda Vista Rd. San Diego, CA 92111-5339","","","","","","","","","","","","","","",""
+,"JSG Housing Ca LLC, Waste Management, City of San Diego Water, REALTOR REFERRED Michelle Noll, NO Filter - Wall Heater, No HOA",3/2.00,Brie Cichy,Current,"1,084","3,078.00","3,203.00","2,550.00",03/01/2024,03/31/2027,02/01/2021,,0.00,0,4
+"-> Linwood 630 (Zimmerman) - 630 Linwood St. Escondido, CA 92027","","","","","","","","","","","","","","",""
+,"Jon & Jeanne Zimmerman, Central Heater, HVAC SIZE= 20X20X1, No HOA",4/2.00,Jose P. Romero,Current,"1,451","3,216.00","3,316.00","2,463.00",12/15/2023,,12/27/2019,,0.00,1,1
+"-> Lipscomb Drive 10348 (Nancy) - 10348 Lipscomb Drive San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Nancy Wallace, No A/C, Filter Size 14X25X1, NO HOA, 03/08/2025 RBP",3/2.00,McIvan F. Layugan,Current,"1,328","3,288.00","3,388.00","3,263.00",03/08/2025,05/04/2027,03/08/2025,,0.00,0,0
+"-> Little Leaf Ln  10138 (Petro & Aska) - 10138 Little Leaf Ln Santee, CA 92071","","","","","","","","","","","","","","",""
+,"Petro Komakha, Aska Komakha, California Sub-Meters, City of Santee Padredam Municipal Water District, Waste Management, Central Heater-3 filters, Riverwalk Owners Association, I=O, S=OT, RBP 05/01/2024",4/3.50,Adriana Mayoral,Current,"1,830","4,016.00","4,088.00","3,968.00",04/24/2024,05/04/2027,04/24/2024,,98.98,3,1
+"-> Lockwood Dr  3443 (JAR Services LLC) - 3443 Lockwood Dr San Diego, CA 92123","","","","","","","","","","","","","","",""
+,"Jaret Ruscio, NO HOA, Maria Flores Ruscio, SDGE, City of San Diego Water, Wall Heater, ac is wall unit no filter",3/2.00,,Vacant-Rented,"1,000","3,888.00",,0.00,,,,,,,
+"-> Madrilena Way 7742 (Kothari Revocable Inter Vivos Trust) - 7742 Madrilena Way Carlsbad, CA 92009","","","","","","","","","","","","","","",""
+,"Kothari Inter Vivos Trust, Ella Kothari, Milan Kothari, NO HOA, SDGE, City of Encinitas Olivenhain Water District-Water, City of Encinitas Olivenhain Water District-Sewer, Republic Service-Trash, Central Heater, HVAC?, No Home Warranty, RBP08/12/2023, HVAC Filter size 16X25X1",3/3.50,Keri J. Green,Current,"2,706","4,988.00","5,138.00","4,963.00",08/12/2023,08/11/2027,08/12/2023,,0.00,0,2
+"-> Malta St. 7181 (Glen & Jennifer) - 7181 Malta St. San Diego, CA 92111-4234","","","","","","","","","","","","","","",""
+,"Jennifer Rappold, Glen Rappold, HVAC?OL02082021, 16X25X5, Realtor referred- Jeremy Sebes, No HOA",3/2.00,William D. Leight,Current,"1,284","3,248.00","3,348.00","3,175.00",06/10/2022,,06/10/2022,,"-3,376.00",0,0
+"-> Margerum Ave. 7747 Unit 230 (Frank) - 7747 Margerum Ave Unit 230 San Diego, CA 92120-1462","","","","","","","","","","","","","","",""
+,"Frank Anzalone, Karen Anzalone, Kristine Anzalone Collins, I=O, S=OT, Mission Trails Villas HOA, Wall A/C No Filter",1/1.00,Tamra M. Hartley,Current,635,"1,809.00","1,809.00","1,563.00",07/10/2020,,07/10/2020,,28.00,0,0
+"-> Marigot Place 5202 (Vladimir) - 5202 Marigot Place San Diego, CA 92124","","","","","","","","","","","","","","",""
+,"SDGE, Homesite Insurance Company, Vladimir & Franziska Romanovsky, I=O, S=OT, Villa Martinique HOA, HVACSIZE=, 14x24x1, Central Heater",3/1.50,Harvey C. Le,Current,"1,350","2,938.00","3,085.00","2,913.00",10/11/2024,02/16/2027,10/11/2024,,0.00,1,0
+"-> Market St. 235  Unit 312 (Anna) - 235 Market St. Unit 312 San Diego, CA 92101-6769","","","","","","","","","","","","","","",""
+,"Michael J. Hook, Anna Hook, Aloha Carpet Cleaning, Filter size 14X36X1, 235 On Market Owners Association, Realtor referred- Kim Do",2/2.00,Patrick D. Cleary,Current,"1,123","2,988.00","2,988.00","2,963.00",06/05/2026,06/04/2027,06/05/2026,,0.00,0,0
+"-> Matera Ln. 2609 (Linda) - 2609 Matera Ln San Diego, CA 92108-6737","","","","","","","","","","","","","","",""
+,"Linda Rodriguez, Thierry Jacquemin, I=O, S=OT, California Submeter, Waste Management, City of San Diego Water- Sewer, Escala Master Association, Central A/C, Hvac size 24x20x1, Trash Pin Waste",3/2.50,Jeremy R. Pope,Current,"1,597","3,988.00","3,988.00","3,963.00",05/23/2026,05/22/2027,05/23/2026,,0.00,0,0
+"-> Maybritt Cir 608 (David) - 608 Maybritt Cir San Marcos, CA 92069","","","","","","","","","","","","","","",""
+,"David Andrew Funni, Yukier Funni, San Marcos Valley Knolls HOA, I=O, S=OT, San Diego Door Pros Garage Door Company-Gardener, EDCO, City of San Marcos Vallecitos Water District, Central Heater, Filter 14X25X1, Realtor Referred-Bryan Devore",3/2.00,Katherine A. Larlee,Current,"1,428","3,788.00","3,788.00","3,763.00",04/01/2026,03/31/2027,04/01/2026,,0.00,0,0
+"-> Meadow Grass Ln 11442 (Meadow Grass LLC) - 11442 Meadow Grass Ln. San Diego, CA 92128","","","","","","","","","","","","","","",""
+,"Meadow Grass LLC C/O Carol Bateman, I=O, S=OT, Sabre Spring South HOA, HVAC?OL07072020, Central Heater 2 filters, Filter Size 20x25x1, Filter Size 26x26x1, Realtor referred- Bryan Matter",6/3.50,Sy Anukul,Current,"3,454","5,588.00","5,300.00","5,275.00",12/10/2022,12/16/2025,12/10/2022,,0.00,0,0
+"-> Menlo Ave.  4435-39 (Naismith Family Revocable Trust 04-06-93) - 4435-4439 Menlo Ave. San Diego, CA 92115","","","","","","","","","","","","","","",""
+MO 0731 4439 Menlo Ave.,"SDGE, Naismith Family Revocable Trust 04-06-93, Manuel Banuelos-Gardener, NO HOA, No Home Warranty, Wall Heater",1/1.00,Amy L. Vazquez,Notice-Unrented,600,"1,588.00","1,713.00","1,563.00",12/02/2025,,12/02/2025,07/31/2026,"-1,756.00",0,0
+4431 Menlo Ave (ADU),"Campbell Naismith, HVAC?, 03/08/2025 RBP",2/1.00,Alexander A. Raya,Current,716,"2,188.00","2,388.00","2,163.00",04/01/2026,,03/08/2025,,"-1,200.00",0,0
+4433 Menlo Ave. (ADU),"Campbell Naismith, NO HOA, HVAC?, Gardener: Marcelino Gaspar, Simms Solar INC",2/1.00,Miguel A. Ibanez,Current,"1,004","2,288.00","2,288.00","2,263.00",03/05/2025,03/31/2027,03/05/2025,,0.00,2,3
+4435 Menlo Ave,"Naismith Family Revocable Trust 04-06-93, SDGE, Manuel Banuelos-Gardener, NO HOA, No Home Warranty, Wall Heater, RBP12/01/2023",1/1.00,Brian Gill,Current,,"1,263.85","1,372.00","1,050.00",12/20/2024,,01/14/2019,,0.00,0,3
+4437 Menlo Ave.,"Naismith Family Revocable Trust 04-06-93, SDGE, Manuel Banuelos-Gardener, NO HOA, No Home Warranty, WALL HEATER",2/1.00,Gerard Nelson,Current,,"2,188.00","2,188.00","2,710.00",06/01/2024,05/31/2025,06/01/2024,,0.00,0,4
+4437.5 Menlo Ave.,"SDGE, Naismith Family Revocable Trust 04-06-93, Manuel Banuelos-Gardener, NO HOA, No Home Warranty, Wall Heater, RBP10/01/2023",2/1.00,Jaden S. Hopp,Current,800,"1,888.00","1,888.00","1,863.00",12/27/2025,12/26/2026,12/27/2025,,"-1,931.00",0,0
+4439.5 Menlo Ave.,"Naismith Family Revocable Trust 04-06-93, SDGE, NO HOA, No Home Warranty",1/1.00,Stephen Lockout,Current,,"1,100.00","1,100.00",750.00,07/21/2010,,07/21/2010,,-4.06,0,1
+7 Units,,,,100.0% Occupied,"3,120","12,503.85","12,937.00","12,362.00",,,,,"-4,891.06",2,11
+"-> Merced Lake Ave 6232 (Steven and Susan) - 6232 Merced Lake Ave San Diego, CA 92119","","","","","","","","","","","","","","",""
+,"Steven Hori, Susan Hori, NO HOA, Central Heater, HVAC?, Realtor Referred: Jason Apple, Adam Lawson-Preferred Vendor",3/2.50,Kyle P. Whatley,Current,"1,862","3,588.00","3,666.00","3,463.00",01/27/2026,01/26/2027,01/27/2026,,0.00,0,0
+"-> Meridian Ave 3472 (Michael) - 3472 Meridian Ave San Diego, CA 92115","","","","","","","","","","","","","","",""
+,"Michael Gonzalez, Realtor Referred- Justin Johnson, WALL HEATER, Wall AC no filters",3/1.00,Mindy J. Ngo Chavez,Current,972,"3,288.00","3,431.00","3,263.00",06/01/2025,06/04/2027,06/01/2025,,"-1,828.00",0,0
+"-> Mesa Springs Way 9705 #218 (Girish) - 9705 Mesa Springs Way #218 San Diego, CA 92126-4123","","","","","","","","","","","","","","",""
+,"Mesa Springs, Girish Nanjundiah, Creekside HOA, I=O, S=OT, 14 X 25 X 1, Central A/C",2/2.00,Alex Cunanan,Current,"1,000","1,888.00","2,223.00","1,863.00",02/01/2022,09/30/2025,02/01/2018,,0.00,0,0
+"-> Mesa Vista Place 12413 (Karpagam & Karthik) - 12413 Mesa Vista Place San Diego, CA 92131","","","","","","","","","","","","","","",""
+,"Karpagam T Manivannan, Karthik Nakkeeran, Versante Owners’ Association HOA, I=O, S=OT, SDGE, City of San Diego Water, City of San Diego Water- Sewer, Waste Management, Central Heater, 20x30x1, Tesla-Solar, American Home Shield = Home Warranty",4/2.50,Ryan M. Petker,Current,"2,541","4,988.00","5,100.00","4,863.00",04/01/2023,05/31/2027,04/01/2023,,0.00,0,0
+"-> Middleton Rd. 5184 (Berenjian Nader Family 2012 Trust) - 5184 Middleton Rd. San Diego, CA 92109-1520","","","","","","","","","","","","","","",""
+,"Berenjian Nader Family 2012 Trust 03-09-12 C/O Nader Berenjian, No HOA, No Home Warranty, San Diego Environment Services- Trash, 20X25X1",3/2.00,Jose  C. Valagao,Current,"1,626","5,088.00","5,455.00","4,863.00",09/15/2022,10/17/2026,09/15/2021,,"-5,483.00",0,1
+"-> Mission Gorge Rd. 6202-6208 (Naismith Family Revocable Trust 04-06-93) - 6202-6208 Mission Gorge Rd. San Diego, CA 92120","","","","","","","","","","","","","","",""
+6202 Mission Gorge,"Naismith Family Revocable Trust 04-06-93, SDGE, NO HOA, Campbell Naismith, Wall Heater",2/1.00,Yared Ghebrehiwet,Current,,"2,088.00","2,088.00","2,063.00",12/03/2025,12/02/2026,12/03/2025,,143.00,0,0
+6204 Mission Gorge Rd,"SDGE, Wall Heater, Naismith Family Revocable Trust 04-06-93, No HOA",1/1.00,Erik O. Cisneros,Current,650,"1,788.00","1,788.00","1,763.00",04/05/2025,04/04/2026,04/05/2025,,143.00,0,0
+6206 Mission Gorge Rd.,"Wall Heater, No HOA, SDGE, Naismith Family Revocable Trust 04-06-93",2/1.00,Gavril S. Buenaventura,Current,850,"1,988.00","1,988.00","1,963.00",03/20/2026,03/19/2027,03/20/2026,,71.50,0,0
+6208 Mission Gorge Rd.,"Naismith Family Revocable Trust 04-06-93, Wall Heater, No HOA, SDGE",2/1.00,John Clay,Current,"1,960","1,222.00","1,222.00",750.00,01/15/2009,,01/15/2009,,-145.00,0,1
+4 Units,,,,100.0% Occupied,"3,460","7,086.00","7,086.00","6,539.00",,,,,212.50,0,1
+"-> MO 04302026 Via San Marco 11048 (Daniel) - 11048 Via San Marco San Diego, CA 92129","","","","","","","","","","","","","","",""
+,"Daniel Fager, Penasquitos Villas Annex, I=O, S=OT, RADIANT HEATER, RBP 04/01/2024",2/1.50,,Vacant-Unrented,"1,056","3,188.00",,0.00,,,,,,,
+"-> MO 05022026 Harbison Pl 904 (Elvira) - 904 Harbison Pl National City, CA 91950","","","","","","","","","","","","","","",""
+,"Analiza Mitchell, Edgar Calimlim, Elvira Mitchel, HVAC?, EDCO-Trash, Sweetwater Authority, NO HOA",4/3.50,,Vacant-Unrented,"2,073",,,0.00,,,,,,,
+"-> MO 05182026-Camino Playa Cancun 11370 Unit 1(Marc) - 11370 Camino Playa Cancun Unit 1 San Diego, CA 92124-1571","","","","","","","","","","","","","","",""
+,"Marc Martin, City of San Diego Water, Waste Management, Belsera Community Association c/o Walters Management, S=OT, I=O, HVAC SIZE = 14x30x1",2/2.00,,Vacant-Unrented,"1,090","3,188.00",,0.00,,,,,,,
+"-> MO 052026 Felspar St. 1049 #32 (Lenny) - 1049 Felspar St. #32 San Diego, CA 92109","","","","","","","","","","","","","","",""
+,"Lenny Merchant, Felspar HOA, Exclusive Property Management, I=HOA, S=OT, Wall Heater - No filter, RBP 03/01/2024",0/1.00,,Vacant-Unrented,411,"2,088.00",,0.00,,,,,,,
+"-> MO 052926 Bellezza Dr 2616 (Matias and Diana) - 2616 Bellezza Dr. San Diego, CA 92108","","","","","","","","","","","","","","",""
+,"Matias Rama Martinez, Diana M Lagos, SDGE, City Of San Diego-Water, California Sub-Meters, Seabreeze Management, I=O, S=OT, Realtor Referred- Melissa Goldstein Tucci, Bungalows at Escala Association HOA, No Home Warranty, HVAC?, RBP08/06/2025",2/2.50,Aleksei O. Suvorov,Current,"1,208","3,788.00","3,788.00","3,763.00",06/12/2026,06/11/2027,06/12/2026,,0.00,0,0
+"-> MO 053026 Sabre Hill Dr. 10722 Unit 131 (Christina) - 10722 Sabre Hill Dr. Unit 131 San Diego, CA 92128-4161","","","","","","","","","","","","","","",""
+,"Christina Thung, Sabre Hill, Palo Alto HOA, I=O, S=OT, 14x30x1, Central AC, The Prescott Companies, Realtor referred- Ken Jacobs",2/2.00,,Vacant-Rented,"1,021","3,088.00",,0.00,,,,,,,
+"-> MO 053126 Marshall Rd. 1434  Unit 23 (Karen) - 1434 Marshall Rd Unit 23 Alpine, CA 91901-3968","","","","","","","","","","","","","","",""
+,"Karen Mehta, Navroj Mehta, Silver Mountain Maintenance Association, First American Home Warranty, I=O, S=OT",2/2.00,,Vacant-Unrented,"1,005","2,488.00",,0.00,,,,,,,
+"-> MO 061326 C Street 1465 Unit 3615 (Park) - 1465 C St. Unit 3615 San Diego, CA 92101-5742","","","","","","","","","","","","","","",""
+,"Park Seok, Union Square at Broadway HOA, S=OT, I=O, American Home Shields, HVAC Filter size 12x24x1",0/1.00,,Vacant-Unrented,881,"3,088.00",,0.00,,,,,,,
+"-> MO 061426 10th Ave. 253 #525 (Christopher) - 253 10th Ave Unit 525 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Christopher Cady, Ella Cady, Park Terrace East Village HOA, SDGE, HVAC?, RBP05192023, HVAC Filter Size 17x27x1",2/2.00,,Vacant-Unrented,"1,017","3,388.00",,0.00,,,,,,,
+"-> MO 062026 J St. 450 Unit 7171 (Alyssa) - 450 J St. Unit #7171 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Alyssa M Monteiro, Gaslamp City Square HOA, Preffered Vendor: Plumber - David, I=O, S=OT, Current Client Referred-Dago Cahue, HVAC size 16x20x1",1/1.00,,Vacant-Unrented,777,"2,388.00",,0.00,,,,,,,
+"-> MO 06242026 Via Alicante 3128 Unit S  (Fuller Family Trust 07-27-21) - 3128 Via Alicante Unit S La Jolla, CA 92037-2432","","","","","","","","","","","","","","",""
+,"Fuller Family Trust 07-27-21, Timothy Fuller, I=O, S=OT, Debra Fuller, HVAC?, Wall Heater, Keystone Pacific, Villa La Jolla Condominium Association",0/1.00,,Vacant-Unrented,504,"2,288.00",,0.00,,,,,,,
+"-> MO 062626 Drescher St. 2153 (Edwin) - MO 2153 Drescher St. San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"Edwin Widjojo, SDGE, Wall Heater, No Filter, RBP030823, No HOA",0/1.00,,Vacant-Unrented,,"1,666.00",,0.00,,,,,,,
+"-> MO 063026 Lotus St. 5070-76 (William & Barbara) - 5070-76 Lotus St. San Diego, CA 92107","","","","","","","","","","","","","","",""
+5070 Lotus St.,"William Flanigan, Barbara Flanigan, NO HOA, SDGE, WALL HEATER, Pedro Hermosillo- Contractor, Space Heater - No filter, RBP06/06/2023",1/1.00,Blake J. Crowther,Current,,"2,288.00","2,449.00","2,263.00",08/10/2024,09/14/2026,08/10/2024,,"-2,507.00",1,0
+5072 Lotus St.,"SDGE, William Flanigan Jr, Barbara Flanigan, NO HOA, Wall Heater, Pedro Hermosillo- Contractor, Space Heater - No filter",1/1.00,Allen Andrews,Current,,"1,850.00","1,900.50","1,300.00",09/19/2024,,04/01/2023,,"-1,801.17",0,6
+5074 Lotus St.,"Wall Heater, SDGE, William Flanigan Jr, Barbara Flanigan, No HOA, Pedro Hermosillo- Contractor, Space Heater - No filter, RBP06/01/2023",1/1.00,Hannah E. Brooks,Current,,"2,436.00","2,632.00","2,363.00",06/01/2023,,06/01/2023,,39.75,0,2
+5074.5 Lotus St.,"William Flanigan Jr, Barbara Flanigan, Wall Heater, NO HOA, SDGE, Pedro Hermosillo- Contractor, Space Heater - No filter, RBP01/19/2024",1/1.00,Jacob Kuhn,Notice-Unrented,,"2,488.00","2,399.00","2,163.00",08/01/2024,06/30/2026,08/01/2024,06/30/2026,205.62,0,0
+5076 Lotus St.,"William Flanigan Jr, Barbara Flanigan, Wall Heater, NO HOA, SDGE, Pedro Hermosillo- Contractor, Space Heater - No filter",1/1.00,Carter Guy,Current,,"2,188.00","2,288.00","2,163.00",08/21/2024,,08/21/2024,,"-2,231.00",0,0
+5076.5 Lotus,"Space Heater - No filter, NO HOA",1/1.00,John S. Story,Current,,"1,315.00","1,428.09","1,100.00",06/01/2023,,04/01/2023,,0.00,1,0
+6 Units,,,,100.0% Occupied,0,"12,565.00","13,096.59","11,352.00",,,,,"-6,293.80",2,8
+"-> MO 063026 Regents Rd. 9263 #B209 (Swapan) - 9263 Regents Rd. #B209 La Jolla, CA 92037","","","","","","","","","","","","","","",""
+,"$150 MAINTENANCE LIMIT, Mahta Swapan, Amisha Patel, Regents La Jolla HOA, I=HOA, S=OT, W=TC Danyel, HVACSIZE=, 20x20x1, RBP060423",2/2.00,Jessie Ma,Notice-Unrented,"1,128","3,488.00","3,663.00","3,463.00",06/04/2023,06/03/2025,06/04/2023,06/30/2026,0.00,1,0
+"-> MO 070326 Sparren Way 8845 (Araneta Family Trust 12-17-03) - 8845 Sparren Way San Diego, CA 92129-2180","","","","","","","","","","","","","","",""
+,"Araneta Family Trust 12-17-03, Central Heater, Filter Size - 20x30x1, NO HOA",4/3.00,Sally C. Sheldon,Notice-Unrented,"2,435","4,135.00","4,477.00","3,663.00",04/01/2022,,07/29/2019,07/03/2026,0.00,0,1
+"-> MO 070426 Seacliff Pl. 5461 (Joseph) - 5461 Seacliff Pl Unit 72 San Diego, CA 92154-6673","","","","","","","","","","","","","","",""
+,"Joseph Fernandez Aglubat, Pin Plus trash, City of San Diego Water, HVAC?, First Service Residential, I=O, S=OT, Realtor Referred-La Dala, California Sub-Meters, La Brisa Condominium Owners Association",2/2.50,Nallely Carranza,Notice-Unrented,"1,244","3,288.00","3,288.00","3,263.00",07/05/2025,07/04/2026,07/05/2025,07/04/2026,517.92,0,3
+"-> MO 07052026 Sardina Cv 12353 (Maria and Nathan) - 12353 Sardina Cv San Diego, CA 92130","","","","","","","","","","","","","","",""
+,"Maria Lewis, Nathan Lewis, NO HOA, Choice Home Warranty, Sunrun-Solar, City of San Diego Water, City of San Diego Water- Sewer, City of San Diego- Trash, Jesus Victoriano Landscaping, Central Heater, HVAC?",5/3.50,Kevin G. Rahill,Notice-Unrented,"2,755","7,088.00","7,088.00","7,063.00",07/06/2025,07/05/2026,07/06/2025,07/05/2026,0.00,0,0
+"-> MO 070826 Vickie Dr. 5313 (William & Barbara) - 5313 Vickie Dr. San Diego, CA 92109","","","","","","","","","","","","","","",""
+,"William Flanigan, Barbara Flanigan, SDGE, City of San Diego Water- Sewer, City of San Diego Water- Water, City of San Diego- Trash, NO HOA, Pedro Hermosillo- Contractor, Central Heater, Filter size 16x25x1, RBP05/24/2024",3/1.50,Rachel E. Brackett,Notice-Unrented,"1,575","6,188.00","6,188.00","5,500.00",03/01/2022,,04/01/2023,07/08/2026,0.00,0,0
+"-> MO 071426 Mentone St 4452 Unit 206 (The Diamond Trust) - 4452 Mentone St Unit 206 San Diego, CA 92107","","","","","","","","","","","","","","",""
+,"Brandon Van Noord, Sunset Views HOA, American Home Shield, I=O, S=OT, Michelle Van Noord",2/2.00,Katarina V. Kaminsky,Notice-Unrented,992,"2,888.00","2,888.00","2,863.00",06/14/2025,06/13/2026,06/14/2025,07/14/2026,0.00,0,0
+"-> MO 072026 Broadway 2608 #3 (Breanna) - 2608 Broadway #3 San Diego, CA 92102","","","","","","","","","","","","","","",""
+,"Nicholas and Breanna Bellenbaum, I=HOA, S=OT, City Lites HOA, WALL HEATER, HVACWALL",2/2.00,Jacqueline Gonzalez,Notice-Unrented,784,"2,488.00","2,578.00","2,463.00",01/01/2025,07/20/2026,01/01/2025,07/20/2026,0.00,0,1
+"-> MO 072226 Stalmer St. 7797 Unit 1B (Deanna) - 7797 Stalmer St. Unit 1B San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"Deanna Hang, West Pines HOA, I=O, S=OT, Keith The Handyman, Myrna- Cleaning, All Season Carpet Cleaning, WALL HEATER, HVACWALL, RBP 04/01/2024",2/2.00,Marek Wojno,Notice-Unrented,952,"2,988.00","2,988.00","2,963.00",07/23/2025,07/22/2026,07/23/2025,07/22/2026,"-3,116.00",1,1
+"-> MO 081426 Calle Quebrada 2430 (Alexandra & Ian) - 2430 Calle Quebrada San Diego, CA 92139","","","","","","","","","","","","","","",""
+,"Ian Lowry, Alexandra Lowry, City of San Diego Water- Water, No Filter, Wall Heater, NO HOA",3/2.00,Zandra L. Edison,Current,"1,136","3,688.00","3,688.00","3,663.00",08/15/2025,08/14/2026,08/15/2025,,-543.00,4,1
+"-> MO 73126 Morgans Ave. 1716 (Srivatsan) - 1716 Morgans Ave. San Marcos, CA 92078-1045","","","","","","","","","","","","","","",""
+,"Robyn Halbridge, Adam Halbridge, Morgans Corner HOA, I=O, S=OT, Home Warranty Company, San Elijo Hills Community Association, Central A/C, Filter Size - 20X20X1, California SubMeters",3/3.50,Patrick A. Diehl,Notice-Unrented,"1,740","3,436.00","3,436.00","3,363.00",08/01/2021,07/31/2026,07/19/2021,07/31/2026,"-3,464.00",2,0
+"-> MO04302026 Vicki 521 (Barry) - 521 Vicki Place Escondido, CA 92026-3175","","","","","","","","","","","","","","",""
+,"Guang Yu, Barry Yu, Lico's Landscaping, Central Heater, Filter 16x23x1, No HOA",3/3.00,Chyle J. Gustin,Current,"1,644","3,688.00","3,844.00","3,663.00",06/05/2026,06/04/2027,06/05/2026,,"-3,872.00",0,0
+"-> Mohawk St 6703 (Smith Ernestine Family Trust 11-07-91) - 6703 Mohawk St San Diego, CA 92115-1642","","","","","","","","","","","","","","",""
+MO123125-DOWN Mohawk,"Smith Ernestine Family Trust 11-07-91, Sotos Gardening Service, Wall Heater - No filter, Realtor referred- Neisha Lopez, NO HOA",2/1.00,,Vacant-Unrented,"1,000","2,020.00",,0.00,,,,,,,
+67th,"Smith Ernestine Family Trust 11-07-91, Wall Heater - No filter, Realtor referred- Neisha Lopez, NO HOA",2/2.00,Patrick Halloran,Current,,"2,020.00","2,070.00","1,650.00",02/01/2022,,08/22/2015,,0.00,0,1
+2 Units,,,,50.0% Occupied,"1,000","4,040.00","2,070.00","1,650.00",,,,,0.00,0,1
+"-> Monroe Ave. 3535 Unit 29 (Tyler) - 3535 Monroe Avenue Unit 29 San Diego, CA 92116","","","","","","","","","","","","","","",""
+,"Tyler Ash, Monroe Manor HOA, Wall Heater - No filter, I=O S=OT, Landlord Referral: Amanda Stinnett, RBP07/10/2023",2/2.00,Lily B. Yates,Current,858,"2,399.00","2,399.00","2,374.00",12/01/2024,05/05/2027,12/01/2024,,"-2,527.00",0,0
+"-> Moraga Ave. 4776 - 4776 Moraga Ave. San Diego, CA 92117-1735","","","","","","","","","","","","","","",""
+,"Jessica Jen, Wall Heater, No Filter, NO HOA",3/2.00,Brianna N. Bowers,Current,968,"2,948.00","3,360.00","2,763.00",02/01/2022,09/04/2025,07/22/2019,,0.00,0,0
+"-> Nala Way 3128 (Alex) - 3128 Nala Way Carlsbad, CA 92010","","","","","","","","","","","","","","",""
+,"Alex Hoitin Sin, Meternet, Waste Management, SDGE, The Preserve at Carlsbad Homeowner Association, Central AC, Filter Size 20x20x1, Filter Size 20x30x1, Keystone Pacific, Realtor referred- John Jaworski",3/2.50,Regine Reimers,Current,"1,610","3,995.00","4,210.00","3,970.00",09/18/2023,09/30/2026,09/18/2023,,"-4,238.00",0,0
+"-> National City Blvd. 801, Unit 315 (Alexander Diane Trust 11-11-21) - 801 National City Blvd Unit 315 National City, CA 91950","","","","","","","","","","","","","","",""
+,"Diane Alexander, Alexander Diane Trust 11-11-21, City of San Diego Water, Central Heater, HVAC?, I=O, S=OT, Bay View Tower HOA",1/1.00,Carlos Escobedo,Current,500,"1,673.00","1,673.00","1,395.00",01/01/2021,,10/01/2025,,168.00,0,2
+"-> Nobel Dr Unit 172 3941 (Suresh Rao Family Revocable Trust) - 3941 Nobel Dr Unit 172 San Diego, CA 92122","","","","","","","","","","","","","","",""
+,"Suresh Rao Family Revocable Trust 03-16- 11, The Venetian Condominium Maintenance HOA, I=O, S=OT",2/2.50,Sophie P. Bales,Current,"1,100","3,188.00","3,188.00","3,163.00",03/01/2026,02/28/2027,03/01/2026,,"-3,316.00",0,0
+"-> Nocturne 315 (Juan) - 315 Nocturne Court Chula Vista, CA 91911","","","","","","","","","","","","","","",""
+,"Juan Cervantes, WALL HEATER, HVACWALL, Realtor referred- Jesse Trujillo, No HOA",3/2.00,,Vacant-Unrented,"1,297","3,538.00",,0.00,,,,,,,
+"-> Nolan Way 956 (Elissa) - 956 Nolan Way Chula Vista, CA 91911","","","","","","","","","","","","","","",""
+Nolan Way 956 (ADU),"Elissa G Scotland, Robert Brown, Sunrun-Solar, City of Chula Vista  Sweetwater Authority- Water & Sewer, Republic Service- Trash, No HOA, HVAC?",0/1.00,Shannely Ortega,Current,260,"1,350.00","1,384.00","1,325.00",06/01/2025,05/31/2027,06/01/2025,,0.00,0,0
+"-> NP  03182026 Twin Trails Dr 9316 UNIT 104 (Kristopher) - 9316 Twin Trails Dr UNIT 104 San Diego, CA 92129","","","","","","","","","","","","","","",""
+,"Kristopher O Johnson Lecesne, I=O, S=OT, Preferred Vendor: All Around Handyman Service, Filter 14X25X1, Peñasquitos Casablanca Owners Association, RBP 03/01/2024, Central HVAC",3/2.00,,Vacant-Unrented,"1,082","3,288.00",,0.00,,,,,,,
+"-> NP Hyde Park Dr. 6924  Unit 214 (Denisha & Tobechukwu) - 6924 Hyde Park Dr Unit 214 San Diego, CA 92119","","","","","","","","","","","","","","",""
+,"Denisha Biggers, Tobechukwu Uwechie, Hyde Park Villas HOA, I=O, S=OT",1/1.00,,Vacant-Unrented,688,"2,200.00",,0.00,,,,,,,
+"-> NP Meadowbrook Dr 257 (Jessica) - 257 Meadowbrook Dr. San Diego, CA 92114-6117","","","","","","","","","","","","","","",""
+,"Jessica Robinson, City of San Diego Water, City of San Diego- Trash, Tesla, SDGE, Home Service Club, 2 Portable AC - No Filter",3/2.00,,Vacant-Unrented,959,"3,788.00",,0.00,,,,,,,
+"-> NP-Caminito Cascara 10743 (Brandon) - 10743 Caminito Cascara San Diego, CA 92108","","","","","","","","","","","","","","",""
+,"Brandon M Woods, City of San Diego Water, Waste Management, HVAC?, Central Heater, Mission Playmor, I=O, S=OT",4/2.00,,Vacant-Unrented,"1,576","4,588.00",,0.00,,,,,,,
+"-> NPTO  Mandan Way 3153-55 (Al) - 3153-55 Mandan Way Mandan Way San Diego, CA 92117","","","","","","","","","","","","","","",""
+Mandan Way 3153  (Al),"Alfred C. Del Mastro Revocable Trust, Plumber - Karl, GC 858-372.00600, Electrician Kevin ( Kev co ) Ferree 619-288-6481, Pest control - Mr. Bug - Fred 825-277-5585, HVAC?, WALL HEATER",2/1.00,,Vacant-Unrented,825,"3,300.00",,0.00,,,,,,,
+Mandan Way 3155  (Al),Alfred C. Del Mastro Revocable Trust,2/1.00,Alejandro Jimenez Perez,Current,825,,0.00,"2,990.00",06/27/2020,,06/27/2020,,"-3,033.60",0,0
+2 Units,,,,50.0% Occupied,"1,650","3,300.00",0.00,"2,990.00",,,,,"-3,033.60",0,0
+"-> NPTO  Mandan Way 3173-75 (Al) - 3173-75 Mandan Way San Diego, CA 92117","","","","","","","","","","","","","","",""
+Mandan Way 3173 (Al),"Alfred C. Del Mastro Revocable Trust, Wall Heater, HVAC?",2/1.00,Melissa Ann Plooster,Current,850,,0.00,"3,300.00",08/16/2024,08/15/2026,08/16/2024,,"-3,343.60",0,0
+Mandan Way 3175 (Al),"Alfred C. Del Mastro Revocable Trust, Wall Heater, HVAC?",2/1.00,,Vacant-Unrented,850,,,0.00,,,,,,,
+2 Units,,,,50.0% Occupied,"1,700",0.00,0.00,"3,300.00",,,,,"-3,343.60",0,0
+"-> OFFBOARDING  06/24 Calle Del Sol 247 (Christine) - 247 Calle Del Sol Vista, CA 92083","","","","","","","","","","","","","","",""
+,"Christine Dang, The Management Trust, I=O, S=OT, Aquapro Elite System- Water Softener, Santa Fe Walk HOA, American Home Shield = Home Warranty, HVAC SIZE=, Water&Sewer - Billed Via Califiornia SubMeters via the HOA-Tenant Portal, Trash paid by HOA, HOA DUES PAID BY OWNER, HVAC Filter 20x30x1, Realtor Reffered-Chad Voisen",2/2.00,,Vacant-Unrented,"1,068","2,688.00",,0.00,,,,,,,
+"-> OFFBOARDING 06222026 Felton St 4421 (Jennifer and Kevin) - 4421 Felton St San Diego, CA 92116","","","","","","","","","","","","","","",""
+,"Jennifer Land, Kevin Rabe, HVAC?, 20x30x1, City of San Diego Water, City of San Diego- Sewer, City of San Diego- Trash, NO HOA, Referred by: Realtor Michele Lee",4/1.00,Alexander J. Mattia,Notice-Unrented,990,"3,988.00","3,988.00",0.00,06/18/2025,06/17/2026,06/18/2025,07/17/2026,0.00,0,1
+"-> OFFBOARDING 093026 Gresham St 4428-44 (Pkt Villa LLC) - 4428-44 Gresham Street San Diego, CA 92109","","","","","","","","","","","","","","",""
+OFFBOARDING 093026- 4428 Gresham Street,"Patric Trinh, HVAC?, NO HOA",2/1.00,Ross L. Selvaggi,Current,"1,064","2,888.00","2,888.00","2,863.00",06/12/2025,06/11/2026,06/12/2025,,0.00,0,1
+4428 1/2 Gresham Street,"Patric Trinh, HVAC?, NO HOA",--/1.00,Sarah Lewis,Current,,,"1,800.00","1,800.00",03/27/2023,06/16/2026,03/27/2023,,0.00,0,0
+4444 Gresham Street,"Patric Trinh, Pacific Beach, Gresham",2/1.00,Natalie Weber,Current,750,"2,888.00","2,888.00","2,863.00",05/17/2025,05/16/2026,05/17/2025,,99.00,1,2
+3 Units,,,,100.0% Occupied,"1,814","5,776.00","7,576.00","7,526.00",,,,,99.00,1,3
+"-> OFFBOARDING 6/28 College Gardens Ct. 5230 (Jennifer Moores Trust) - 5230 College Gardens Ct. San Diego, CA 92115-1106","","","","","","","","","","","","","","",""
+,"Jennifer Moores Revocable Trust, HVAC?, NO HOA, No Home Warranty, City Of San Diego-Water, Filter size 20x25x5",4/2.00,,Vacant-Unrented,"2,355","4,888.00",,0.00,,,,,,,
+"-> OFFBOARDING Pacific 1325 #2503 (Weliang) - 1325 Pacific HWY, #2503 San Diego, CA 92101","","","","","","","","","","","","","","",""
+,"Bayside HOA, Weliang Le, I=HOA, S=OT, Central A/C, HVAC SERVICED BY HOA",2/2.00,,Vacant-Unrented,"1,460","5,438.00",,0.00,,,,,,,
+"-> OFFBOARDING Whaley Ave. 1887 (Luis Castanon) - 1887 Whaley Ave. San Diego, CA 92104","","","","","","","","","","","","","","",""
+,"Luis Castanon, SDGE, City Of San Diego-Water, City of San Diego Water- Sewer, City of San Diego- Trash, Central Heater, Friedrick Manor HOA, I=O, S=OT, No Home Warranty, Filter Size - 16X20X1",3/2.50,,Vacant-Unrented,"1,302","3,988.00",,0.00,,,,,,,
+"-> Olmeda St 1656 (Milan) - 1656 Olmeda St. Encinitas, CA 92024","","","","","","","","","","","","","","",""
+,"Kothari Inter Vivos Trust, Trash-Edco, Olivenhain - Water/Sewer, Central A/C, HVAC Filter Size 20X25X1, No HOA",4/2.50,Emma N. Shields,Current,"2,175","5,888.00",0.00,"5,868.00",11/01/2025,06/22/2027,06/23/2024,,24.53,1,1
+"-> Olvera Ave 5177 (Mark and Portia) - 5177 Olvera Ave San Diego, CA 92114","","","","","","","","","","","","","","",""
+,"Portia & Mark Champagne, City of San Diego- Trash, City of San Diego- Sewer, City Of San Diego-Water, HVAC?, NO HOA",3/1.00,Cesar J. Plascencia,Current,996,"2,988.00","2,988.00","3,703.75",10/19/2024,10/18/2025,10/19/2024,,0.00,0,1
+"-> Orion Dr 3725 (Arias Family Trust 05-05-12) - 3725 Orion Dr La Mesa, CA 91941","","","","","","","","","","","","","","",""
+,"Manuela Arias, Erika Chavez, Starlight Terrace Homeowners Association, EDCO, I=O, S=OT, City of La Mesa Helix Water District, HVAC?, Central AC, Tesla-Solar, No Home Warranty",3/2.00,Sarah A. Bradford,Current,"1,347","3,688.00","3,688.00","3,663.00",06/14/2026,06/13/2027,06/14/2026,,-456.94,0,0
+"-> Palmyra Dr. 122 (Geoffrey) - 122 Palmyra Dr Vista, CA 92084","","","","","","","","","","","","","","",""
+,"Geoffrey Forster, Lorraine Pfahl, Haradon Pineview HOA, Central Heater, HVAC size 14x24x1",2/1.50,Tanis H. Olayvar,Current,"1,054","2,588.00","2,588.00","2,563.00",05/23/2026,05/22/2027,05/23/2026,,155.28,0,1
+"-> Paradise Valley Rd 8535 Unit 55 (Estelita Living Trust) - 8535 Paradise Valley Rd Unit 55 Spring Valley, CA 91977","","","","","","","","","","","","","","",""
+,"Estelita Dela Cruz Revocable Living Trust, HVAC?, I=O, S=OT, Sweetwater Hills Townhomes Owners Association, Realtor Referred-Stephanie Rivera 5 Peaks, 06/01/2025 RBP",3/2.50,Shamicka M. Sewell,Current,"1,517","3,188.00","3,188.00","3,163.00",12/15/2025,12/14/2026,12/15/2025,,"-3,216.00",0,0
+"-> Pariva Dr 1917 (Nancy) - 1917 Pariva Dr. Cardiff by the Sea, CA 92007","","","","","","","","","","","","","","",""
+,"Nancy Choi, Kason Choi, 4 year termite warranty beginning 7.18.2021 lloyds pest, Central HVAC, HVAC Filter 14x25x1, NO HOA",3/2.00,Daniel Walsh,Current,"1,477","4,988.00","5,288.00","4,963.00",10/12/2024,11/17/2026,10/12/2024,,"5,892.88",1,5
+"-> Park Blvd 206 Unit 412  (Chris & Ella) - 206 Park Blvd Unit 412 San Diego, CA 92101-7449","","","","","","","","","","","","","","",""
+,"Ella Cady, Christopher Cady, Park Terrace East Village HOA, SDGE, I=O, S=OT, HVAC Filter Size 17x27x1, RBP08/19/2023",2/2.00,Muhammed K. Puthukkattu,Current,950,"2,888.00","2,788.00","2,763.00",10/03/2024,10/02/2026,10/03/2024,,0.00,0,0
+"-> Park Mesa Way 7056 (Jia) - 7056 Park Mesa Way, Unit 46 San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"Jia H F Living Trust 07-23-10, Jia Huifang, Pernicano Realty Management Inc HOA, I=O S=OT, No Filter - Wall Heater, Park Mesa HOA, No A/C",2/2.50,Curtis C. Schmitz,Current,"1,072","3,088.00","3,088.00","3,063.00",01/10/2026,01/09/2027,01/10/2026,,"-3,216.00",0,0
+"-> Paseo Aurora 1430 (Vladimir) - 1430 Paseo Aurora San Diego, CA 92154","","","","","","","","","","","","","","",""
+,"Aurora at Riviera Del Sol Homeowners Association, I=O, S=OT, Central Heater, HVAC SIZE= 20X20X1, California SubMeters",3/3.00,Maurice I. Gibson,Current,"1,596","3,336.00","3,414.00","3,263.00",02/20/2023,05/11/2027,02/20/2023,,298.50,0,1
+"-> Paseo Aurora 1641 (Damon) - 1641 Paseo Aurora San Diego, CA 92154-4861","","","","","","","","","","","","","","",""
+,"Charlene E. Leaks, Damon Leaks, S=OT, I=O, Aurora at Riviera Del Sol HOA, Central AC, Filter Size - 20X20X1, Realtor referred- Tere Paterson, California SubMeters",3/2.00,Cynthia Arce,Current,"1,193","2,988.00","3,108.00","2,968.00",08/14/2023,05/23/2027,08/14/2023,,"-1,462.32",0,0
+"-> Paseo Colina 6224 (Tae-Woong - 6224 Paseo Colina Carlsbad, CA 92009-2103","","","","","","","","","","","","","","",""
+,"Tae-Woong Im, Helen Im, I=O, S=OT, Rancho Carrillo 2 HOA, City of Carlsbad- Water, Ron Hritz, hvac 24 x 24 x 1, HVAC18e, offboarding 12.10.2021",5/4.50,Anna Wilson,Current,"4,476","7,588.00","7,923.00","7,563.00",07/01/2023,,07/01/2022,,0.00,0,4
+"-> Paseo Montril 9933 (Hackenberg) - 9933 Paseo Montril San Diego, CA 92129","","","","","","","","","","","","","","",""
+,"Sarah & Jessie Hackenberg, Realtor Referred-Stephanie Rivera 5 Peaks, City of San Diego Water, Central Heater, HVAC?, 14x24x1, Eastridge Condominium Corporation c/o ARK Management, Meternet, I=O, S=OT",2/2.50,Angel D. Palermo,Current,"1,200","3,288.00","3,288.00","3,263.00",09/10/2025,09/09/2026,09/10/2025,,"-3,316.00",0,0
+"-> Paseo Sea Grass 1251, Unit 111 (Rachel) - 1251 Paseo Sea Grass Unit 111 San Diego, CA 92154","","","","","","","","","","","","","","",""
+,"Forward Insight LLC, Rachel Xin, City of San Diego Water, I=O, S=OT, Playa del Sol HOA",4/3.50,Robert W. Hamilton II,Current,"1,857","4,088.00","4,166.00","4,063.00",07/05/2025,07/14/2027,07/05/2025,,0.00,0,0
+"-> Pillar Point Way 838 (Diane) - 838 Pillar Point Way Oceanside, CA 92058-6924","","","","","","","","","","","","","","",""
+,"Pillar Point, Diane M. Geiger Living Trust, The Whelan Ranch Condominium, HOME WARRANTY, Curtis Management, Washable Filter, Fidelity National Home Warranty, RBP02/10/2025",2/1.50,Cynthia Renteria,Current,"1,104","2,588.00","2,588.00","2,563.00",02/10/2025,02/09/2026,02/10/2025,,0.00,0,0
+"-> Playa Blanca 409 (Michael) - 409 Playa Blanca Encinitas, CA 92024","","","","","","","","","","","","","","",""
+,"Michael Newman, Haciendas de la Playa Owners Association, I=HOA, S=OT, Central Heater, HVAC 14x24x1",1/1.00,Hope E. Gaston,Current,903,"3,295.00","3,295.00","3,270.00",12/23/2024,12/22/2025,12/23/2024,,"-3,423.00",0,0
+"-> Polk Ave. 1932 (Fatima) - 1932 Polk Avenue San Diego, CA 92104","","","","","","","","","","","","","","",""
+,"Fatima El-Tayeb, Gas Heater, Referred by: Sara E. Johnson, No Filter, Wall Heater, NO HOA",2/1.00,Hope Dymond,Current,615,"2,988.00","2,988.00","2,963.00",05/24/2025,05/23/2026,05/24/2025,,0.00,0,0
+"-> Portola Ave 1026 (Tiffany & Brittany) - 1026 Portola Ave Spring Valley, CA 91977","","","","","","","","","","","","","","",""
+1026 Portola Ave (upstairs),"Brittany Davidson, Tiffany Jolly, HVAC?, EDCO-Trash, American Home Shield, SDGE, City of Chula Vista  Sweetwater Authority, Otay water district, Central Heater - 1 filter, Filter size 16x25x1, Front Unit, NO HOA",3/2.50,Maria G. Garcia,Current,"1,577","3,088.00","3,341.00","3,063.00",06/15/2024,06/20/2026,06/15/2024,,0.00,2,4
+"-> Puls St 1315 (Mohit) - 1315 Puls St Oceanside, CA 92058","","","","","","","","","","","","","","",""
+Puls Unit A,"Puls St., WALL HEATER, HVACWALL, RUBS, 2020CAP=$107.98, RBP 10/10/2023, No HOA",2/1.00,Theodore B. Brooks,Current,892,"2,288.00","2,288.00","2,263.00",03/20/2026,03/19/2027,03/20/2026,,321.50,1,1
+Puls Unit B,"Puls St., HVAC8?05012020, 2020CAP=$87.58, RUBS, HVAC - Wall Heater, No HOA",2/1.00,Lanisha S. Easter,Current,892,"1,469.31","1,914.00","1,200.00",03/15/2022,,07/17/2014,,0.00,10,28
+Puls Unit C,"WALL HEATER, HVACWALL, RUBS, 2020CAP=$87.58, No HOA",2/1.00,Joseph C. Boring,Current,892,"1,438.00","1,883.00","1,263.00",12/01/2021,05/14/2027,11/05/2015,,40.18,0,0
+Puls Unit D,"HVAC8?05012020, RUBS, 2020CAP=$101.18, HVAC - Wall Heater, No HOA",2/1.00,Jessica  Ortega,Current,892,"1,488.00","2,083.00","1,463.00",05/15/2024,,03/21/2017,,0.00,0,2
+4 Units,,,,100.0% Occupied,"3,568","6,683.31","8,168.00","6,189.00",,,,,361.68,11,31
+"-> Questa Pointe 9477 (Rizza) - 9477 Questa Pointe San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Rizza Hambric, Cortina Community Association, I=O, S=OT, Gas & Electric - SDGE, Water & Sewer - City of San Diego, Trash - HOA, Central Heater, Filter Size 19x19x1, RBP060123",2/2.50,Nicholas C. Carlson,Current,"1,231","3,188.00","3,266.00","3,163.00",12/13/2025,12/12/2026,12/13/2025,,0.00,0,0
+"-> Rancho Hills Dr 6012(Gilbert Reyes Sr Trust) - 6012 Rancho Hills Dr San Diego, CA 92139","","","","","","","","","","","","","","",""
+,"Gilbert Reyes Sr Trust 10-04-13, HVAC?, NO HOA, No Home Warranty, City Of San Diego-Water, City of San Diego Water- Sewer, Waste Management- Trash, Wall Heater",3/1.50,Jericho E. Anderson,Current,988,"2,940.00","3,058.00","2,863.00",12/15/2023,05/22/2027,12/15/2023,,"-3,086.00",0,0
+"-> Redwood St. 475  Unit 1004 (Anthony) - 475 Redwood St. Unit 1004 San Diego, CA 92103-5865","","","","","","","","","","","","","","",""
+,"Alicante HOA, Central A/C, HVAC size 24x36x1",1/1.00,Ryan Morris,Current,668,"2,000.00","2,325.00","1,600.00",06/01/2010,,06/01/2010,,0.00,1,0
+"-> Regal Rd, 3K, 806 (Sands Marc L Trust) - 806 Regal Rd, 3K Encinitas, CA 92024","","","","","","","","","","","","","","",""
+,"RADIANT HEATER, Realtor Referred William Morris, I=O, S=OT, Sands Marc L Trust 12-05-08, Regal View Association- Prescott Companies",2/1.00,Katherine Cannata,Current,779,"3,088.00","3,153.00","3,063.00",05/20/2025,05/19/2026,05/20/2025,,0.00,3,1
+"-> Regents Rd Unit 2E 8332 (Amidori 18 LLC) - 8332 Regents Rd Unit 2E San Diego, CA 92122-1313","","","","","","","","","","","","","","",""
+,"Amidori 18 LLC, Bargiora Goldberg, SDGE, I=O, S=OT, Pines of La Jolla HOA, Radiant Heater - No filter, The Pines of La Jolla",2/2.00,Colin J. Murphy,Current,"1,054","2,388.00","2,436.00","2,363.00",10/26/2022,10/25/2023,10/26/2022,,0.00,0,0
+"-> Revelstoke Way 8960 (Jia) - 8960 Revelstoke Way San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Jia H F Living Trust 07-23-10, Jia Huifang, Central Heater, HVAC Filter size 16X25X1, NO HOA",3/2.00,Jean Banta,Current,"1,134",,"2,893.00","2,000.00",09/10/2021,01/22/2027,05/01/2013,,0.00,0,1
+"-> Ridgewood Way 3542 (Dobruskin Norman & Geraldine Family Trust) - 3542 Ridgewood Way Carlsbad, CA 92010","","","","","","","","","","","","","","",""
+,"Dobruskin Norman & Geraldine Family Trust 07-23-91, Villas of Calavera Hills HOA, I=O, S=OT, Geraldine Dobruskin, HVAC Filter Size 12x30x1, RBP08/01/2025",3/2.00,Amy Kim,Current,"1,362","3,288.00","3,188.00","3,263.00",08/01/2025,07/31/2026,08/01/2025,,"-1,319.76",0,0
+"-> Roja Dr, 670 (Ora) - 670 Roja Drive Oceanside, CA 92057","","","","","","","","","","","","","","",""
+,"Ora Pulley, Mail Management, Wall Heater - No filter, NO HOA",4/2.00,Adrian A. Valadez,Current,"1,180","3,088.00","3,138.00","3,578.75",08/17/2024,,07/29/2022,,0.00,0,0
+"-> Roommate Add On - 1234 Application Way San Diego, CA 92138","","","","","","","","","","","","","","",""
+,,1/1.00,,Vacant-Rented,,55.00,,0.00,,,,,,,
+"-> Rose Lake Ave  6203 (Rose Lake Group LLC) - 6203 Rose Lake Ave San Diego, CA 92119","","","","","","","","","","","","","","",""
+,"Rose Lake Group LLC, City of San Diego Water- Water & Sewer, Vidal Peralta Landscaping-Gardener, HVAC?, Darryl Myrose, Stacy Myrose, NO HOA, City of San Diego- Trash, Realtor Referred-Stephanie Rivera 5 Peaks",4/2.00,MariaElena Gallina,Current,"1,651","4,388.00","4,388.00","4,363.00",02/24/2025,03/31/2027,02/24/2025,,"-4,416.00",0,0
+"-> Round Tree Dr. 1760 (Vlado) - 1760 Round Tree Dr. Oceanside, CA 92056","","","","","","","","","","","","","","",""
+,"Peacock Hills HOA, Sep Vlado, I=O, S=OT, HVAC SIZE=, HVAC8, Central Heater, Filter size 13x26x1",2/2.00,Margaret A. Shoemaker,Current,"1,109","2,143.00","2,143.00","1,863.00",07/01/2017,12/31/2023,07/01/2017,,0.00,1,1
+"-> S Juniper St, 1651 Unit 196 (Gary) - 1651 S Juniper St, Unit 196 Escondido, CA 92025","","","","","","","","","","","","","","",""
+,"Gary L Madsen, SDGE, Felicita Villas HOA, S=OT, I=O, Wall Heater - No filter",3/2.50,Edwin J. Padillo,Current,"1,664","3,388.00","3,388.00","3,363.00",04/28/2023,05/31/2026,04/28/2023,,0.00,0,0
+"-> S Sierra Ave 325 Unit 38 (Marchand-Casas Family Trust 03-06-05) - 325 S Sierra Ave Unit 38 Solana Beach, CA 92075-2223","","","","","","","","","","","","","","",""
+,"Marchand-Casas Family Trust 03-06-05, I=O, S=OT, Seascape Shore HOA, Kennedy Electric Preffered Vendor, Wall Heater - No filter, Reliable Properrty Management HOA",2/2.00,Carolyn B. Day,Current,"1,230","4,688.00","4,978.00","4,663.00",09/10/2023,09/30/2026,09/10/2023,,0.00,0,1
+"-> S Spruce St 101, Unit 102 (Advantage Acquisitions LLC) - 101 S Spruce, Unit 102 Escondido, CA 92025","","","","","","","","","","","","","","",""
+,"Diane Alexander, Advantage Acquisitions LLC, Artesia HOA, I=O, S=OT, HVAC?, HVAC 14x24x1",2/2.00,Filemon  Ordorica Enciso,Current,857,,"2,480.00","2,400.00",03/01/2025,02/28/2026,03/01/2025,,"2,656.00",1,1
+"-> S Sunshine Ave 1009, Unit B (Alexander Diane Trust 11-11-21) - 1009 S Sunshine Ave Unit B El Cajon, CA 92020","","","","","","","","","","","","","","",""
+,"Alexander Diane Trust 11-11-21, City of La Mesa Helix Water District, Central Heater, Villa Serena Owners Association, The Helm Management, I=O, S=OT, HVAC?",1/1.00,Jeffrey McNabb,Current,638,,"1,750.00","1,575.00",10/01/2025,09/30/2026,10/01/2025,,"-1,790.00",0,0
+"-> Santa Arminta Ave. 8252  (Philip) - 8252 Santa Arminta Ave. San Diego, CA 92126-1244","","","","","","","","","","","","","","",""
+,"Philip Raymond, De Raymond, American Home Shield Warranty, Filter 14X25X1, Realtor referred- Anca Savelio, No HOA",3/2.00,Lela V. Aviles,Current,"1,888","3,788.00","3,788.00","3,763.00",01/03/2025,07/21/2027,01/03/2025,,"-1,237.00",3,0
+"-> Sendero Way 2498 (Andre) - 2498 Sendero Way San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"Andre N. Jackson, I=O, S=OT, City of San Diego Water- Water, City of San Diego Water- Sewer, Radiant Heater - No filter, Realtor Referred-Stephanie Rivera 5 Peaks, Carter Hill Casa Bella HOA",3/1.50,Alisa Chew,Current,"1,032","2,995.00","2,995.00","2,995.00",11/10/2023,,11/10/2023,,"-3,023.00",0,0
+"-> Senita Dr 2126 (Maxwell) - 2126 Senita Dr San Diego, CA 92154","","","","","","","","","","","","","","",""
+,"MAXWELL BANFUL, Sea Breeze Management Company, SUNNOVA NEW HOMES, City of San Diego Water, California Sub-Meters, Pin Waste, I=O, S=OT, The Residences at Epoca Community Association",3/3.00,,Vacant-Unrented,"1,385","3,988.00",,0.00,,,,,,,
+"-> Sentinel Ln 2342 (Stephen M Meginness) - 2342 Sentinel Ln San Marcos, CA 92078","","","","","","","","","","","","","","",""
+,"Stephen M Meginness, Laurel and Magnolia HOA, I=O, S=OT, SDGE, City of San Marcos Vallecitos Water District, EDCO-Trash, HVAC?, RBP02/01/2024",3/2.50,Ronald  Arciaga,Current,"1,450","3,595.00","3,773.00","3,570.00",06/16/2025,10/03/2026,06/16/2025,,0.00,0,0
+"-> Sheep Ranch Loop 1877 (Stacie) - 1877 Sheep Ranch Loop Chula Vista, CA 91913","","","","","","","","","","","","","","",""
+,"Stacie Terry, Otay Ranch Five Community Association HOA, I=O, S=OT, HVAC?, City of Spring Valley Otay Water District – Water & Sewer, Republic Service- Trash, American Homebuyers-Home Warranty",4/2.50,Kristen R. Spooner,Current,"1,964","4,388.00","4,466.00","4,363.00",10/11/2025,10/10/2026,10/11/2025,,0.00,0,0
+"-> Shiloh Rd. 3805 (Sara) - 3805 Shiloh Road San Diego, CA 92105","","","","","","","","","","","","","","",""
+,"Sara Johnson, Pro Drain Plumbing Prefered Vendor 619-871-0060, 14X25X1, HVAC, No HOA",2/2.00,Imy A. Maktitaoui,Current,"1,140","2,747.80","2,747.80","2,273.00",02/01/2022,,12/15/2020,,0.00,1,8
+"-> Shirley Gardens Dr. 9840,Unit 4 (Alexander Diane Trust) - 9840 Shirley Gardens Dr Unit 4 Santee, CA 92071","","","","","","","","","","","","","","",""
+,"Diane Alexander, Alexander Diane Trust 11-11-21, Riderwood Gardens HOA, SDGE, I=O, S=OT, REALTOR REFERRED, HVAC 16x25x1",2/1.50,Carrie  Teng,Current,912,,"2,400.00","1,795.00",10/01/2025,09/30/2026,10/01/2025,,"-2,646.00",0,0
+"-> Shoreline 7180 #5209 (Ahmed) - 7180 Shoreline Drive #5209 San Diego, CA 92122","","","","","","","","","","","","","","",""
+,"Lucera HOA, Ahmed Abbas, I=O, S=OT, Gate=T, 14x18x1, Central AC",2/2.00,Irene S. Wong,Current,848,"2,888.00","2,888.00","2,863.00",09/18/2025,09/17/2026,09/18/2025,,0.00,0,0
+"-> Shoreline Dr. 7120  Unit 2213 (Simon) - 7120 Shoreline Dr. Unit 2213 San Diego, CA 92122-4904","","","","","","","","","","","","","","",""
+,"Simon Patlis, Irina Patlis, I=O, S=OT, Lucera HOA, Central A/C, Filter Size - 16X16X1, Filter Size - 16X20X1",2/2.00,Kaylin J. Ro,Current,848,"2,733.00","2,860.00","2,363.00",09/01/2019,10/31/2026,09/01/2019,,"-1,444.00",1,0
+"-> Silver St. 712 (Bennett) - 712 Silver St. La Jolla, CA 92037","","","","","","","","","","","","","","",""
+,"Laura & Bannett Barrios, Aveline HOA, I=O, S=OT, W=Bill TC, HVACSIZE=, 20X25X1, Central A/C, OFFBOARDING - REHAB, Calsubmeter, California Submeter",3/3.00,John R. McGuinness,Current,"2,292","6,488.00","6,850.00","6,463.00",10/01/2023,09/30/2026,10/01/2023,,0.00,0,0
+"-> Spruce Rd. 28805  (Palm Valley Properties LLC) - 28805 Spruce Rd. Pine Valley, CA 91962","","","","","","","","","","","","","","",""
+MI 013126 Spruce 1 Story House,"Palm Valley Properties LLC, Allison Raets, Preferred Vendor: A1 Septic Services, 1 Story House, Pine Valley Mutual Water Co., Wall Heater / Propane Heater, No HOA, Preferred Vendor M&M Dreamteam, SDGE RUBS, WATER RUBS",2/1.00,Christopher Gomez,Current,"1,008","1,888.00","1,888.00","1,863.00",01/31/2026,01/30/2027,01/31/2026,,0.00,0,0
+2 Story House,"Allison Raets, Palm Valley Properties LLC, Preferred Vendor: A1 Septic Services, 6 Months Lease - questionnaire, 2 Story House, Pine Valley Mutual Water Co., SDGE RUBS, WATER RUBS, Wall Heater / Propane Heater, No HOA",2/1.00,Toby J. Clancy,Current,750,"1,588.00","1,666.00","1,563.00",02/22/2025,02/21/2027,02/22/2025,,-0.62,1,1
+2 Units,,,,100.0% Occupied,"1,758","3,476.00","3,554.00","3,426.00",,,,,-0.62,1,1
+"-> Station Village Ln. 8233, Unit 2315 (Russell) - 8233 Station Village Ln Unit 2315 San Diego, CA 92108","","","","","","","","","","","","","","",""
+,"Russell J Friedl, Action Property Management - HOA, I=O, S=OT, No Home Warranty, HVAC?, Reffered: Google, The Lido Homeowners Association, Filter Size: 18×24×1",2/2.00,Shawn A. Southern,Current,"1,274","3,188.00","3,266.00","3,163.00",01/16/2026,01/15/2027,01/16/2026,,0.00,0,0
+"-> Summerview Ct. 10160 (Sophia) - 10160 Summerview Ct. San Diego, CA 92126-3709","","","","","","","","","","","","","","",""
+,"Sophia Trinh, Quang Trinh, Frank Trinh, Radiant Heat - No Filter, HVAC filter size 14x25x1, NO HOA",4/3.00,Alexander S. BadawiMieszkowski,Current,"2,120","4,600.00","4,995.00","4,225.00",11/20/2022,05/31/2027,11/20/2022,,"-3,543.00",0,0
+"-> Suncrest Dr 3030 Unit 307 (Kamryn) - 3030 Suncrest Dr Unit 307 San Diego, CA 92116","","","","","","","","","","","","","","",""
+,"Kamryn Dobbins, I=O, S=OT, Iconic Property Management, Mini Split AC and Heat Pump, Washable filter in each unit (2 total), Realtor Referred-Tammy Robbins, Suncrest Villas HOA",1/1.00,Marie Harada,Current,642,"2,100.00","2,184.00","2,593.75",10/25/2024,11/30/2026,10/25/2024,,0.00,0,0
+"-> Sunrise Ridge 4527 (Lindberg-Nichols Trust) - 4527 Sunrise Ridge Oceanside, CA 92056","","","","","","","","","","","","","","",""
+,"June Nichols, Richard Lindberg, Waste Management- Trash, City of Oceanside-Sewer, City of Oceanside Water, SDGE, Waste Management of North County, Peacock Hills Association HOA, I=O, S=OT, Realtor Referred-William George III Purdy, Realtor Referred-Bill Purdy, HVAC=14x25x1, DEATH DISCLOSURE until March 2028",2/1.00,Paula L. Carter,Current,834,"2,388.00","2,466.00","2,363.00",05/24/2025,06/17/2027,05/24/2025,,0.00,0,0
+"-> Sweetwood St. 262 (Zaldy) - 262 Sweetwood St. San Diego, CA 92114","","","","","","","","","","","","","","",""
+,"Zaldy Bulda, Tesla Solar City, HVAC Filter 24x36x1, Realtor referred- Natalia, NO HOA",4/2.00,Robert J. Wood,Current,"1,292","3,535.00","3,660.00","3,263.00",05/13/2023,05/31/2026,05/13/2023,,0.00,0,0
+"-> Tamar 10776 Unit C (Krista) - 10776 Tamar Ter Unit C Santee, CA 92071","","","","","","","","","","","","","","",""
+,"Krista Michelmore, Riderwood Terrace HOA, S=OT, I=O, Central AC, Hvac Filter Size 18x18x1, OLBX Keys 03/25/2019, Realtor referred- Kimo Quance",2/2.50,Cori E. Miller,Current,"1,321","2,988.00","3,144.00","2,968.00",09/01/2024,05/31/2027,09/01/2024,,0.00,0,0
+"-> Tanglewood Rd. 6766 (Thanh) - 6766 Tanglewood Rd., San Diego, CA 92111","","","","","","","","","","","","","","",""
+,"Thanh Tran, City of San Diego Water, Waste Management, SDGE, WALL HEATER, NO HOA",4/3.00,Isaiah H. Mattos,Current,"2,296","5,152.00","5,400.00","4,663.00",07/17/2022,08/14/2026,07/17/2022,,"-2,803.30",0,6
+"-> Third Ave 166 Apt 23 (Gresham Stuart Revocable Trust) - 166 Third Ave Apt 23 Chula Vista, CA 91910","","","","","","","","","","","","","","",""
+,"Gresham Stuart A 2022 Stuart A Gresham Revocable Trust, Del Neva HOA, SDHOA, I=O, S=OT, HVAC?",2/2.00,Jacqueline H. Povondra,Current,"1,086","2,588.00","2,666.00","2,563.00",02/15/2025,02/14/2026,02/15/2025,,0.00,0,0
+"-> Thomas Ave 1127 Apt 6. (William & Barbara) - 1127 Thomas Ave Apt. 6 San Diego, CA 92109","","","","","","","","","","","","","","",""
+,"William Flanigan Jr, Barbara Flanigan, City of San Diego Water- Sewer, City Of San Diego-Water, SDGE, Pedro Hermosillo- Contractor, I=O, S=OT, APS Management, Pacific Beach Villas Owners Association, RBP06/01/2023, Radiant Heat - No Filter",2/2.00,Kerry Schlarmann,Current,812,"2,725.00","3,260.00","2,400.00",07/31/2020,08/31/2025,07/31/2020,,"-3,288.00",0,2
+"-> Tiverton Rd 13279 (Pakhei) - 13279 Tiverton Rd San Diego, CA 92130","","","","","","","","","","","","","","",""
+,"Pakhei Kwok, Cambria Community Association, City of San Diego Water, City of San Diego- Trash, City of San Diego- Sewer, Central Heater, Realtor Referred, Rob Cain, I=O, S=OT, filter size 14x24x1",2/2.00,Samuel  Zimmerman,Current,"1,087",,"3,510.00","2,500.00",11/01/2024,02/17/2027,11/01/2024,,"-3,538.00",2,1
+"-> Tivoli Park Row Unit 1 11908 (McNealy Marmalee D Trust) - 11908 Tivoli Park Row Unit 1 San Diego, CA 92128","","","","","","","","","","","","","","",""
+,"Marmalee McNealy, Carmel Mountain Ranch RCA Homeowners, I=O, S=OT, McNealy Marmalee D Trust 09-14-90, HVAC filter 20x20x1",2/2.50,Melodi K. Dice,Current,"1,084","3,088.00","3,088.00","3,063.00",12/01/2024,11/30/2025,12/01/2024,,"-3,266.00",0,0
+"-> Tommy Dr. Unit 71 7805 (Terence) - 7805 Tommy Dr. Unit 71 San Diego, CA 92119","","","","","","","","","","","","","","",""
+,"Terence Wong, Spring Hill HOA, Central Heater, I=O, S=OT, Realtor Referred- Melissa Goldstein Tucci, Filter Size 20x20x1, Flat Rate Water Sewer Trash, RBP04/05/2026",3/1.50,Rachel E. Holiday,Current,"1,288","2,988.00","2,988.00","2,963.00",04/05/2026,06/04/2027,04/05/2026,,160.00,0,1
+"-> University Ave 2828 Unit 502 (Hurt Family Trust) - 2828 University Ave. Unit 502 San Diego, CA 92104-7907","","","","","","","","","","","","","","",""
+,"Hurt Family Trust, I=O, Palisades Gardens, Central Heater, HVAC 20x30x1, Realtor referred- Neisha Lopez",1/1.00,Ethan Vargas,Current,519,"2,388.00","2,388.00","2,163.00",10/01/2023,05/31/2027,09/21/2022,,0.00,0,3
+"-> University Ave, 2828 UNIT 405 (Anderson) - 2828 University Ave, UNIT 405 San Diego, CA 92104","","","","","","","","","","","","","","",""
+,"Huy Dong, Palisades Gardens, HVAC, I=O, S=OT, SDGE, anderson dong",1/1.00,Halee C. Allen,Current,515,"2,188.00","2,088.00","2,063.00",07/01/2025,06/30/2027,07/01/2025,,"-2,241.00",0,0
+"-> Via Calanova 15680 (Ravi)) - 15680 Via Calanova San Diego, CA 92128","","","","","","","","","","","","","","",""
+,"Bryan Devore, Agent, Bernardo Heights #24 HOA, S=OT, I=O, Bernardo Heights II, 16x25x1, HVACSIZE=, RBP08/12/2023",2/2.00,Kelly N. Rupp,Current,"1,467","3,219.00","3,270.00","3,163.00",08/12/2023,03/31/2027,08/12/2023,,0.00,0,1
+"-> Via Colonia 8622 (Anthony and Carol) - 8622 Via Colonia San Diego, CA 92126","","","","","","","","","","","","","","",""
+,"Carol Battaglia, Anthony Battaglia, City of San Diego Water, Ventura Landscaping, S=OT, I=O, Colony Homes Mira Mesa Community Association, Washable Filter",2/1.50,Kaushal K. Tiwari,Current,882,"2,578.00","2,856.00","2,163.00",05/27/2021,10/09/2026,05/27/2021,,0.00,0,0
+"-> Via Marin 3262 (Jia) - 3262 Via Marin, Unit 28 La Jolla, CA 92037","","","","","","","","","","","","","","",""
+,"Jia H F Living Trust 07-23-10, Jia Huifang, I=O, S=OT, Radiant Heater - No filter, Woodlands South HOA",2/2.50,Jeffrey S. Rekoske,Current,"1,074","3,588.00","3,588.00","3,563.00",04/08/2025,04/30/2027,04/08/2025,,"-3,716.00",0,0
+"-> Via Rancho San Diego 11428 #101 (Ken) - 11428 Via Rancho San Diego #101 El Cajon, CA 92019","","","","","","","","","","","","","","",""
+,"HOA - The Remington, Kenneth Jensen, I=O, S=OT, W=bill TCO, Central A/C, HVAC size 14x24x1, RBP12/19/2023, California SubMeters",1/1.00,Tracey L. Springmeier,Current,605,"1,988.00","2,034.00","1,968.00",12/16/2023,,12/16/2023,,-241.20,0,0
+"-> Via Regla 6074 (Yoko) - 6074 Via Regla San Diego, CA 92122","","","","","","","","","","","","","","",""
+,"Yoshikazu & Yoko Takada, RADIANT HEATER, WALL HEATER, No HOA",4/1.50,Connor  J. Mack,Current,"1,548","3,788.00","3,977.00","3,063.00",11/01/2022,,07/10/2018,,-852.00,1,6
+"-> Via Sonoma 8326 Unit 62 (Julie) - 8326 Via Sonoma Unit 62 La Jolla, CA 92037","","","","","","","","","","","","","","",""
+,"Julie Gularte, Woodlands South Homeowners Association, ARK Management, I=O, S=OT, Radiant Heater - No filter",2/1.00,Nicole JourdainFurtado,Current,832,"2,988.00","2,988.00","2,963.00",01/17/2026,01/16/2027,01/17/2026,,0.00,0,0
+"-> Virginia Ct. 2142 (Anita) - 2142 Virginia Ct El Cajon, CA 92020","","","","","","","","","","","","","","",""
+,"Anita Cazin, Van Nguyen, (Leaf It To Us Tree service) at tel:(619)582-2459, WALL HEATER, HVACWALL, NO HOA",3/2.00,Jessica R. Smith,Current,"1,200","2,761.09","3,068.00","1,873.00",02/01/2015,,02/01/2015,,0.00,0,0
+"-> West St  307 Unit 102 (Daniel) - 307 West St Unit 102 Oceanside, CA 92054","","","","","","","","","","","","","","",""
+,"Daniel C Wald, Bari D Wald, Central AC, HVAC?, I=O, S=OT, Waste Management, City of Oceanside Water- Water & Sewer, 307 West Street HOA, Filter Size 16x30x1",2/2.50,James Y. Hong,Current,"1,384","4,388.00","4,388.00","4,363.00",11/02/2025,11/01/2026,11/02/2025,,"-4,416.00",0,0
+"-> Whaley St. 815 (Cain) - 815 Whaley St. Oceanside, CA 92054-5949","","","","","","","","","","","","","","",""
+Whaley St. 815 Granny Flat (Cain),"Cain Murphy, Amber Murphy, Filter Size 20x20x1, Waste Management, City of Oceanside Water- Water & Sewer, SDGE, SDGE RUBS, Water/Sewer- DIvide Manually ( Water/Sewer RUBS)",1/1.00,Georgi Agel,Current,"1,400","2,088.00","2,088.00","2,063.00",01/02/2026,01/01/2027,01/02/2026,,"-2,136.00",0,0
+Whaley St. 815-Main House (Cain),"Cain Murphy, Amber Murphy, HVAC SIZE=, 30x16x1, HVAC18e, Coach appliance Pfer Vendor",3/2.00,Tyler G. Jacobson,Current,"1,420","4,388.00","4,388.00","4,363.00",04/27/2026,04/26/2027,04/27/2026,,0.00,0,0
+2 Units,,,,100.0% Occupied,"2,820","6,476.00","6,476.00","6,426.00",,,,,"-2,136.00",0,0
+
+Total 325 Units,,,,89.2% Occupied,"382,727","990,641.86","939,345.74","907,585.25",,,,,"-307,056.81",127,321

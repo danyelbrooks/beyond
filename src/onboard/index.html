@@ -954,8 +954,8 @@ function renderStep2() {
       <div class="field-group">
         <label>Is this property furnished?</label>
         <div class="radio-stack" style="flex-direction:row;gap:12px">
-          <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="yes" /> <div><div class="radio-option-label">Yes <span style="font-size:0.72rem;color:var(--bpm-blue)">BPM Prefers</span></div></div></label>
-          <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="no" /> <div><div class="radio-option-label">No <span style="font-size:0.72rem;color:var(--bpm-blue)">BPM Recommends</span></div></div></label>
           <label class="radio-option" style="flex:1"><input type="radio" name="furnished" value="negotiable" /> <div><div class="radio-option-label">Negotiable</div></div></label>
         </div>
       </div>
@@ -1064,33 +1064,7 @@ function renderStep2() {
 
       <!-- SECTION 3: CURRENT OCCUPANCY -->
       <div class="form-section-title">Current Occupancy</div>
-      ${units === 1 ? `
-        <div class="field-group">
-          <div class="radio-stack">
-            <label class="radio-option"><input type="radio" name="occ-unit-1" value="vacant" /> <div><div class="radio-option-label">Vacant</div></div></label>
-            <label class="radio-option"><input type="radio" name="occ-unit-1" value="owner_occupied" /> <div><div class="radio-option-label">Owner Occupied</div></div></label>
-            <label class="radio-option"><input type="radio" name="occ-unit-1" value="move_out" /> <div><div class="radio-option-label">Tenant Occupied (Move-Out Scheduled)</div></div></label>
-            <label class="radio-option"><input type="radio" name="occ-unit-1" value="staying" /> <div><div class="radio-option-label">Tenant Occupied (Tenant is STAYING)</div></div></label>
-          </div>
-        </div>
-        <div class="conditional" id="unit-1-owner-moveout">
-          <div class="field-group"><label>Estimated Move-Out Date</label><input type="date" id="unit-1-owner-moveout-date" /></div>
-        </div>
-        <div class="conditional" id="unit-1-tenant-info">
-          <div class="field-row">
-            <div class="field-group"><label>Current Tenant Name</label><input type="text" id="unit-1-tenant-name" /></div>
-            <div class="field-group"><label>Tenant Phone</label><input type="tel" id="unit-1-tenant-phone" /></div>
-          </div>
-          <div class="field-group"><label>Tenant Email</label><input type="email" id="unit-1-tenant-email" /></div>
-          <div class="conditional" id="unit-1-move-out-date">
-            <div class="field-group"><label>Expected Move-Out Date</label><input type="date" id="unit-1-move-out" /></div>
-          </div>
-          <div class="conditional" id="unit-1-deposit-field">
-            <div class="field-group"><label>Current Security Deposit Amount ($)</label><input type="number" id="unit-1-deposit" min="0" placeholder="0" /></div>
-            <div class="field-group"><label>Current Monthly Rent</label><input type="number" id="unit-1-rent" min="0" placeholder="$0.00" /></div>
-          </div>
-        </div>
-      ` : unitOccupancyCards()}
+      ${unitOccupancyCards()}
 
       <!-- SECTION 4: APPLIANCES -->
       <div class="form-section-title">Appliances</div>
@@ -1179,7 +1153,7 @@ function renderStep2() {
             ['amen-recessed-lighting','Recessed Lighting'],
             ['amen-crown-molding','Crown Molding'],
             ['amen-adu','ADU / Guest House'],
-            ['amen-solar-owned','Solar Panels (Owned)'],
+            ['amen-solar-owned','Solar Panels'],
             ['amen-outdoor-kitchen','Outdoor Kitchen / Built-in BBQ'],
             ['amen-storage-room','Storage Room / Shed']
           ].map(([id, lbl]) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;padding:6px 10px;border:1px solid var(--bpm-border);border-radius:6px;cursor:pointer"><input type="checkbox" id="${id}" style="width:auto" /> ${lbl}</label>`).join('')}
@@ -1413,6 +1387,33 @@ function renderStep2() {
         </div>
       </div>
 
+      <!-- Pool vendor details — shown when Owner Pays: Pool/Spa is checked -->
+      <div id="pool-vendor-wrap" style="display:none">
+        <div class="field-group">
+          <label>Pool Vendor</label>
+          <div class="field-row">
+            <div class="field-group">
+              <label style="font-weight:400">Vendor Name</label>
+              <input type="text" id="pool-vendor-name" placeholder="Company name" />
+            </div>
+            <div class="field-group">
+              <label style="font-weight:400">Phone</label>
+              <input type="tel" id="pool-vendor-phone" placeholder="(619) 555-0100" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label style="font-weight:400">Email</label>
+              <input type="email" id="pool-vendor-email" placeholder="vendor@email.com" />
+            </div>
+            <div class="field-group">
+              <label style="font-weight:400">Website</label>
+              <input type="url" id="pool-vendor-website" placeholder="e.g. poolcompany.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="field-group">
         <label>Water Company Name</label>
         <input type="text" id="water-company-name" placeholder="e.g. Helix Water District" />
@@ -1431,6 +1432,15 @@ function renderStep2() {
         <label>Water Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely for your records)</span></label>
         <input type="text" id="water-login-password" placeholder="Password" style="max-width:300px" />
       </div>
+      ${units > 1 ? `
+      <div class="field-group" style="margin-top:16px">
+        <label>Water Metering <span style="font-weight:400;color:var(--bpm-muted)">(multi-unit)</span></label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="water-metering" value="individual" /> <div><div class="radio-option-label">Individually metered — each unit has its own meter</div></div></label>
+          <label class="radio-option"><input type="radio" name="water-metering" value="master" /> <div><div class="radio-option-label">One master meter for the whole property <span style="font-size:0.78rem;color:var(--bpm-blue);font-weight:400;">(RUBS will be implemented)</span></div></div></label>
+        </div>
+      </div>
+      ` : ''}
       <div class="field-group">
         <label>Sewer — Is it part of the water bill?</label>
         <div class="radio-stack">
@@ -1438,6 +1448,13 @@ function renderStep2() {
           <label class="radio-option"><input type="radio" name="sewer-type" value="separate_bill" /> <div><div class="radio-option-label">No, separate bill</div></div></label>
           <label class="radio-option"><input type="radio" name="sewer-type" value="property_tax" /> <div><div class="radio-option-label">On Property Tax Bill (Owner Cost)</div></div></label>
           <label class="radio-option"><input type="radio" name="sewer-type" value="hoa_pays" /> <div><div class="radio-option-label">HOA Pays Sewer (Owner Cost)</div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Is there a septic tank?</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="septic-tank" value="yes" /> <div><div class="radio-option-label">Yes — property uses a septic system</div></div></label>
+          <label class="radio-option"><input type="radio" name="septic-tank" value="no" /> <div><div class="radio-option-label">No — connected to city sewer</div></div></label>
         </div>
       </div>
       <div class="field-group">
@@ -1483,6 +1500,85 @@ function renderStep2() {
         </div>
       </div>
 
+      ${units > 1 ? `
+      <div class="field-group" style="margin-top:16px">
+        <label>Electricity Metering <span style="font-weight:400;color:var(--bpm-muted)">(multi-unit)</span></label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="elec-metering" value="individual" /> <div><div class="radio-option-label">Individually metered — each unit has its own meter</div></div></label>
+          <label class="radio-option"><input type="radio" name="elec-metering" value="master" /> <div><div class="radio-option-label">One master meter for the whole property <span style="font-size:0.78rem;color:var(--bpm-blue);font-weight:400;">(RUBS will be implemented)</span></div></div></label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Is there a separate house meter? <span style="font-weight:400;color:var(--bpm-muted)">(common areas, exterior lighting, etc.)</span></label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="elec-house-meter" value="yes" /> <div><div class="radio-option-label">Yes</div></div></label>
+          <label class="radio-option"><input type="radio" name="elec-house-meter" value="no" /> <div><div class="radio-option-label">No</div></div></label>
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="field-group">
+        <label>Gas Type</label>
+        <div class="radio-stack">
+          <label class="radio-option"><input type="radio" name="gas-type" value="natural" /> <div><div class="radio-option-label">Natural Gas (SDG&amp;E)</div></div></label>
+          <label class="radio-option"><input type="radio" name="gas-type" value="propane" /> <div><div class="radio-option-label">Propane</div></div></label>
+          <label class="radio-option"><input type="radio" name="gas-type" value="none" /> <div><div class="radio-option-label">No gas — all electric property</div></div></label>
+        </div>
+      </div>
+
+      <div id="gas-natural-wrap" style="display:none">
+        <div class="field-group">
+          <label>Is gas on its own bill or combined with electricity?</label>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="gas-bill-type" value="combined" /> <div><div class="radio-option-label">Combined with electricity on one SDG&amp;E bill</div></div></label>
+            <label class="radio-option"><input type="radio" name="gas-bill-type" value="separate" /> <div><div class="radio-option-label">Separate gas bill</div></div></label>
+          </div>
+        </div>
+        <div id="gas-separate-login-wrap" style="display:none">
+          <div class="field-row">
+            <div class="field-group">
+              <label>Gas Login Name</label>
+              <input type="text" id="gas-login-name" placeholder="Username or account number" />
+            </div>
+            <div class="field-group">
+              <label>Gas Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely)</span></label>
+              <input type="text" id="gas-login-password" placeholder="Password" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="gas-propane-wrap" style="display:none">
+        <div class="field-group">
+          <label>Propane Provider</label>
+          <select id="gas-propane-company">
+            <option value="">— Select provider —</option>
+            <option>AmeriGas</option>
+            <option>Ferrellgas</option>
+            <option>Suburban Propane</option>
+            <option>Blue Rhino</option>
+            <option>SoCal Propane</option>
+            <option>Superior Plus Propane</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div id="gas-propane-other-wrap" style="display:none">
+          <div class="field-group">
+            <input type="text" id="gas-propane-other" placeholder="Specify propane provider" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Propane Account / Login</label>
+            <input type="text" id="gas-propane-login" placeholder="Account number or username" />
+          </div>
+          <div class="field-group">
+            <label>Propane Login Password <span style="font-weight:400;color:var(--bpm-muted)">(stored securely)</span></label>
+            <input type="text" id="gas-propane-password" placeholder="Password" />
+          </div>
+        </div>
+      </div>
+
       <div id="solar-details-wrap" style="display:none">
         <div class="form-section-title">Solar</div>
         <div class="field-group">
@@ -1510,11 +1606,6 @@ function renderStep2() {
             <label class="radio-option"><input type="radio" name="solar-status" value="leased" /> <div><div class="radio-option-label">Leased</div></div></label>
           </div>
         </div>
-      </div>
-
-      <div id="pool-company-wrap" class="field-group" style="display:none">
-        <label>Pool Company</label>
-        <input type="text" id="pool-company" placeholder="Company name and contact" />
       </div>
 
       <!-- SECTION 10: PROPERTY DISCLOSURES -->
@@ -1808,7 +1899,16 @@ function renderStep2() {
       <div class="form-section-title">Additional Information</div>
       <div class="field-group">
         <label>Preferred Vendors &amp; Contact Information</label>
-        <textarea id="preferred-vendors" placeholder="e.g. ABC Plumbing (619) 555-0100, preferred electrician..." style="min-height:80px"></textarea>
+        <div id="vendor-blocks-container">
+          <div class="vendor-block" data-index="1" style="margin-bottom:10px">
+            <div class="field-row">
+              <div class="field-group" style="flex:2"><label style="font-weight:400;font-size:0.8rem">Vendor Name</label><input type="text" id="vendor-1-name" placeholder="Vendor name" /></div>
+              <div class="field-group"><label style="font-weight:400;font-size:0.8rem">Email</label><input type="email" id="vendor-1-email" placeholder="Email" /></div>
+              <div class="field-group"><label style="font-weight:400;font-size:0.8rem">Website</label><input type="url" id="vendor-1-website" placeholder="Website (optional)" /></div>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="add-vendor-btn" class="btn-secondary" style="margin-top:4px;padding:6px 14px;font-size:0.82rem">&#65291; Add Another Vendor</button>
       </div>
       <div class="field-group">
         <label>Anything else we should know? Warranties? As-is items?</label>
@@ -1839,6 +1939,11 @@ function renderStep2() {
         <div class="field-group">
           <label>Tenant Driver License / ID</label>
           <input type="file" id="doc-driver-license" accept=".pdf,.jpg,.jpeg,.png" />
+        </div>
+        <div class="field-group">
+          <label>Other Documents</label>
+          <p style="font-size:0.82rem;color:var(--bpm-muted);margin-bottom:8px">Upload any additional documents, forms, or files.</p>
+          <input type="file" id="doc-other-forms" accept="*/*" multiple />
         </div>
       </div>
 
@@ -1950,19 +2055,26 @@ function renderStep2() {
     document.getElementById('trash-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
   }))
 
-  // Pool company visibility — show when Backyard Pool, Backyard Spa, community Pool, or community Spa is checked
-  function updatePoolCompanyVisibility() {
-    const amenPool = document.getElementById('amen-backyard-pool')?.checked
-    const amenSpa  = document.getElementById('amen-backyard-spa')?.checked
-    const commPool = document.getElementById('comm-pool')?.checked
-    const commSpa  = document.getElementById('comm-spa')?.checked
-    const wrap = document.getElementById('pool-company-wrap')
-    if (wrap) wrap.style.display = (amenPool || amenSpa || commPool || commSpa) ? 'block' : 'none'
+  // Pool vendor visibility — show when Owner Pays: Pool/Spa is checked
+  function updatePoolVendorVisibility() {
+    const checked = document.getElementById('owner-pays-pool')?.checked
+    const wrap = document.getElementById('pool-vendor-wrap')
+    if (wrap) wrap.style.display = checked ? '' : 'none'
   }
-  ;['amen-backyard-pool','amen-backyard-spa','comm-pool','comm-spa'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', updatePoolCompanyVisibility)
+  document.getElementById('owner-pays-pool')?.addEventListener('change', updatePoolVendorVisibility)
+  updatePoolVendorVisibility()
+
+  // Gas type conditionals
+  document.querySelectorAll('input[name="gas-type"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('gas-natural-wrap').style.display = r.value === 'natural' && r.checked ? '' : 'none'
+    document.getElementById('gas-propane-wrap').style.display = r.value === 'propane' && r.checked ? '' : 'none'
+  }))
+  document.querySelectorAll('input[name="gas-bill-type"]').forEach(r => r.addEventListener('change', () => {
+    document.getElementById('gas-separate-login-wrap').style.display = r.value === 'separate' && r.checked ? '' : 'none'
+  }))
+  document.getElementById('gas-propane-company')?.addEventListener('change', e => {
+    document.getElementById('gas-propane-other-wrap').style.display = e.target.value === 'Other' ? '' : 'none'
   })
-  updatePoolCompanyVisibility()
 
   // Solar details visibility — show when Solar is in tenant pays, owner pays, or amenities
   function updateSolarVisibility() {
@@ -2037,6 +2149,25 @@ function renderStep2() {
     document.getElementById('referral-other-wrap').classList.toggle('visible', r.value === 'other' && r.checked)
     document.getElementById('referral-name-wrap').classList.toggle('visible', (r.value === 'realtor' || r.value === 'current_client') && r.checked)
   }))
+
+  // Preferred vendors — dynamic add-another blocks
+  let vendorCount = 1
+  document.getElementById('add-vendor-btn')?.addEventListener('click', () => {
+    vendorCount++
+    const container = document.getElementById('vendor-blocks-container')
+    const block = document.createElement('div')
+    block.className = 'vendor-block'
+    block.setAttribute('data-index', vendorCount)
+    block.style.marginBottom = '10px'
+    block.innerHTML = `
+      <div class="field-row">
+        <div class="field-group" style="flex:2"><label style="font-weight:400;font-size:0.8rem">Vendor Name</label><input type="text" id="vendor-${vendorCount}-name" placeholder="Vendor name" /></div>
+        <div class="field-group"><label style="font-weight:400;font-size:0.8rem">Email</label><input type="email" id="vendor-${vendorCount}-email" placeholder="Email" /></div>
+        <div class="field-group"><label style="font-weight:400;font-size:0.8rem">Website</label><input type="url" id="vendor-${vendorCount}-website" placeholder="Website (optional)" /></div>
+      </div>
+    `
+    container.appendChild(block)
+  })
 
   document.getElementById('btn-save-q').addEventListener('click', submitStep2)
   document.getElementById('btn-skip-2').addEventListener('click', () => skipStep(2))
@@ -2126,6 +2257,17 @@ async function submitStep2() {
   let owner4RoutingNumber = document.getElementById('owner4-routing')?.value?.trim() || ''
   let owner4AccountNumber = document.getElementById('owner4-account')?.value?.trim() || ''
 
+  // Collect preferred vendors into an array
+  const preferredVendors = []
+  const vendorBlocks = document.querySelectorAll('.vendor-block')
+  vendorBlocks.forEach((block, i) => {
+    const n = i + 1
+    const name    = document.getElementById('vendor-' + n + '-name')?.value?.trim()    || ''
+    const email   = document.getElementById('vendor-' + n + '-email')?.value?.trim()   || ''
+    const website = document.getElementById('vendor-' + n + '-website')?.value?.trim() || ''
+    if (name || email || website) preferredVendors.push({ name, email, website })
+  })
+
   const payload = {
     // RENTAL DETAILS
     leaseTerm:            document.querySelector('input[name="lease-term"]:checked')?.value       || '',
@@ -2184,13 +2326,26 @@ async function submitStep2() {
     waterWebsite:         document.getElementById('water-website')?.value?.trim()                 || '',
     waterLoginName:       document.getElementById('water-login-name')?.value?.trim()              || '',
     waterLoginPassword:   document.getElementById('water-login-password')?.value?.trim()          || '',
+    waterMeteringType:    document.querySelector('input[name="water-metering"]:checked')?.value   || '',
     sewerType:            document.querySelector('input[name="sewer-type"]:checked')?.value       || '',
+    septicTank:           document.querySelector('input[name="septic-tank"]:checked')?.value      || '',
+    gasType:              document.querySelector('input[name="gas-type"]:checked')?.value         || '',
+    gasBillType:          document.querySelector('input[name="gas-bill-type"]:checked')?.value    || '',
+    gasLoginName:         document.getElementById('gas-login-name')?.value?.trim()                || '',
+    gasLoginPassword:     document.getElementById('gas-login-password')?.value?.trim()            || '',
+    gasPropaneCompany:    document.getElementById('gas-propane-company')?.value                   || '',
+    gasPropaneOther:      document.getElementById('gas-propane-other')?.value?.trim()             || '',
+    gasPropaneLogin:      document.getElementById('gas-propane-login')?.value?.trim()             || '',
+    gasPropanePassword:   document.getElementById('gas-propane-password')?.value?.trim()          || '',
     trashCompany:         document.querySelector('input[name="trash-company"]:checked')?.value    || '',
     trashCompanyOther:    document.getElementById('trash-other-text')?.value?.trim()              || '',
     trashWebsite:         document.getElementById('trash-website')?.value?.trim()                 || '',
     trashLoginName:       document.getElementById('trash-login-name')?.value?.trim()              || '',
     trashLoginPassword:   document.getElementById('trash-login-password')?.value?.trim()          || '',
-    poolCompany:          document.getElementById('pool-company')?.value?.trim()                  || '',
+    poolVendorName:       document.getElementById('pool-vendor-name')?.value?.trim()              || '',
+    poolVendorEmail:      document.getElementById('pool-vendor-email')?.value?.trim()             || '',
+    poolVendorWebsite:    document.getElementById('pool-vendor-website')?.value?.trim()           || '',
+    poolVendorPhone:      document.getElementById('pool-vendor-phone')?.value?.trim()             || '',
     // DISCLOSURES
     leadPaint:            document.querySelector('input[name="lead-paint"]:checked')?.value       || '',
     floodZone:            document.querySelector('input[name="flood-zone"]:checked')?.value       || '',
@@ -2254,7 +2409,7 @@ async function submitStep2() {
     referralOther:        document.getElementById('referral-other-text')?.value?.trim()            || '',
     referralContact:      document.getElementById('referral-contact')?.value?.trim()              || '',
     // ADDITIONAL
-    preferredVendors:     document.getElementById('preferred-vendors')?.value?.trim()             || '',
+    preferredVendors,
     additionalNotes:      document.getElementById('additional-notes')?.value?.trim()              || '',
     // CURRENT MANAGEMENT
     currentlyManaged:     document.querySelector('input[name="currently-managed"]:checked')?.value || '',
@@ -2268,6 +2423,8 @@ async function submitStep2() {
     elecWebsite:          document.getElementById('elec-website')?.value?.trim()                  || '',
     elecLoginName:        document.getElementById('elec-login-name')?.value?.trim()               || '',
     elecLoginPassword:    document.getElementById('elec-login-password')?.value?.trim()           || '',
+    elecMeteringType:     document.querySelector('input[name="elec-metering"]:checked')?.value    || '',
+    elecHouseMeter:       document.querySelector('input[name="elec-house-meter"]:checked')?.value || '',
     // SOLAR
     solarCompanyName:     document.getElementById('solar-company-name')?.value?.trim()            || '',
     solarCompanyUrl:      document.getElementById('solar-company-url')?.value?.trim()             || '',
@@ -2315,6 +2472,7 @@ async function submitStep2() {
       { id: 'doc-move-in-inspection', type: 'move_in_inspection' },
       { id: 'doc-lease-addenda',      type: 'lease_addenda' },
       { id: 'doc-driver-license',     type: 'driver_license' },
+      { id: 'doc-other-forms',        type: 'other_documents' },
     ]
     const uploadToken = getToken()
     for (const { id, type } of docFields) {
@@ -3044,7 +3202,7 @@ function renderStep6() {
       </div>
 
       <div style="text-align:center;margin-bottom:24px">
-        <a href="https://www.appfolio.com/login-owner" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;display:inline-flex">
+        <a href="https://beyondpm.appfolio.com/oportal/users/log_in" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;display:inline-flex">
           Open AppFolio Owner Portal &#8599;
         </a>
       </div>

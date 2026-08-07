@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPI Dashboard — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Month bar */
+    .tracker-month-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .tracker-month-bar .form-select {
+      width: auto;
+      min-width: 180px;
+    }
+
+    /* Tab strip */
+    .tab-strip {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--color-border);
+      margin-bottom: 24px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.12s, border-color 0.12s;
+    }
+
+    .tab-btn:hover {
+      color: var(--color-text);
+    }
+
+    .tab-btn.active {
+      color: var(--color-accent);
+      border-bottom-color: var(--color-accent);
+    }
+
+    /* KPI card grid */
+    .kpi-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .kpi-card {
+      background: var(--color-surface);
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+      padding: 16px 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      position: relative;
+    }
+
+    .kpi-card-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+      padding-right: 20px;
+    }
+
+    .kpi-card-value {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .kpi-card-target {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .status-dot {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-green  { background: var(--color-success); }
+    .dot-yellow { background: var(--color-warning); }
+    .dot-red    { background: var(--color-danger); }
+    .dot-gray   { background: var(--color-border); }
+
+    /* Celebration tab */
+    .celebration-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .celebration-card {
+      background: var(--color-surface);
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+      padding: 18px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+
+    .celebration-type {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .celebration-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .celebration-empty {
+      color: var(--color-text-muted);
+      font-style: italic;
+      font-size: 0.875rem;
+    }
+
+    /* Wellness tab */
+    .wellness-tab-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .wellness-tab-stat {
+      background: var(--color-surface);
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+
+    .wellness-tab-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .wellness-tab-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1;
+    }
+
+    .wellness-progress-bar-track {
+      height: 10px;
+      background: var(--color-bg);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .wellness-progress-bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.5s;
+    }
+
+    .wellness-progress-label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 6px;
+    }
+
+    .wellness-milestone-banner {
+      padding: 16px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .wellness-milestone-banner.hit {
+      background: #f0fff4;
+      border-color: #9ae6b4;
+      color: #22543d;
+    }
+
+    .wellness-milestone-banner.not-hit {
+      background: #fffbeb;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
+
+    /* Chart section */
+    .chart-section {
+      background: var(--color-surface);
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+
+    .chart-section-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: 16px;
+    }
+
+    .chart-canvas-wrap {
+      height: 220px;
+      position: relative;
+    }
+
+    /* Tab panels */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* No data state inside a tab */
+    .no-data-msg {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content" style="max-width: 1200px;">
+
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <span>Loading KPI data...</span>
+      </div>
+
+      <div id="trackerContent" style="display:none;">
+
+        <!-- Page header + month picker -->
+        <div class="tracker-month-bar">
+          <div>
+            <div class="page-title" id="pageTitle">KPI Dashboard</div>
+          </div>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+            <label class="field-label" for="monthSelect" style="white-space: nowrap;">Viewing Month</label>
+            <select class="form-select" id="monthSelect" style="width: auto; min-width: 180px;"></select>
+          </div>
+        </div>
+
+        <!-- Tab strip -->
+        <div class="tab-strip" id="tabStrip">
+          <button class="tab-btn active" data-tab="celebration">Celebration</button>
+          <button class="tab-btn" data-tab="leasing">Leasing</button>
+          <button class="tab-btn" data-tab="business_dev">Business Dev</button>
+          <button class="tab-btn" data-tab="renewals">Renewals</button>
+          <button class="tab-btn" data-tab="delinquencies">Delinquencies</button>
+          <button class="tab-btn" data-tab="maintenance">Maintenance</button>
+          <button class="tab-btn" data-tab="financials">Financials</button>
+          <button class="tab-btn" data-tab="wellness">Wellness</button>
+          <button class="tab-btn" data-tab="relationships">Relationships</button>
+          <button class="tab-btn" data-tab="team_texts">Team Texts</button>
+        </div>
+
+        <!-- ================================================================
+             TAB PANELS
+        ================================================================= -->
+
+        <!-- CELEBRATION -->
+        <div class="tab-panel active" id="panel-celebration">
+          <div class="celebration-grid" id="celebrationCards"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">Monthly Celebrations (total entries per month)</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-celebration"></canvas></div>
+          </div>
+        </div>
+
+        <!-- LEASING -->
+        <div class="tab-panel" id="panel-leasing">
+          <div class="kpi-card-grid" id="cards-leasing"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">Vacancy % — 2026 Trend</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-leasing"></canvas></div>
+          </div>
+        </div>
+
+        <!-- BUSINESS DEV -->
+        <div class="tab-panel" id="panel-business_dev">
+          <div class="kpi-card-grid" id="cards-business_dev"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">Total Units Under Management — 2026 Trend</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-business_dev"></canvas></div>
+          </div>
+        </div>
+
+        <!-- RENEWALS -->
+        <div class="tab-panel" id="panel-renewals">
+          <div class="kpi-card-grid" id="cards-renewals"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">Signed Lease % — 2026 Trend</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-renewals"></canvas></div>
+          </div>
+        </div>
+
+        <!-- DELINQUENCIES -->
+        <div class="tab-panel" id="panel-delinquencies">
+          <div class="kpi-card-grid" id="cards-delinquencies"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">End-of-Month Balance ($) — 2026 Trend</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-delinquencies"></canvas></div>
+          </div>
+        </div>
+
+        <!-- MAINTENANCE -->
+        <div class="tab-panel" id="panel-maintenance">
+          <div class="kpi-card-grid" id="cards-maintenance"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">Avg Days to Complete — 2026 Trend</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-maintenance"></canvas></div>
+          </div>
+        </div>
+
+        <!-- FINANCIALS -->
+        <div class="tab-panel" id="panel-financials">
+          <div class="kpi-card-grid" id="cards-financials"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">PM Profit % — 2026 Trend</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-financials"></canvas></div>
+          </div>
+        </div>
+
+        <!-- TEAM TEXTS -->
+        <div class="tab-panel" id="panel-team_texts">
+          <div class="kpi-card-grid" id="cards-team_texts"></div>
+        </div>
+
+        <!-- RELATIONSHIPS -->
+        <div class="tab-panel" id="panel-relationships">
+          <div class="kpi-card-grid" id="cards-relationships"></div>
+        </div>
+
+        <!-- WELLNESS -->
+        <div class="tab-panel" id="panel-wellness">
+          <div id="wellnessBanner" class="wellness-milestone-banner not-hit" style="display:none;"></div>
+          <div class="wellness-tab-grid" id="wellnessStats"></div>
+          <div class="chart-section">
+            <div class="chart-section-title">Units Under Management — Progress Toward 500</div>
+            <div class="chart-canvas-wrap"><canvas id="chart-wellness"></canvas></div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /trackerContent -->
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    // =========================================================================
+    // BOOT
+    // =========================================================================
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+
+    const { user, profile } = auth
+
+    renderHeader(profile)
+    renderSidebar('kpi-tracker', profile.role, user.email)
+
+    buildMonthDropdown()
+    await loadAll()
+
+    document.getElementById('monthSelect').addEventListener('change', loadAll)
+
+    // Tab switching
+    document.getElementById('tabStrip').addEventListener('click', e => {
+      const btn = e.target.closest('.tab-btn')
+      if (!btn) return
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'))
+      btn.classList.add('active')
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active')
+    })
+
+    // =========================================================================
+    // MONTH DROPDOWN — current month + previous 11
+    // =========================================================================
+    function buildMonthDropdown() {
+      const sel = document.getElementById('monthSelect')
+      const now = new Date()
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+        const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        const opt = document.createElement('option')
+        opt.value = value
+        opt.textContent = label
+        sel.appendChild(opt)
+      }
+    }
+
+    // =========================================================================
+    // LOAD ALL DATA
+    // =========================================================================
+    let activeCharts = {}
+
+    async function loadAll() {
+      const month = document.getElementById('monthSelect').value
+
+      // Update page title
+      const d = new Date(month + 'T00:00:00')
+      document.getElementById('pageTitle').textContent =
+        'KPI Dashboard — ' + d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+      // Fetch current month entries and targets in parallel
+      const [entriesRes, targetsRes, historyRes] = await Promise.all([
+        supabase.from('kpi_entries').select('category, metric_key, metric_value, metric_text').eq('reporting_month', month),
+        supabase.from('kpi_targets').select('category, metric_key, display_name, target_value, target_direction, target_label, display_order'),
+        supabase.from('kpi_entries').select('reporting_month, category, metric_key, metric_value').gte('reporting_month', '2026-01-01').order('reporting_month', { ascending: true })
+      ])
+
+      if (entriesRes.error || targetsRes.error) {
+        document.getElementById('loadingState').innerHTML = `
+          <div class="alert alert-danger" style="max-width:480px;">
+            Could not load data: ${escHtml((entriesRes.error || targetsRes.error).message)}
+          </div>
+        `
+        return
+      }
+
+      const entries  = entriesRes.data  || []
+      const targets  = targetsRes.data  || []
+      const history  = historyRes.data  || []
+
+      // Build lookup maps
+      const entryMap = {}
+      entries.forEach(e => { entryMap[`${e.category}::${e.metric_key}`] = e })
+
+      const targetMap = {}
+      targets.forEach(t => {
+        if (!targetMap[t.category]) targetMap[t.category] = []
+        targetMap[t.category].push(t)
+      })
+
+      // Sort targets by display_order within each category
+      Object.keys(targetMap).forEach(cat => {
+        targetMap[cat].sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+      })
+
+      // Build historical data structures
+      // { category: { metric_key: { [month]: value } } }
+      const histMap = {}
+      history.forEach(r => {
+        if (!histMap[r.category]) histMap[r.category] = {}
+        if (!histMap[r.category][r.metric_key]) histMap[r.category][r.metric_key] = {}
+        histMap[r.category][r.metric_key][r.reporting_month] = r.metric_value
+      })
+
+      // Collect all unique months with data, sorted
+      const allMonths = [...new Set(history.map(r => r.reporting_month))].sort()
+
+      document.getElementById('loadingState').style.display = 'none'
+      document.getElementById('trackerContent').style.display = ''
+
+      // Destroy any existing charts before re-rendering
+      Object.values(activeCharts).forEach(c => c.destroy())
+      activeCharts = {}
+
+      // Fetch live owner health at-risk count
+      const { data: ownerHealthData } = await supabase
+        .from('v_owner_health')
+        .select('tier')
+
+      renderCelebration(entryMap)
+      renderKpiTab('leasing',         targetMap, entryMap)
+      renderKpiTab('business_dev',    targetMap, entryMap)
+      renderKpiTab('renewals',        targetMap, entryMap)
+      renderKpiTab('delinquencies',   targetMap, entryMap)
+      renderKpiTab('maintenance',     targetMap, entryMap)
+      renderKpiTab('financials',      targetMap, entryMap)
+      renderRelationships(ownerHealthData || [])
+      renderKpiTab('team_texts', targetMap, entryMap)
+      renderWellness(entryMap, histMap, allMonths)
+
+      renderTrendChart('leasing',       'chart-leasing',       histMap, allMonths, 'vacancy_pct',           'Vacancy %')
+      renderTrendChart('business_dev',  'chart-business_dev',  histMap, allMonths, 'total_units',           'Total Units')
+      renderTrendChart('renewals',      'chart-renewals',      histMap, allMonths, 'signed_lease_pct',      'Signed Lease %')
+      renderTrendChart('delinquencies', 'chart-delinquencies', histMap, allMonths, 'eom_balance_dollars',   'EOM Balance ($)')
+      renderTrendChart('maintenance',   'chart-maintenance',   histMap, allMonths, 'avg_days_complete',     'Avg Days to Complete')
+      renderTrendChart('financials',    'chart-financials',    histMap, allMonths, 'pm_profit_pct',         'PM Profit %')
+      renderCelebrationChart(histMap, allMonths)
+      renderWellnessChart(histMap, allMonths)
+    }
+
+    // =========================================================================
+    // CELEBRATION TAB
+    // =========================================================================
+    function renderCelebration(entryMap) {
+      const types = [
+        { key: 'resident_celebration', label: 'Resident' },
+        { key: 'owner_celebration',    label: 'Owner' },
+        { key: 'vendor_celebration',   label: 'Vendor' },
+        { key: 'team_celebration',     label: 'Team Member' }
+      ]
+
+      const grid = document.getElementById('celebrationCards')
+      grid.innerHTML = types.map(t => {
+        const row  = entryMap[`celebration::${t.key}`]
+        const text = row?.metric_text?.trim()
+        return `
+          <div class="celebration-card">
+            <div class="celebration-type">${t.label} Celebration</div>
+            ${text
+              ? `<div class="celebration-name">${escHtml(text)}</div>`
+              : `<div class="celebration-empty">None entered</div>`
+            }
+          </div>
+        `
+      }).join('')
+    }
+
+    // =========================================================================
+    // KPI CARD TABS
+    // =========================================================================
+    function renderKpiTab(category, targetMap, entryMap) {
+      const grid    = document.getElementById('cards-' + category)
+      const catTargets = targetMap[category] || []
+
+      if (catTargets.length === 0) {
+        grid.innerHTML = `<div class="no-data-msg">No targets configured for this section.</div>`
+        return
+      }
+
+      grid.innerHTML = catTargets.map(t => {
+        const row  = entryMap[`${category}::${t.metric_key}`]
+        const val  = row?.metric_value
+
+        if (val == null) {
+          return `
+            <div class="kpi-card">
+              <div class="status-dot dot-gray"></div>
+              <div class="kpi-card-name">${escHtml(t.display_name)}</div>
+              <div class="kpi-card-value" style="color: var(--color-text-muted); font-size: 1.5rem;">—</div>
+              <div class="kpi-card-target">${escHtml(t.target_label || '')}</div>
+            </div>
+          `
+        }
+
+        const dotClass = statusDot(val, t.target_value, t.target_direction)
+        const formatted = formatValue(val, t.metric_key)
+
+        return `
+          <div class="kpi-card">
+            <div class="status-dot ${dotClass}"></div>
+            <div class="kpi-card-name">${escHtml(t.display_name)}</div>
+            <div class="kpi-card-value">${formatted}</div>
+            <div class="kpi-card-target">${escHtml(t.target_label || '')}</div>
+          </div>
+        `
+      }).join('')
+    }
+
+    // =========================================================================
+    // RELATIONSHIPS TAB
+    // =========================================================================
+    function renderRelationships(ownerHealthData) {
+      const grid = document.getElementById('cards-relationships')
+
+      const atRisk  = ownerHealthData.filter(r => r.tier === 'at_risk').length
+      const total   = ownerHealthData.length
+      const target  = 2
+      const dotClass = atRisk < target ? 'dot-green' : atRisk === target ? 'dot-yellow' : 'dot-red'
+
+      const tiers = ['champion','healthy','watch','at_risk']
+      const tierLabels = { champion:'Champion', healthy:'Healthy', watch:'Watch', at_risk:'At Risk' }
+      const tierColors = { champion:'#22c55e', healthy:'#3b82f6', watch:'#e87a30', at_risk:'#e04444' }
+
+      const tierCards = tiers.map(tier => {
+        const count = ownerHealthData.filter(r => r.tier === tier).length
+        return `
+          <div class="kpi-card">
+            <div class="status-dot" style="background:${tierColors[tier]};"></div>
+            <div class="kpi-card-name">${tierLabels[tier]}</div>
+            <div class="kpi-card-value" style="color:${tierColors[tier]};">${count}</div>
+            <div class="kpi-card-target">of ${total} owners</div>
+          </div>
+        `
+      }).join('')
+
+      grid.innerHTML = `
+        <div class="kpi-card">
+          <div class="status-dot ${dotClass}"></div>
+          <div class="kpi-card-name">Owner At Risk</div>
+          <div class="kpi-card-value" style="color:${atRisk < target ? 'var(--color-success)' : 'var(--color-danger)'};">${atRisk}</div>
+          <div class="kpi-card-target">Target: less than ${target}</div>
+        </div>
+        ${tierCards}
+        <div class="kpi-card" style="border-left: 3px solid var(--color-accent);">
+          <div class="kpi-card-name">Total Owners Scored</div>
+          <div class="kpi-card-value">${total}</div>
+          <div class="kpi-card-target">Live from Owner Health</div>
+        </div>
+      `
+    }
+
+    // =========================================================================
+    // WELLNESS TAB
+    // =========================================================================
+    function renderWellness(entryMap, histMap, allMonths) {
+      const unitsRow  = entryMap['business_dev::total_units']
+      const ratingRow = entryMap['business_dev::google_rating']
+
+      const units  = unitsRow?.metric_value  ?? null
+      const rating = ratingRow?.metric_value ?? null
+
+      const unitsHit  = units  != null && units  >= 500
+      const ratingHit = rating != null && rating >= 4.5
+      const bothHit   = unitsHit && ratingHit
+
+      // Banner
+      const banner = document.getElementById('wellnessBanner')
+      if (units != null || rating != null) {
+        banner.style.display = ''
+        banner.className = 'wellness-milestone-banner ' + (bothHit ? 'hit' : 'not-hit')
+        if (bothHit) {
+          banner.textContent = 'Wellness milestone unlocked! Both targets hit.'
+        } else {
+          const parts = []
+          if (!unitsHit) {
+            parts.push(units != null ? `${500 - Math.round(units)} away from 500 units` : 'No units data')
+          }
+          if (!ratingHit) {
+            parts.push(rating != null ? `${(4.5 - rating).toFixed(1)} points away from 4.5 Google Rating` : 'No rating data')
+          }
+          banner.textContent = parts.join(' · ')
+        }
+      }
+
+      // Stats
+      const statsEl = document.getElementById('wellnessStats')
+      const unitsPct = units != null ? Math.min(100, (units / 500) * 100) : 0
+      const unitsColor = unitsHit ? 'var(--color-success)' : (units >= 400 ? 'var(--color-warning)' : 'var(--color-accent)')
+
+      const ratingPct = rating != null ? Math.min(100, (rating / 5) * 100) : 0
+      const ratingColor = ratingHit ? 'var(--color-success)' : (rating >= 4.0 ? 'var(--color-warning)' : 'var(--color-danger)')
+
+      statsEl.innerHTML = `
+        <div class="wellness-tab-stat">
+          <div class="wellness-tab-label">Total Units Under Management</div>
+          <div class="wellness-tab-value">${units != null ? units : '—'}</div>
+          <div class="wellness-progress-bar-track">
+            <div class="wellness-progress-bar-fill" style="width:${unitsPct}%; background:${unitsColor};"></div>
+          </div>
+          <div class="wellness-progress-label">${units != null ? `${unitsPct.toFixed(0)}% of 500-unit goal` : 'No data'}</div>
+        </div>
+        <div class="wellness-tab-stat">
+          <div class="wellness-tab-label">Google Rating</div>
+          <div class="wellness-tab-value">${rating != null ? rating.toFixed(1) : '—'}</div>
+          <div class="wellness-progress-bar-track">
+            <div class="wellness-progress-bar-fill" style="width:${ratingPct}%; background:${ratingColor};"></div>
+          </div>
+          <div class="wellness-progress-label">${rating != null ? `Target: 4.5 ${ratingHit ? '(hit)' : '(not yet)'}` : 'No data'}</div>
+        </div>
+        <div class="wellness-tab-stat">
+          <div class="wellness-tab-label">Units Milestone</div>
+          <div class="wellness-tab-value" style="color:${unitsHit ? 'var(--color-success)' : 'var(--color-danger)'};">${unitsHit ? '✓' : '✗'}</div>
+          <div class="wellness-progress-label">500 units target</div>
+        </div>
+        <div class="wellness-tab-stat">
+          <div class="wellness-tab-label">Rating Milestone</div>
+          <div class="wellness-tab-value" style="color:${ratingHit ? 'var(--color-success)' : 'var(--color-danger)'};">${ratingHit ? '✓' : '✗'}</div>
+          <div class="wellness-progress-label">4.5 star target</div>
+        </div>
+      `
+    }
+
+    // =========================================================================
+    // TREND CHARTS
+    // =========================================================================
+    function renderTrendChart(category, canvasId, histMap, allMonths, metricKey, label) {
+      const canvas = document.getElementById(canvasId)
+      if (!canvas) return
+
+      const catData = histMap[category] || {}
+      const metricData = catData[metricKey] || {}
+
+      const monthsWithData = allMonths.filter(m => metricData[m] != null)
+
+      if (monthsWithData.length === 0) {
+        canvas.parentElement.innerHTML = `<div class="no-data-msg">No data yet for this chart.</div>`
+        return
+      }
+
+      const labels = monthsWithData.map(m => {
+        const d = new Date(m + 'T00:00:00')
+        return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      })
+      const values = monthsWithData.map(m => metricData[m])
+
+      const chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: values,
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52,152,219,0.08)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: '#3498db',
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } }, beginAtZero: false }
+          }
+        }
+      })
+      activeCharts[canvasId] = chart
+    }
+
+    function renderCelebrationChart(histMap, allMonths) {
+      const canvas = document.getElementById('chart-celebration')
+      if (!canvas) return
+
+      const celebKeys = ['resident_celebration', 'owner_celebration', 'vendor_celebration', 'team_celebration']
+      const catData   = histMap['celebration'] || {}
+
+      // Count how many non-null text entries exist per month
+      const monthsWithData = allMonths.filter(m =>
+        celebKeys.some(k => catData[k] && catData[k][m] != null)
+      )
+
+      if (monthsWithData.length === 0) {
+        canvas.parentElement.innerHTML = `<div class="no-data-msg">No celebration data yet.</div>`
+        return
+      }
+
+      const labels = monthsWithData.map(m => {
+        const d = new Date(m + 'T00:00:00')
+        return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      })
+      const values = monthsWithData.map(m =>
+        celebKeys.filter(k => catData[k] && catData[k][m] != null).length
+      )
+
+      const chart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Celebrations',
+            data: values,
+            backgroundColor: 'rgba(52,152,219,0.6)',
+            borderColor: '#3498db',
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1, font: { size: 11 } }, beginAtZero: true, max: 5 }
+          }
+        }
+      })
+      activeCharts['chart-celebration'] = chart
+    }
+
+    function renderWellnessChart(histMap, allMonths) {
+      const canvas = document.getElementById('chart-wellness')
+      if (!canvas) return
+
+      const catData   = histMap['business_dev'] || {}
+      const metricData = catData['total_units'] || {}
+
+      const monthsWithData = allMonths.filter(m => metricData[m] != null)
+
+      if (monthsWithData.length === 0) {
+        canvas.parentElement.innerHTML = `<div class="no-data-msg">No units data yet.</div>`
+        return
+      }
+
+      const labels = monthsWithData.map(m => {
+        const d = new Date(m + 'T00:00:00')
+        return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      })
+      const values = monthsWithData.map(m => metricData[m])
+
+      const chart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Units Under Management',
+              data: values,
+              backgroundColor: values.map(v => v >= 500 ? 'rgba(46,204,113,0.6)' : 'rgba(52,152,219,0.6)'),
+              borderColor:     values.map(v => v >= 500 ? '#2ecc71' : '#3498db'),
+              borderWidth: 1,
+              borderRadius: 4
+            },
+            {
+              label: '500-Unit Goal',
+              data: values.map(() => 500),
+              type: 'line',
+              borderColor: '#e74c3c',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { font: { size: 11 } } }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } }, beginAtZero: true }
+          }
+        }
+      })
+      activeCharts['chart-wellness'] = chart
+    }
+
+    // =========================================================================
+    // STATUS DOT
+    // =========================================================================
+    function statusDot(value, target, direction) {
+      if (target == null) return 'dot-gray'
+      if (direction === 'above') {
+        if (value >= target)           return 'dot-green'
+        if (value >= target * 0.8)     return 'dot-yellow'
+        return 'dot-red'
+      }
+      // 'below' — lower is better
+      if (value <= target)             return 'dot-green'
+      if (value <= target * 1.2)       return 'dot-yellow'
+      return 'dot-red'
+    }
+
+    // =========================================================================
+    // FORMAT VALUES
+    // =========================================================================
+    function formatValue(val, key) {
+      if (val == null) return '—'
+      const pctKeys = [
+        'vacancy_pct', 'hold_pct', 'turnover_pct', 'nonpayment_pct',
+        'delinquency_revenue_pct', 'eom_balance_pct', 'pct_open_7days',
+        'response_rate_pct', 'signed_lease_pct', 'pm_profit_pct',
+        'annual_churn_pct', 'facilities_opex_pct'
+      ]
+      const dollarKeys = [
+        'total_delinquent_dollars', 'eom_balance_dollars',
+        'revenue_per_unit', 'unit_acquisition_cost'
+      ]
+      if (pctKeys.includes(key))    return val.toFixed(1) + '%'
+      if (dollarKeys.includes(key)) return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      if (Number.isInteger(val))    return val.toLocaleString()
+      return parseFloat(val.toFixed(2)).toString()
+    }
+
+    // =========================================================================
+    // HELPER
+    // =========================================================================
+    function escHtml(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+  </script>
+
+</body>
+</html>

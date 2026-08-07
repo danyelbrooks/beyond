@@ -233,7 +233,7 @@ I send emails to: tenants, owners, and vendors
 
 ### Internal Communication
 ```
-I use: Slack and LeadSimple
+I use: Google Chat and LeadSimple
 ```
 
 ### Phone System

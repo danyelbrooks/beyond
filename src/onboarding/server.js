@@ -1,7 +1,7 @@
 /**
  * server.js — BPM Owner Onboarding Portal API
  *
- * Runs on port 3006 (completely independent of the main server on 3005).
+ * Runs on port 3006 (independent of the main server on 3005).
  * Serves both the staff management API and the owner-facing portal.
  *
  * Staff routes:  /api/onboarding/*  — require Supabase JWT (requireAuth)
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'url'
 import { createReadStream, existsSync } from 'fs'
 
 import { generateToken }             from './token.js'
-import { lookupByAddress, lookupPropertyDetails, lookupFloodZone } from './arcgis.js'
+import { lookupByAddress, lookupByApn, lookupPropertyDetails, lookupFloodZone } from './arcgis.js'
 import { createSubfolder, uploadBuffer } from './drive-uploader.js'
 import {
   generateSignatureCertificate,
@@ -32,6 +32,16 @@ import {
   generateIntakeSummary,
 } from './pdf-generator.js'
 import Anthropic from '@anthropic-ai/sdk'
+import { sendEmail } from '../email/gmail-client.js'
+import { syncAfterStep1 as afSyncStep1, syncAfterStep2 as afSyncStep2 } from './appfolio-sync.js'
+
+const STAFF_EMAILS  = ['help@bpmsd.com', 'care@bpmsd.com', 'danyel@bpmsd.com']
+const DASHBOARD_URL = 'http://localhost:3000/command-center/onboarding-dashboard.html'
+
+function notifyStaff(subject, bodyHtml) {
+  sendEmail(STAFF_EMAILS, subject, bodyHtml)
+    .catch(err => console.error('[Staff notify]', err.message))
+}
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = path.dirname(__filename)
@@ -43,20 +53,14 @@ const __dirname  = path.dirname(__filename)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits:  { fileSize: 15 * 1024 * 1024 },  // 15 MB
-  fileFilter: (req, file, cb) => {
-    const allowed = ['application/pdf', 'image/jpeg', 'image/png']
-    if (!allowed.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type — PDF, JPG, or PNG only'))
-    }
-    cb(null, true)
-  },
+  fileFilter: (req, file, cb) => cb(null, true),
 })
 
 function validateMagicBytes(buffer, mimetype) {
   if (mimetype === 'application/pdf') return buffer.slice(0, 4).toString() === '%PDF'
   if (mimetype === 'image/jpeg')      return buffer[0] === 0xFF && buffer[1] === 0xD8
   if (mimetype === 'image/png')       return buffer.slice(0, 8).toString('hex') === '89504e470d0a1a0a'
-  return false
+  return true  // unknown types (Word, Excel, etc.) pass through without magic-byte check
 }
 
 // =============================================================================
@@ -180,6 +184,7 @@ async function checkAllComplete(onboardingId) {
 
 /** Mark onboarding complete: generate entry sheet, update status, flag staff. */
 async function completeOnboarding(onboardingId) {
+  console.log(`[Onboarding] completeOnboarding fired for ${onboardingId}`)
   const { data: onboarding } = await supabase
     .from('onboardings')
     .select('*')
@@ -245,6 +250,16 @@ async function completeOnboarding(onboardingId) {
   } catch (err) {
     console.error('[Onboarding] AppFolio sync error:', err.message)
   }
+
+  // Notify staff that onboarding is fully complete
+  notifyStaff(
+    `[Onboarding Complete] ${onboarding.owner_name} — ${onboarding.short_address}`,
+    `<p><strong>${onboarding.owner_name}</strong> has completed all onboarding steps.</p>
+     <p><strong>Property:</strong> ${onboarding.property_address}</p>
+     <p><strong>Completed:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} PT</p>
+     <p>The AppFolio Entry Sheet and Intake Summary are in their Google Drive folder.</p>
+     <p><a href="${DASHBOARD_URL}">View Onboarding Dashboard</a></p>`
+  )
 }
 
 /** Bump last_activity_at on the onboarding record. */
@@ -285,11 +300,18 @@ function nextStepNumber(steps, afterStep) {
 // STAFF ROUTES — all require requireAuth
 // =============================================================================
 
-// GET /api/onboarding/arcgis?address=...
+// GET /api/onboarding/arcgis?address=...  OR  ?apn=...
 // ArcGIS parcel lookup — called by the New Onboarding form
 app.get('/api/onboarding/arcgis', requireAuth, async (req, res) => {
-  const { address } = req.query
-  if (!address?.trim()) return res.status(400).json({ error: 'address is required' })
+  const { address, apn } = req.query
+
+  if (apn?.trim()) {
+    const result = await lookupByApn(apn.trim())
+    if (!result) return res.json({ found: false })
+    return res.json({ found: true, ...result })
+  }
+
+  if (!address?.trim()) return res.status(400).json({ error: 'address or apn is required' })
 
   const result = await lookupByAddress(address.trim())
   if (!result) return res.json({ found: false })
@@ -311,12 +333,13 @@ app.post(
     ownerMailingAddress: 200,
     entityType:          20,
     apn:                 30,
+    appfolioOwnerId:     30,
   }),
   async (req, res) => {
     const {
       propertyAddress, shortAddress, ownerName, ownerEmail, ownerPhone,
       agreementType, units = 1, ownerFirstName, ownerMailingAddress,
-      entityType = 'individual', apn,
+      entityType = 'individual', apn, appfolioOwnerId,
       managementStartDate, agreementTerminationDate,
     } = req.body
 
@@ -347,6 +370,7 @@ app.post(
         entity_type:            entityType,
         management_start_date:      managementStartDate || null,
         agreement_termination_date: agreementTerminationDate || null,
+        appfolio_owner_id:          appfolioOwnerId || null,
         created_by:             req.user.id,
         status:                 'pending',
       })
@@ -397,9 +421,23 @@ app.post(
     let propertyDetails = null
     let floodZoneData   = null
     if (apn) {
-      propertyDetails = await lookupPropertyDetails(apn)
-      if (propertyDetails?.lat && propertyDetails?.lng) {
-        floodZoneData = await lookupFloodZone(propertyDetails.lat, propertyDetails.lng)
+      try {
+        propertyDetails = await lookupPropertyDetails(apn)
+        if (propertyDetails?.lat && propertyDetails?.lng) {
+          floodZoneData = await lookupFloodZone(propertyDetails.lat, propertyDetails.lng)
+        }
+        if (propertyDetails || floodZoneData) {
+          await supabase.from('onboardings').update({
+            year_built:  propertyDetails?.yearBuilt  || null,
+            sq_ft:       propertyDetails?.sqFt       || null,
+            bedrooms:    propertyDetails?.bedrooms   || null,
+            bathrooms:   propertyDetails?.bathrooms  || null,
+            flood_zone:  floodZoneData?.floodZone    || null,
+            sfha:        floodZoneData?.sfha         || false,
+          }).eq('id', onboarding.id)
+        }
+      } catch (err) {
+        console.error('[Onboarding create] Property details lookup error:', err.message)
       }
     }
 
@@ -547,6 +585,29 @@ app.patch('/api/onboarding/:id/notes', requireAuth, async (req, res) => {
   res.json({ ok: true })
 })
 
+// POST /api/onboarding/:id/complete — staff manually marks an onboarding complete
+app.post('/api/onboarding/:id/complete', requireAuth, async (req, res) => {
+  const { id } = req.params
+
+  const { data: ob, error } = await supabase
+    .from('onboardings')
+    .select('status')
+    .eq('id', id)
+    .single()
+
+  if (error || !ob) return res.status(404).json({ error: 'Onboarding not found' })
+  if (ob.status === 'complete') return res.status(400).json({ error: 'Already complete' })
+  if (ob.status === 'revoked')  return res.status(400).json({ error: 'Cannot complete a revoked onboarding' })
+
+  try {
+    await completeOnboarding(id)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[Manual complete]', err.message)
+    res.status(500).json({ error: 'Failed to complete onboarding' })
+  }
+})
+
 // DELETE /api/onboarding/:id/revoke
 app.delete('/api/onboarding/:id/revoke', requireAuth, async (req, res) => {
   const { id } = req.params
@@ -679,6 +740,21 @@ app.post('/api/onboard/:token/step/1', requireToken, async (req, res) => {
     await touchActivity(ob.id)
     await supabase.from('onboardings').update({ status: 'in_progress' }).eq('id', ob.id).eq('status', 'pending')
 
+    // Fire-and-forget: create AppFolio owner + property after agreement is signed
+    afSyncStep1(ob.id, supabase)
+      .then(() => console.log(`[Step 1] AF sync completed for ${ob.id}`))
+      .catch(err => console.error('[Step 1 AF sync error]', err.message))
+
+    // Notify staff that onboarding has started
+    console.log(`[Step 1] Firing staff email notification`)
+    notifyStaff(
+      `[Onboarding Started] ${ob.owner_name} — ${ob.short_address}`,
+      `<p><strong>${ob.owner_name}</strong> has signed the management agreement and started their onboarding.</p>
+       <p><strong>Property:</strong> ${ob.property_address}</p>
+       <p><strong>Started:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} PT</p>
+       <p><a href="${DASHBOARD_URL}">View Onboarding Dashboard</a></p>`
+    )
+
     res.json({ success: true, nextStep: 2 })
   } catch (err) {
     console.error('[Step 1] Error:', err.message)
@@ -690,7 +766,7 @@ app.post('/api/onboard/:token/step/1', requireToken, async (req, res) => {
 app.post(
   '/api/onboard/:token/step/2',
   requireToken,
-  validateStrings({ hoaCompany: 500, hoaPhone: 100, hoaEmail: 200, hoaWebsite: 500, hoaLoginName: 200, hoaLoginPassword: 200, waterCompanyName: 200, waterLoginName: 200, waterLoginPassword: 200, deathDetail: 2000, additionalNotes: 2000, preferredVendors: 1000, parkingRestrictions: 500, gateCode: 500, mgmtCompanyName: 200, mgmtCompanyUrl: 300, mgmtCompanyPhone: 50, mgmtContactName: 120, mgmtCompanyEmail: 200, alarmCode: 100, trashWebsite: 300, trashLoginName: 200, trashLoginPassword: 200, elecCompanyName: 200, elecWebsite: 300, elecLoginName: 200, elecLoginPassword: 200, solarCompanyName: 200, solarCompanyUrl: 300, solarLoginName: 200, solarLoginPassword: 200, warrantyLoginName: 200, warrantyLoginPassword: 200, warrantyUrl: 300 }),
+  validateStrings({ hoaCompany: 500, hoaPhone: 100, hoaEmail: 200, hoaWebsite: 500, hoaLoginName: 200, hoaLoginPassword: 200, waterCompanyName: 200, waterLoginName: 200, waterLoginPassword: 200, deathDetail: 2000, additionalNotes: 2000, parkingRestrictions: 500, gateCode: 500, mgmtCompanyName: 200, mgmtCompanyUrl: 300, mgmtCompanyPhone: 50, mgmtContactName: 120, mgmtCompanyEmail: 200, alarmCode: 100, trashWebsite: 300, trashLoginName: 200, trashLoginPassword: 200, elecCompanyName: 200, elecWebsite: 300, elecLoginName: 200, elecLoginPassword: 200, solarCompanyName: 200, solarCompanyUrl: 300, solarLoginName: 200, solarLoginPassword: 200, warrantyLoginName: 200, warrantyLoginPassword: 200, warrantyUrl: 300, poolVendorName: 200, poolVendorEmail: 200, poolVendorWebsite: 300, poolVendorPhone: 50 }),
   async (req, res) => {
     const ob = req.onboarding
 
@@ -716,7 +792,8 @@ app.post(
       // utilities
       'tenantPays', 'ownerPays',
       'waterCompanyName', 'waterWebsite', 'waterLoginName', 'waterLoginPassword', 'sewerType',
-      'trashCompany', 'trashCompanyOther', 'poolCompany',
+      'trashCompany', 'trashCompanyOther',
+      'poolVendorName', 'poolVendorEmail', 'poolVendorWebsite', 'poolVendorPhone',
       // current management
       'currentlyManaged', 'mgmtCompanyName', 'mgmtCompanyUrl', 'mgmtCompanyPhone', 'mgmtContactName', 'mgmtCompanyEmail',
       // access
@@ -754,18 +831,17 @@ app.post(
       if (req.body[f] !== undefined) safeData[f] = req.body[f]
     }
 
-    // Extract sensitive ACH fields for PDF generation only — NEVER stored in DB
-    const ownerRoutingNumber  = req.body._ownerRoutingNumber  || ''
-    const ownerAccountNumber  = req.body._ownerAccountNumber  || ''
-    const owner2RoutingNumber = req.body._owner2RoutingNumber || ''
-    const owner2AccountNumber = req.body._owner2AccountNumber || ''
-    const owner3RoutingNumber = req.body._owner3RoutingNumber || ''
-    const owner3AccountNumber = req.body._owner3AccountNumber || ''
-    const owner4RoutingNumber = req.body._owner4RoutingNumber || ''
-    const owner4AccountNumber = req.body._owner4AccountNumber || ''
+    // ACH fields read directly from req.body below — NEVER stored in DB
 
     try {
-      const pdfBuffer = await generateQuestionnairePDF(safeData, ob.short_address, ownerRoutingNumber, ownerAccountNumber)
+      const bankingByOwner = [
+        { routing: req.body._ownerRoutingNumber  || null, account: req.body._ownerAccountNumber  || null },
+        { routing: req.body._owner2RoutingNumber || null, account: req.body._owner2AccountNumber || null },
+        { routing: req.body._owner3RoutingNumber || null, account: req.body._owner3AccountNumber || null },
+        { routing: req.body._owner4RoutingNumber || null, account: req.body._owner4AccountNumber || null },
+      ].filter((_, i) => i < (parseInt(safeData.numOwners) || 1))
+
+      const pdfBuffer = await generateQuestionnairePDF(safeData, ob.short_address, bankingByOwner)
       const filename  = `${ob.short_address} Property Questionnaire.pdf`
 
       const fileId = await safeUpload(pdfBuffer, filename, 'application/pdf', ob.google_drive_folder_id)
@@ -802,6 +878,11 @@ app.post(
         .order('step_number')
 
       const next = nextStepNumber(steps || [], 2)
+
+      // Fire-and-forget: push full property details to AppFolio if property already exists
+      afSyncStep2(ob.id, supabase)
+        .catch(err => console.error('[Step 2 AF sync]', err.message))
+
       res.json({ success: true, nextStep: next })
     } catch (err) {
       console.error('[Step 2] Error:', err.message)
@@ -1280,7 +1361,7 @@ app.post('/api/onboard/:token/step/7', requireToken, async (req, res) => {
   }
 })
 
-// POST /api/onboard/:token/step/:n/skip — owner skips steps 1-6
+// POST /api/onboard/:token/step/:n/skip — owner skips steps 1-7
 const STEP_SKIP_MESSAGES = {
   1: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 1 (Management Agreement signature) — collect signature separately.`,
   2: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 2 (Property Questionnaire) — follow up to collect property details.`,
@@ -1288,12 +1369,13 @@ const STEP_SKIP_MESSAGES = {
   4: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 4 (Entity Documents) — collect trust/operating agreement/articles separately.`,
   5: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 5 (Insurance Verification) — request insurance certificate separately.`,
   6: (ob) => `${ob.owner_name} (${ob.short_address}) skipped Step 6 (Reserve Deposit) — confirm deposit payment separately.`,
+  7: (ob) => `${ob.owner_name} (${ob.short_address}) skipped the Occupied Units Addendum — send the document and collect signature separately.`,
 }
 
 app.post('/api/onboard/:token/step/:n/skip', requireToken, async (req, res) => {
   const ob = req.onboarding
   const n  = parseInt(req.params.n)
-  if (n < 1 || n > 6) return res.status(400).json({ error: 'Invalid step number' })
+  if (n < 1 || n > 7) return res.status(400).json({ error: 'Invalid step number' })
   try {
     await supabase.from('onboarding_steps').update({ status: 'skipped' })
       .eq('onboarding_id', ob.id).eq('step_number', n)
@@ -1356,9 +1438,12 @@ app.post('/api/onboard/:token/upload-document', requireToken, upload.single('fil
     return res.status(400).json({ error: 'File contents do not match the declared type' })
   }
 
-  const allowedTypes = ['current_lease', 'tenant_application', 'move_in_inspection', 'lease_addenda', 'driver_license']
+  const allowedTypes = ['current_lease', 'tenant_application', 'move_in_inspection', 'lease_addenda', 'driver_license', 'other_documents']
   const dt       = allowedTypes.includes(documentType) ? documentType : 'other_tenant_doc'
-  const ext      = mimetype === 'application/pdf' ? 'pdf' : mimetype === 'image/jpeg' ? 'jpg' : 'png'
+  const ext      = mimetype === 'application/pdf' ? 'pdf'
+                 : mimetype === 'image/jpeg'       ? 'jpg'
+                 : mimetype === 'image/png'        ? 'png'
+                 : (req.file.originalname.split('.').pop() || 'bin')
   const filename = `${ob.short_address} ${dt}.${ext}`
 
   try {
@@ -1413,6 +1498,7 @@ app.get('/api/onboard/templates/agreement/:type', (req, res) => {
 // =============================================================================
 
 app.use('/onboard', express.static(path.join(__dirname, '../../src/onboard')))
+app.use('/', express.static(path.join(__dirname, '../../src/command-center')))
 
 // SPA fallback — any /onboard/* path returns index.html
 app.get('/onboard/*', (req, res) => {
@@ -1433,6 +1519,7 @@ if (process.argv[1] === __filename) {
   const PORT = process.env.ONBOARDING_PORT || 3006
   app.listen(PORT, () => {
     console.log(`[Onboarding] Server running on http://localhost:${PORT}`)
+    console.log('  Command center: http://localhost:' + PORT + '/dashboard.html')
     console.log('  Staff API: /api/onboarding/*')
     console.log('  Owner portal: /onboard/:token')
   })

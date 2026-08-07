@@ -157,6 +157,25 @@
       <button class="login-btn" type="submit" id="loginBtn">Sign In</button>
     </form>
 
+    <div style="text-align:center;margin-top:16px;">
+      <a href="#" id="forgotLink" style="font-size:0.82rem;color:var(--color-text-muted);text-decoration:none;">
+        Forgot password?
+      </a>
+    </div>
+
+    <!-- Forgot password panel — hidden by default -->
+    <div id="forgotPanel" style="display:none;margin-top:20px;border-top:1px solid var(--color-border);padding-top:20px;">
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:10px;">Reset your password</div>
+      <div style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:14px;">
+        Enter your email and we'll send you a reset link.
+      </div>
+      <div id="resetMsg" style="display:none;font-size:0.85rem;padding:10px 14px;border-radius:6px;margin-bottom:12px;"></div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <input class="form-input" type="email" id="resetEmail" placeholder="you@bpmsd.com" autocomplete="email">
+      </div>
+      <button class="login-btn" type="button" id="resetBtn">Send Reset Link</button>
+    </div>
+
   </div>
 
   <script type="module">
@@ -172,6 +191,55 @@
     const form   = document.getElementById('loginForm')
     const btn    = document.getElementById('loginBtn')
     const errBox = document.getElementById('loginError')
+
+    // Forgot password toggle
+    document.getElementById('forgotLink').addEventListener('click', e => {
+      e.preventDefault()
+      const panel = document.getElementById('forgotPanel')
+      panel.style.display = panel.style.display === 'none' ? '' : 'none'
+      if (panel.style.display !== 'none') {
+        document.getElementById('resetEmail').value = document.getElementById('email').value
+        document.getElementById('resetEmail').focus()
+      }
+    })
+
+    document.getElementById('resetBtn').addEventListener('click', async () => {
+      const email  = document.getElementById('resetEmail').value.trim()
+      const msg    = document.getElementById('resetMsg')
+      const btn    = document.getElementById('resetBtn')
+
+      if (!email) {
+        msg.style.display = ''
+        msg.style.background = '#fff5f5'
+        msg.style.border = '1px solid #fed7d7'
+        msg.style.color = '#9b2c2c'
+        msg.textContent = 'Please enter your email address.'
+        return
+      }
+
+      btn.disabled = true
+      btn.textContent = 'Sending...'
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html'
+      })
+
+      msg.style.display = ''
+      if (error) {
+        msg.style.background = '#fff5f5'
+        msg.style.border = '1px solid #fed7d7'
+        msg.style.color = '#9b2c2c'
+        msg.textContent = error.message || 'Could not send reset email.'
+        btn.disabled = false
+        btn.textContent = 'Send Reset Link'
+      } else {
+        msg.style.background = '#f0fff4'
+        msg.style.border = '1px solid #9ae6b4'
+        msg.style.color = '#22543d'
+        msg.textContent = `Reset link sent to ${email}. Check your inbox.`
+        btn.textContent = 'Sent!'
+      }
+    })
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault()

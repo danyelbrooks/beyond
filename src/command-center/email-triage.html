@@ -3,194 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email Triage — BPM Command Center</title>
-
-  <!-- Supabase CDN -->
+  <title>Email Inbox — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-
   <style>
-    /* =========================================================
-       DESIGN TOKENS
-    ========================================================= */
-    :root {
-      --color-primary:       #1e3a5f;
-      --color-primary-light: #2a4f7c;
-      --color-accent:        #3498db;
-      --color-accent-hover:  #2980b9;
-      --color-success:       #2ecc71;
-      --color-warning:       #f39c12;
-      --color-danger:        #e74c3c;
-      --color-bg:            #f3f4f6;
-      --color-surface:       #ffffff;
-      --color-border:        #e1e4e8;
-      --color-text:          #2c3e50;
-      --color-text-muted:    #6c757d;
-      --sidebar-width:       220px;
-      --header-height:       60px;
-    }
-
-    /* =========================================================
-       RESET & BASE
-    ========================================================= */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                   Helvetica, Arial, sans-serif;
-      background: var(--color-bg);
-      color: var(--color-text);
-      min-height: 100vh;
-    }
-
-    /* =========================================================
-       LAYOUT SHELL — header + sidebar placeholders
-       (auth.js will inject real header/sidebar via renderHeader / renderSidebar)
-    ========================================================= */
-    #app-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: var(--header-height);
-      background: var(--color-primary);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      z-index: 100;
-      font-size: 1rem;
-      font-weight: 600;
-    }
-
-    #app-sidebar {
-      position: fixed;
-      top: var(--header-height);
-      left: 0;
-      bottom: 0;
-      width: var(--sidebar-width);
-      background: var(--color-primary-light);
-      overflow-y: auto;
-      z-index: 90;
-    }
-
-    #main-content {
-      margin-top: var(--header-height);
-      margin-left: var(--sidebar-width);
-      padding: 24px 20px;
-      min-height: calc(100vh - var(--header-height));
-    }
-
-    /* =========================================================
-       FILTER BAR
-    ========================================================= */
-    .filter-bar {
+    /* ── Auto-refresh indicator ──────────────────────────── */
+    .sync-bar {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
     }
 
-    .filter-bar h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--color-primary);
-      margin-right: 16px;
+    .sync-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #94a3b8;
+      flex-shrink: 0;
+      transition: background 0.4s;
     }
 
-    .filter-btn {
-      display: inline-flex;
+    .sync-dot.live { background: #2ecc71; }
+
+    .new-email-toast {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      background: #2ecc71;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      z-index: 300;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+
+    .new-email-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Toolbar ──────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      gap: 10px;
       align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .toolbar-search {
+      flex: 1;
+      min-width: 180px;
+      max-width: 340px;
+      position: relative;
+    }
+
+    .toolbar-search input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
       border: 1px solid var(--color-border);
       border-radius: 6px;
+      font-size: 0.875rem;
       background: var(--color-surface);
       color: var(--color-text);
-      font-size: 0.875rem;
+      outline: none;
+    }
+
+    .toolbar-search input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(52,152,219,.15);
+    }
+
+    .toolbar-search .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    /* ── Filter pills ─────────────────────────────────────── */
+    .pill-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      font-size: 0.8rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      transition: background .12s, border-color .12s, color .12s;
+      color: var(--color-text);
     }
 
-    .filter-btn:hover {
-      background: var(--color-bg);
-      border-color: var(--color-accent);
-    }
+    .pill:hover { border-color: var(--color-accent); background: #f0f6ff; }
 
-    .filter-btn.active {
+    .pill.active {
       background: var(--color-accent);
       border-color: var(--color-accent);
       color: #fff;
     }
 
-    .badge-count {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 20px;
-      height: 20px;
-      padding: 0 5px;
+    .pill .pill-count {
+      display: inline-block;
+      background: rgba(0,0,0,.12);
       border-radius: 10px;
-      background: var(--color-danger);
-      color: #fff;
-      font-size: 0.7rem;
-      font-weight: 700;
-      line-height: 1;
+      padding: 1px 6px;
+      font-size: 0.72rem;
+      margin-left: 4px;
     }
 
-    .filter-btn.active .badge-count {
-      background: rgba(255,255,255,0.3);
-    }
+    .pill.active .pill-count { background: rgba(255,255,255,.25); }
 
-    /* =========================================================
-       LOADING + EMPTY STATES
-    ========================================================= */
-    .loading-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-      padding: 60px 20px;
-      color: var(--color-text-muted);
-    }
-
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid var(--color-border);
-      border-top-color: var(--color-accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--color-text-muted);
-    }
-
-    .empty-state p { font-size: 1rem; }
-    .empty-state small { font-size: 0.8rem; margin-top: 6px; display: block; }
-
-    .error-state {
-      background: #fff0f0;
-      border: 1px solid var(--color-danger);
-      border-radius: 8px;
-      padding: 16px 20px;
-      color: var(--color-danger);
-      font-size: 0.9rem;
-    }
-
-    /* =========================================================
-       EMAIL LIST
-    ========================================================= */
+    /* ── Email list ───────────────────────────────────────── */
     .email-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
       border: 1px solid var(--color-border);
       border-radius: 8px;
       overflow: hidden;
@@ -201,64 +144,57 @@
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 8px;
-      padding: 14px 16px;
+      padding: 13px 16px;
       border-bottom: 1px solid var(--color-border);
       cursor: pointer;
-      transition: background 0.12s;
       text-decoration: none;
       color: inherit;
+      transition: background .1s;
     }
 
     .email-row:last-child { border-bottom: none; }
-
     .email-row:hover { background: #f0f6ff; }
 
-    /* Unread (status=new) styling */
     .email-row.is-new {
       border-left: 3px solid var(--color-accent);
-      padding-left: 13px; /* compensate for border width */
+      padding-left: 13px;
     }
-
-    .email-row-left { min-width: 0; }
 
     .email-sender {
       display: flex;
       align-items: baseline;
       gap: 6px;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
       flex-wrap: wrap;
     }
 
     .sender-name {
-      font-size: 0.9rem;
+      font-size: 0.875rem;
       font-weight: 600;
-      color: var(--color-text);
-      white-space: nowrap;
     }
 
     .email-row.is-new .sender-name { font-weight: 700; }
 
-    .sender-email {
-      font-size: 0.78rem;
+    .sender-addr {
+      font-size: 0.775rem;
       color: var(--color-text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 220px;
+      max-width: 200px;
     }
 
     .email-subject {
-      font-size: 0.875rem;
+      font-size: 0.855rem;
       font-weight: 500;
-      color: var(--color-text);
-      margin-bottom: 3px;
+      margin-bottom: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .email-preview {
-      font-size: 0.8rem;
+      font-size: 0.79rem;
       color: var(--color-text-muted);
       white-space: nowrap;
       overflow: hidden;
@@ -269,335 +205,926 @@
       display: flex;
       flex-wrap: wrap;
       gap: 5px;
-      margin-top: 6px;
+      margin-top: 5px;
     }
 
-    /* Generic badge */
     .badge {
       display: inline-block;
       padding: 2px 8px;
       border-radius: 12px;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 600;
-      letter-spacing: 0.03em;
       text-transform: uppercase;
+      letter-spacing: .03em;
     }
 
     .badge-new      { background: #dbeafe; color: #1e40af; }
     .badge-assigned { background: #fef3c7; color: #92400e; }
     .badge-handled  { background: #d1fae5; color: #065f46; }
+    .badge-inbox    { background: #f3e8ff; color: #6b21a8; }
 
-    .email-row-right {
+    .email-meta {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 6px;
-      min-width: 110px;
+      gap: 5px;
+      min-width: 100px;
       padding-top: 2px;
     }
 
     .email-time {
-      font-size: 0.78rem;
+      font-size: 0.775rem;
       color: var(--color-text-muted);
       white-space: nowrap;
     }
 
-    .assigned-to-label {
-      font-size: 0.75rem;
+    .assigned-label {
+      font-size: 0.74rem;
       color: var(--color-text-muted);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 110px;
     }
 
-    /* =========================================================
-       RESPONSIVE — collapse sidebar at narrow widths
-    ========================================================= */
-    @media (max-width: 640px) {
-      #app-sidebar { display: none; }
-      #main-content { margin-left: 0; padding: 16px 12px; }
+    /* ── Pagination ───────────────────────────────────────── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 4px 4px;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
 
-      .email-row-right { min-width: 80px; }
-      .sender-email { display: none; }
+    .pagination-btns { display: flex; gap: 8px; }
+
+    .btn-page {
+      padding: 6px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-surface);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background .12s;
+    }
+
+    .btn-page:hover:not(:disabled) { background: #f0f6ff; border-color: var(--color-accent); }
+    .btn-page:disabled { opacity: .4; cursor: default; }
+
+    /* ── Loading / empty ──────────────────────────────────── */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 60px 20px;
+      color: var(--color-text-muted);
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-muted);
+      font-size: .9rem;
+    }
+
+    .error-box {
+      background: #fff0f0;
+      border: 1px solid var(--color-danger);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--color-danger);
+      font-size: .875rem;
     }
   </style>
 </head>
 <body>
 
-  <!-- Header and sidebar are injected by auth.js -->
-  <div id="app-header">BPM Command Center</div>
-  <nav id="app-sidebar"></nav>
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
 
-  <main id="main-content">
+  <main class="app-main">
+    <div class="app-content">
 
-    <!-- Filter bar -->
-    <div class="filter-bar">
-      <h1>Email Inbox</h1>
-      <button class="filter-btn active" data-filter="new" id="btn-new">
-        New
-        <span class="badge-count" id="new-count" style="display:none;">0</span>
-      </button>
-      <button class="filter-btn" data-filter="mine" id="btn-mine">Assigned to Me</button>
-      <button class="filter-btn" data-filter="all"  id="btn-all">All</button>
-    </div>
-
-    <!-- Dynamic area -->
-    <div id="list-area">
-      <div class="loading-state" id="loading-state">
-        <div class="spinner"></div>
-        <p>Loading emails...</p>
+      <!-- Page header -->
+      <div class="page-header" style="margin-bottom:16px;">
+        <div class="flex justify-between items-center flex-wrap gap-12">
+          <div>
+            <div class="page-title">Email Inbox</div>
+            <div class="page-subtitle" id="result-summary">Loading&hellip;</div>
+          </div>
+          <div class="sync-bar">
+            <div class="sync-dot" id="sync-dot"></div>
+            <span id="sync-label">Connecting…</span>
+          </div>
+        </div>
       </div>
-    </div>
 
+      <!-- New email toast -->
+      <div class="new-email-toast" id="new-email-toast"></div>
+
+      <!-- Toolbar: status filters + search -->
+      <div class="toolbar">
+        <div class="pill-row" id="status-pills" style="margin-bottom:0;">
+          <button class="pill active" data-status="inbox">Inbox <span class="pill-count" id="count-new">…</span></button>
+          <button class="pill" data-status="assigned">Assigned to Me</button>
+          <button class="pill" data-status="handled">Handled</button>
+          <button class="pill" data-status="archive">All Mail</button>
+        </div>
+        <div class="toolbar-search">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="search-input" placeholder="Search sender, subject…">
+        </div>
+        <button class="btn btn-primary" id="btnCompose" style="margin-left:auto;white-space:nowrap;">+ Compose</button>
+      </div>
+
+      <!-- Inbox pills -->
+      <div class="pill-row" id="inbox-pills">
+        <button class="pill active" data-inbox="all">All Inboxes</button>
+        <!-- additional inbox pills injected by JS -->
+      </div>
+
+      <!-- Dynamic area -->
+      <div id="list-area">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading emails…</p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" style="display:none;">
+        <span id="page-info"></span>
+        <div class="pagination-btns">
+          <button class="btn-page" id="btn-prev">&#8592; Previous</button>
+          <button class="btn-page" id="btn-next">Next &#8594;</button>
+        </div>
+      </div>
+
+    </div>
   </main>
 
   <script type="module">
-    /* =========================================================
-       SUPABASE CONFIG
-       Replace the placeholder strings below with your
-       Supabase project URL and anon key.
-       (Settings → API at app.supabase.com)
-    ========================================================= */
-    const SUPABASE_URL      = 'https://kyekqaxuzpozuhyhibcn.supabase.co'
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5ZWtxYXh1enBvenVoeWhpYmNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDE1MjksImV4cCI6MjA5ODA3NzUyOX0.UQp6Inqrvjfxax7AjRRujw6PXId9Whmknv5vkX8DcC8'
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
 
-    /* =========================================================
-       BOOTSTRAP CHECK
-    ========================================================= */
-    const isConfigured =
-      SUPABASE_URL      !== 'SUPABASE_URL_HERE' &&
-      SUPABASE_ANON_KEY !== 'SUPABASE_ANON_KEY_HERE' &&
-      SUPABASE_URL.startsWith('https://')
+    const API = window.location.hostname === 'localhost'
+      ? 'http://localhost:3005'
+      : 'https://bpm-api.onrender.com'
 
-    if (!isConfigured) {
-      document.getElementById('list-area').innerHTML = `
-        <div class="error-state">
-          <strong>Setup needed.</strong> Open this file and replace
-          <code>SUPABASE_URL_HERE</code> and <code>SUPABASE_ANON_KEY_HERE</code>
-          near the top of the script block with your Supabase credentials.
-        </div>`
-      throw new Error('Supabase not configured')
-    }
+    const PAGE_SIZE = 50
 
-    /* =========================================================
-       SUPABASE CLIENT
-    ========================================================= */
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-    /* =========================================================
-       AUTH — import helpers from the shared auth module
-       auth.js lives next to this file in src/command-center/
-    ========================================================= */
-    import { requireAuth, renderHeader, renderSidebar } from './auth.js'
-
-    const { user, profile } = await requireAuth()
+    // ── Auth ────────────────────────────────────────────────
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+    const { user, profile } = auth
     renderHeader(profile)
     renderSidebar('email-triage', profile.role)
 
-    /* =========================================================
-       STATE
-    ========================================================= */
-    let categories = {}     // id → { name, color }
-    let currentFilter = 'new'
+    // ── State ───────────────────────────────────────────────
+    let currentStatus   = 'inbox'
+    let currentInbox    = 'all'
+    let currentSearch   = ''
+    let currentResident = ''   // when set: search from_address OR to_address (both directions)
+    let currentPage     = 0
+    let totalCount      = 0
+    let searchTimer     = null
+    let showingArchive  = false
 
-    /* =========================================================
-       LOAD CATEGORIES (once, at startup)
-    ========================================================= */
-    async function loadCategories() {
-      const { data, error } = await db.from('email_categories').select('id, name, color')
-      if (error) { console.warn('Could not load categories:', error.message); return }
-      for (const cat of data) categories[cat.id] = cat
+    // ── Pre-fill search from URL params (linked from Resident Health) ──
+    const _urlParams   = new URLSearchParams(location.search)
+    const _fromParam   = _urlParams.get('from') || _urlParams.get('resident')
+    if (_fromParam) {
+      currentSearch    = _fromParam
+      currentResident  = _fromParam   // triggers both-direction search
+      const inp = document.getElementById('search-input')
+      if (inp) inp.value = _fromParam
     }
 
-    /* =========================================================
-       LOAD EMAILS
-    ========================================================= */
-    async function loadEmails(filter) {
-      currentFilter = filter
-      showLoading()
+    // ── Boot ────────────────────────────────────────────────
+    await buildInboxPills()
+    await refreshNewCount()
+    await loadEmails()
 
-      let query = db
+    // ── Auto-refresh ─────────────────────────────────────────
+    let lastKnownCount = totalCount
+    let lastRefreshAt  = Date.now()
+
+    function updateSyncLabel() {
+      const secs = Math.floor((Date.now() - lastRefreshAt) / 1000)
+      const label = secs < 10 ? 'Updated just now'
+        : secs < 60  ? `Updated ${secs}s ago`
+        : `Updated ${Math.floor(secs / 60)}m ago`
+      document.getElementById('sync-label').textContent = label
+    }
+
+    function flashSyncDot() {
+      const dot = document.getElementById('sync-dot')
+      dot.classList.add('live')
+      setTimeout(() => dot.classList.remove('live'), 2000)
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('new-email-toast')
+      toast.textContent = msg
+      toast.classList.add('show')
+      setTimeout(() => toast.classList.remove('show'), 4000)
+    }
+
+    // Update "X seconds ago" label every 15 seconds
+    setInterval(updateSyncLabel, 15000)
+
+    // Silent refresh every 60 seconds when on inbox tab
+    setInterval(async () => {
+      if (currentStatus !== 'inbox' || currentSearch.trim()) return
+      await loadEmails(true)
+      await refreshNewCount()
+      if (totalCount > lastKnownCount) {
+        const diff = totalCount - lastKnownCount
+        showToast(`${diff} new email${diff !== 1 ? 's' : ''} arrived`)
+      }
+      lastKnownCount = totalCount
+      lastRefreshAt  = Date.now()
+      flashSyncDot()
+      updateSyncLabel()
+    }, 60000)
+
+    // Initial sync label
+    lastRefreshAt = Date.now()
+    flashSyncDot()
+    updateSyncLabel()
+
+    // ── Build inbox pills ───────────────────────────────────
+    async function buildInboxPills() {
+      const inboxes = [
+        'danyel@bpmsd.com',
+        'help@bpmsd.com',
+        'beyond@bpmsd.com',
+        'info@bpmsd.com',
+        'accounts@bpmsd.com',
+        'manager@bpmsd.com',
+        'success@bpmsd.com',
+        'home@bpmsd.com',
+        'admin@bpmsd.com',
+        'hello@bpmsd.com',
+        'care@bpmsd.com'
+      ]
+
+      const container = document.getElementById('inbox-pills')
+
+      for (const inbox of inboxes) {
+        const short = inbox.replace('@bpmsd.com', '')
+        const btn = document.createElement('button')
+        btn.className = 'pill'
+        btn.dataset.inbox = inbox
+        btn.textContent = short + '@'
+        container.appendChild(btn)
+      }
+
+      container.addEventListener('click', e => {
+        const btn = e.target.closest('.pill')
+        if (!btn) return
+        container.querySelectorAll('.pill').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+        currentInbox = btn.dataset.inbox
+        currentPage  = 0
+        loadEmails()
+      })
+    }
+
+    // ── Load emails ─────────────────────────────────────────
+    async function loadEmails(silent = false) {
+      if (!silent) showLoading()
+
+      const from = currentPage * PAGE_SIZE
+      const to   = from + PAGE_SIZE - 1
+
+      let query = supabase
         .from('email_cache')
-        .select('*, email_categories(name, color), profiles!assigned_to(display_name)')
+        .select('id, subject, from_name, from_address, body_preview, received_at, status, assigned_to, to_address, category_id, email_categories(name,color)', { count: 'exact' })
         .order('received_at', { ascending: false })
+        .range(from, to)
 
-      if (filter === 'new')  query = query.eq('status', 'new')
-      if (filter === 'mine') query = query.eq('assigned_to', user.id)
-      // 'all' — no extra filter; RLS limits what staff can see
+      const isSearching  = currentSearch.trim().length >= 3
+      const isResident   = currentResident.trim().length >= 3
 
-      const { data, error } = await query
-
-      if (error) {
-        showError('Could not load emails: ' + error.message)
-        return
+      if (isResident) {
+        // Resident view: show all emails to OR from this address (full thread)
+        const r = currentResident.trim()
+        query = query.or(`from_address.ilike.%${r}%,to_address.ilike.%${r}%`)
+      } else if (isSearching) {
+        // General search spans subject, sender name, sender address
+        const s = currentSearch.trim()
+        query = query.or(`subject.ilike.%${s}%,from_name.ilike.%${s}%,from_address.ilike.%${s}%`)
+      } else if (currentStatus === 'inbox') {
+        query = query.eq('in_inbox', true).neq('status', 'handled')
+          .or(`snoozed_until.is.null,snoozed_until.lte.${new Date().toISOString()}`)
+      } else if (currentStatus === 'assigned') {
+        query = query.eq('assigned_to', user.id)
+      } else if (currentStatus === 'handled') {
+        query = query.eq('status', 'handled')
       }
+      // 'archive' tab with no search = no filter, shows everything
 
+      if (currentInbox !== 'all') query = query.eq('to_address', currentInbox)
+
+      const { data, error, count } = await query
+
+      if (error) { showError(error.message); return }
+
+      totalCount = count ?? 0
       renderList(data || [])
+      renderPagination()
+      updateSummary()
     }
 
-    /* =========================================================
-       NEW-EMAIL COUNT (badge on the "New" button)
-    ========================================================= */
-    async function refreshNewCount() {
-      const { count, error } = await db
-        .from('email_cache')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'new')
-
-      if (error) return
-      const el = document.getElementById('new-count')
-      if (count > 0) {
-        el.textContent = count > 99 ? '99+' : count
-        el.style.display = 'inline-flex'
-      } else {
-        el.style.display = 'none'
-      }
-    }
-
-    /* =========================================================
-       RENDER
-    ========================================================= */
-    function showLoading() {
-      document.getElementById('list-area').innerHTML = `
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Loading emails...</p>
-        </div>`
-    }
-
-    function showError(msg) {
-      document.getElementById('list-area').innerHTML =
-        `<div class="error-state">${escapeHtml(msg)}</div>`
-    }
-
+    // ── Render list ─────────────────────────────────────────
     function renderList(emails) {
       if (emails.length === 0) {
-        let hint = ''
-        if (currentFilter === 'new')  hint = 'No new emails right now.'
-        if (currentFilter === 'mine') hint = 'No emails assigned to you.'
-        if (currentFilter === 'all')  hint = 'No emails found.'
-        document.getElementById('list-area').innerHTML = `
-          <div class="empty-state">
-            <p>${hint}</p>
-            <small>Run the email sync script to pull in new mail from Microsoft 365.</small>
-          </div>`
+        document.getElementById('list-area').innerHTML =
+          `<div class="empty-state">No emails match this filter.</div>`
+        document.getElementById('pagination').style.display = 'none'
         return
       }
 
-      const rows = emails.map(email => buildRow(email)).join('')
+      const rows = emails.map(buildRow).join('')
       document.getElementById('list-area').innerHTML =
         `<div class="email-list">${rows}</div>`
     }
 
     function buildRow(email) {
       const isNew    = email.status === 'new'
-      const rowClass = isNew ? 'email-row is-new' : 'email-row'
+      const rowClass = 'email-row' + (isNew ? ' is-new' : '')
 
-      // Status badge
       const statusBadge = {
         new:      '<span class="badge badge-new">New</span>',
         assigned: '<span class="badge badge-assigned">Assigned</span>',
         handled:  '<span class="badge badge-handled">Handled</span>',
-      }[email.status] || ''
+      }[email.status] ?? ''
 
-      // Category badge (color from the database)
       let catBadge = ''
       if (email.email_categories) {
-        const cat = email.email_categories
-        catBadge = `<span class="badge"
-          style="background:${escapeAttr(cat.color)}20; color:${escapeAttr(cat.color)}; border:1px solid ${escapeAttr(cat.color)}40;">
-          ${escapeHtml(cat.name)}
-        </span>`
+        const c = email.email_categories
+        catBadge = `<span class="badge" style="background:${esc(c.color)}20;color:${esc(c.color)};border:1px solid ${esc(c.color)}40;">${esc(c.name)}</span>`
       }
 
-      // Assigned-to name
-      const assignedName = email.profiles ? email.profiles.display_name : null
-      const assignedEl   = assignedName
-        ? `<span class="assigned-to-label" title="Assigned to ${escapeAttr(assignedName)}">
-             → ${escapeHtml(assignedName)}
-           </span>`
-        : ''
+      let inboxBadge = ''
+      if (email.to_address) {
+        const short = email.to_address.replace('@bpmsd.com', '')
+        inboxBadge = `<span class="badge badge-inbox">${esc(short)}@</span>`
+      }
 
       return `
-        <a class="${rowClass}" href="email-detail.html?id=${escapeAttr(email.id)}">
-          <div class="email-row-left">
+        <a class="${rowClass}" href="#" data-id="${esc(email.id)}">
+          <div>
             <div class="email-sender">
-              <span class="sender-name">${escapeHtml(email.from_name || 'Unknown')}</span>
-              <span class="sender-email">${escapeHtml(email.from_address || '')}</span>
+              <span class="sender-name">${esc(email.from_name || 'Unknown')}</span>
+              <span class="sender-addr">${esc(email.from_address || '')}</span>
             </div>
-            <div class="email-subject">${escapeHtml(email.subject || '(no subject)')}</div>
-            <div class="email-preview">${escapeHtml(email.body_preview || '')}</div>
-            <div class="email-badges">
-              ${statusBadge}
-              ${catBadge}
-            </div>
+            <div class="email-subject">${esc(email.subject || '(no subject)')}</div>
+            <div class="email-preview">${esc(email.body_preview || '')}</div>
+            <div class="email-badges">${statusBadge}${inboxBadge}${catBadge}</div>
           </div>
-          <div class="email-row-right">
-            <span class="email-time">${formatDateTime(email.received_at)}</span>
-            ${assignedEl}
+          <div class="email-meta">
+            <span class="email-time">${fmtDate(email.received_at)}</span>
           </div>
         </a>`
     }
 
-    /* =========================================================
-       FILTER BUTTONS
-    ========================================================= */
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
-        btn.classList.add('active')
-        loadEmails(btn.dataset.filter)
-      })
+    // ── Pagination ──────────────────────────────────────────
+    function renderPagination() {
+      const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+      const pag = document.getElementById('pagination')
+
+      if (totalPages <= 1) { pag.style.display = 'none'; return }
+
+      pag.style.display = 'flex'
+      document.getElementById('page-info').textContent =
+        `Page ${currentPage + 1} of ${totalPages} (${totalCount.toLocaleString()} emails)`
+
+      const prev = document.getElementById('btn-prev')
+      const next = document.getElementById('btn-next')
+      prev.disabled = currentPage === 0
+      next.disabled = currentPage >= totalPages - 1
+    }
+
+    // ── Email row click — store ID in session, navigate to detail ──
+    document.getElementById('list-area').addEventListener('click', e => {
+      const row = e.target.closest('[data-id]')
+      if (!row) return
+      e.preventDefault()
+      const id = row.dataset.id
+      if (id) {
+        sessionStorage.setItem('bpm_email_id', id)
+        window.location.href = '/email-detail.html'
+      }
     })
 
-    /* =========================================================
-       HELPERS
-    ========================================================= */
-    function formatDateTime(isoString) {
-      if (!isoString) return ''
-      const d = new Date(isoString)
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      if (currentPage > 0) { currentPage--; loadEmails() }
+    })
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      currentPage++; loadEmails()
+    })
+
+    // ── Status pills ────────────────────────────────────────
+    document.getElementById('status-pills').addEventListener('click', e => {
+      const btn = e.target.closest('.pill')
+      if (!btn) return
+      document.querySelectorAll('#status-pills .pill').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      currentStatus = btn.dataset.status
+      currentPage   = 0
+      loadEmails()
+    })
+
+    // ── Search ──────────────────────────────────────────────
+    document.getElementById('search-input').addEventListener('input', e => {
+      clearTimeout(searchTimer)
+      const val = e.target.value.trim()
+      searchTimer = setTimeout(() => {
+        // Require at least 3 characters to avoid full-table scans
+        currentSearch = val.length >= 3 ? val : ''
+        currentPage   = 0
+        loadEmails()
+      }, 400)
+    })
+
+    // ── Inbox count badge ───────────────────────────────────
+    async function refreshNewCount() {
+      const { count } = await supabase
+        .from('email_cache')
+        .select('id', { count: 'exact', head: true })
+        .eq('in_inbox', true)
+        .neq('status', 'handled')
+      const el = document.getElementById('count-new')
+      el.textContent = count > 0 ? (count > 999 ? '999+' : count) : '0'
+    }
+
+    // ── Summary line ────────────────────────────────────────
+    function updateSummary() {
+      const inboxLabel = currentInbox === 'all' ? 'all inboxes' : currentInbox
+      const viewLabel  = currentSearch.trim()
+        ? `search results across all mail — ${inboxLabel}`
+        : currentStatus === 'archive'
+          ? `all mail — ${inboxLabel}`
+          : `inbox — ${inboxLabel}`
+      document.getElementById('result-summary').textContent =
+        `${totalCount.toLocaleString()} email${totalCount !== 1 ? 's' : ''} — ${viewLabel}`
+    }
+
+    // ── UI helpers ──────────────────────────────────────────
+    function showLoading() {
+      document.getElementById('list-area').innerHTML = `
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading…</p>
+        </div>`
+    }
+
+    function showError(msg) {
+      document.getElementById('list-area').innerHTML =
+        `<div class="error-box">${esc(msg)}</div>`
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return ''
+      const d   = new Date(iso)
       const now = new Date()
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-      const hh   = d.getHours()
-      const mm   = String(d.getMinutes()).padStart(2, '0')
-      const ampm = hh >= 12 ? 'PM' : 'AM'
-      const h12  = hh % 12 || 12
-      const time = `${h12}:${mm} ${ampm}`
-
-      if (d >= todayStart) return `Today at ${time}`
-
-      const yesterday = new Date(todayStart)
-      yesterday.setDate(yesterday.getDate() - 1)
-      if (d >= yesterday) return `Yesterday at ${time}`
-
-      return `${monthNames[d.getMonth()]} ${d.getDate()} at ${time}`
+      const tod = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const yest = new Date(tod); yest.setDate(yest.getDate() - 1)
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      const h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0')
+      const t = `${h % 12 || 12}:${m} ${h >= 12 ? 'PM' : 'AM'}`
+      if (d >= tod)  return `Today ${t}`
+      if (d >= yest) return `Yesterday ${t}`
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
     }
 
-    function escapeHtml(str) {
-      if (!str) return ''
+    function esc(str) {
+      if (str == null) return ''
       return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
     }
 
-    function escapeAttr(str) {
-      if (!str) return ''
-      return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
+    // =========================================================================
+    // COMPOSE
+    // =========================================================================
+
+    let composeBpId   = null
+    let composeAcDebounce = null
+    let composeBpDebounce = null
+
+    document.getElementById('btnCompose').addEventListener('click', openCompose)
+    document.getElementById('composeClose') && document.getElementById('composeClose').addEventListener('click', closeCompose)
+    document.getElementById('composeCancelBtn').addEventListener('click', closeCompose)
+
+    document.getElementById('composeOverlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('composeOverlay')) closeCompose()
+    })
+
+    document.getElementById('composeCcToggle').addEventListener('click', () => {
+      const wrap = document.getElementById('composeCcWrap')
+      const btn  = document.getElementById('composeCcToggle')
+      const open = wrap.classList.toggle('open')
+      btn.textContent = open ? '− Remove CC / BCC' : '+ Add CC / BCC'
+    })
+
+    function openCompose() {
+      document.getElementById('composeTo').value      = ''
+      document.getElementById('composeSubject').value = ''
+      document.getElementById('composeBody').value    = ''
+      document.getElementById('composeCc').value      = ''
+      document.getElementById('composeBcc').value     = ''
+      document.getElementById('composeSendStatus').textContent = ''
+      document.getElementById('composeSendStatus').style.color = ''
+      document.getElementById('composeSendBtn').disabled = false
+      document.getElementById('composeSendBtn').textContent = 'Send'
+      document.getElementById('composeDraftStatus').style.display = 'none'
+      document.getElementById('composeBpLinkedWrap').innerHTML = ''
+      document.getElementById('composeBpInput').value = ''
+      document.getElementById('composeBpResults').innerHTML = ''
+      document.getElementById('composeBpResults').classList.remove('open')
+      document.getElementById('composeCcWrap').classList.remove('open')
+      document.getElementById('composeCcToggle').textContent = '+ Add CC / BCC'
+      composeBpId = null
+      document.getElementById('composeOverlay').style.display = 'flex'
+      setTimeout(() => document.getElementById('composeTo').focus(), 50)
     }
 
-    /* =========================================================
-       INIT
-    ========================================================= */
-    await loadCategories()
-    await refreshNewCount()
-    await loadEmails('new')
+    function closeCompose() {
+      document.getElementById('composeOverlay').style.display = 'none'
+      document.getElementById('composeAcList').classList.remove('open')
+    }
+
+    // ── To field autocomplete ─────────────────────────────────────────────────
+    document.getElementById('composeTo').addEventListener('input', () => {
+      clearTimeout(composeAcDebounce)
+      const term = document.getElementById('composeTo').value.trim()
+      const list = document.getElementById('composeAcList')
+      if (term.length < 2) { list.classList.remove('open'); list.innerHTML = ''; return }
+      composeAcDebounce = setTimeout(async () => {
+        const { data } = await supabase
+          .from('email_cache')
+          .select('from_address, from_name')
+          .ilike('from_address', `%${term}%`)
+          .limit(8)
+        if (!data || !data.length) { list.classList.remove('open'); return }
+        // Dedupe by address
+        const seen = new Set()
+        const items = data.filter(r => { if (seen.has(r.from_address)) return false; seen.add(r.from_address); return true })
+        list.innerHTML = items.map(r => {
+          const label = r.from_name ? `${r.from_name} &lt;${r.from_address}&gt;` : r.from_address
+          return `<div class="compose-ac-item" data-email="${r.from_address}">${label}</div>`
+        }).join('')
+        list.classList.add('open')
+        list.querySelectorAll('.compose-ac-item').forEach(el => {
+          el.addEventListener('click', () => {
+            document.getElementById('composeTo').value = el.dataset.email
+            list.classList.remove('open')
+            list.innerHTML = ''
+            document.getElementById('composeSubject').focus()
+          })
+        })
+      }, 220)
+    })
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.compose-to-wrap')) {
+        document.getElementById('composeAcList').classList.remove('open')
+      }
+    })
+
+    // ── Draft with AI ─────────────────────────────────────────────────────────
+    document.getElementById('composeDraftBtn').addEventListener('click', async () => {
+      const btn     = document.getElementById('composeDraftBtn')
+      const status  = document.getElementById('composeDraftStatus')
+      const subject = document.getElementById('composeSubject').value.trim()
+      const to      = document.getElementById('composeTo').value.trim()
+
+      if (!subject) {
+        document.getElementById('composeSendStatus').textContent = 'Enter a subject before drafting.'
+        document.getElementById('composeSendStatus').style.color = '#e74c3c'
+        return
+      }
+
+      btn.disabled = true
+      status.style.display = ''
+      status.textContent = 'Drafting…'
+
+      try {
+        const res  = await fetch(`${API}/api/draft`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject,
+            body:        `New email to: ${to || 'recipient'}. Subject: ${subject}. Please draft a professional new email body (not a reply).`,
+            fromName:    '',
+            fromAddress: to || ''
+          })
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Draft failed')
+        document.getElementById('composeBody').value = json.draft
+        document.getElementById('composeBody').focus()
+      } catch (err) {
+        document.getElementById('composeSendStatus').textContent = 'Draft failed: ' + err.message
+        document.getElementById('composeSendStatus').style.color = '#e74c3c'
+      } finally {
+        btn.disabled = false
+        status.style.display = 'none'
+      }
+    })
+
+    // ── Send ──────────────────────────────────────────────────────────────────
+    document.getElementById('composeSendBtn').addEventListener('click', async () => {
+      const to      = document.getElementById('composeTo').value.trim()
+      const subject = document.getElementById('composeSubject').value.trim()
+      const body    = document.getElementById('composeBody').value.trim()
+      const cc      = document.getElementById('composeCc').value.trim()
+      const bcc     = document.getElementById('composeBcc').value.trim()
+      const status  = document.getElementById('composeSendStatus')
+      const btn     = document.getElementById('composeSendBtn')
+
+      if (!to || !subject || !body) {
+        status.textContent = 'To, Subject, and Message are all required.'
+        status.style.color = '#e74c3c'
+        return
+      }
+
+      btn.disabled    = true
+      btn.textContent = 'Sending…'
+      status.textContent = ''
+
+      try {
+        const res  = await fetch(`${API}/api/compose`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ to, subject, body, cc, bcc })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Send failed')
+        status.textContent = '✓ Sent!'
+        status.style.color = '#27ae60'
+        setTimeout(closeCompose, 1400)
+      } catch (err) {
+        status.textContent = err.message || 'Send failed'
+        status.style.color = '#e74c3c'
+        btn.disabled    = false
+        btn.textContent = 'Send'
+      }
+    })
+
+    // ── Best Practice search ──────────────────────────────────────────────────
+    document.getElementById('composeBpInput').addEventListener('input', () => {
+      clearTimeout(composeBpDebounce)
+      const term    = document.getElementById('composeBpInput').value.trim()
+      const results = document.getElementById('composeBpResults')
+      if (term.length < 2) { results.classList.remove('open'); results.innerHTML = ''; return }
+      composeBpDebounce = setTimeout(async () => {
+        const { data } = await supabase
+          .from('sops')
+          .select('id, title')
+          .ilike('title', `%${term}%`)
+          .limit(10)
+        if (!data || !data.length) {
+          results.innerHTML = '<div class="compose-bp-item" style="color:#6c757d;cursor:default;">No results</div>'
+        } else {
+          results.innerHTML = data.map(s =>
+            `<div class="compose-bp-item" data-id="${s.id}" data-title="${s.title.replace(/"/g,'&quot;')}">${s.title}</div>`
+          ).join('')
+          results.querySelectorAll('.compose-bp-item').forEach(el => {
+            el.addEventListener('click', () => {
+              composeBpId = el.dataset.id
+              renderComposeBpLinked(el.dataset.id, el.dataset.title)
+              results.classList.remove('open')
+              document.getElementById('composeBpInput').value = ''
+            })
+          })
+        }
+        results.classList.add('open')
+      }, 220)
+    })
+
+    function renderComposeBpLinked(id, title) {
+      const wrap = document.getElementById('composeBpLinkedWrap')
+      wrap.innerHTML = `
+        <div class="compose-bp-linked">
+          <span class="compose-bp-linked-title">${title}</span>
+          <button class="compose-bp-btn compose-bp-btn-remove" data-id="${id}">Remove</button>
+        </div>`
+      wrap.querySelector('.compose-bp-btn-remove').addEventListener('click', () => {
+        composeBpId = null
+        wrap.innerHTML = ''
+      })
+    }
   </script>
+
+<!-- ── Compose styles ───────────────────────────────────────────── -->
+<style>
+  .compose-field {
+    width: 100%;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: #2c3e50;
+    background: #fff;
+    margin-bottom: 6px;
+    box-sizing: border-box;
+  }
+  .compose-field:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52,152,219,0.12);
+  }
+  .compose-field-readonly {
+    background: #f3f4f6;
+    color: #6c757d;
+    cursor: default;
+  }
+  .compose-cc-toggle {
+    background: none;
+    border: none;
+    color: #3498db;
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .compose-cc-toggle:hover { text-decoration: underline; }
+  .compose-cc-wrap { display: none; }
+  .compose-cc-wrap.open { display: block; }
+  .compose-note {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 6px;
+  }
+  .compose-btn-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .compose-to-wrap { position: relative; }
+  .compose-autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e1e4e8;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 2000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .compose-autocomplete.open { display: block; }
+  .compose-ac-item {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: #2c3e50;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .compose-ac-item:last-child { border-bottom: none; }
+  .compose-ac-item:hover { background: #f0f7ff; }
+  .compose-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 580px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  }
+  .compose-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #3498db;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e4e8;
+  }
+  .compose-bp-input {
+    width: 100%;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    margin-top: 10px;
+    box-sizing: border-box;
+  }
+  .compose-bp-input:focus { outline: none; border-color: #3498db; }
+  .compose-bp-results {
+    background: #fff;
+    border: 1px solid #e1e4e8;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 150px;
+    overflow-y: auto;
+    display: none;
+  }
+  .compose-bp-results.open { display: block; }
+  .compose-bp-item {
+    padding: 8px 12px;
+    font-size: 0.83rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .compose-bp-item:hover { background: #f0f7ff; }
+  .compose-bp-linked {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.83rem;
+    margin-top: 8px;
+  }
+  .compose-bp-linked-title { font-weight: 600; color: #1d4ed8; flex: 1; }
+  .compose-bp-btn {
+    background: none;
+    border: none;
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .compose-bp-btn-view { color: #3498db; }
+  .compose-bp-btn-view:hover { background: #dbeafe; }
+  .compose-bp-btn-remove { color: #e74c3c; }
+  .compose-bp-btn-remove:hover { background: #fee2e2; }
+  .compose-sep { border: none; border-top: 1px solid #e1e4e8; margin: 16px 0; }
+</style>
+
+<div id="composeOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+  <div class="compose-card">
+    <h3>New Email</h3>
+
+    <!-- From (readonly) -->
+    <input class="compose-field compose-field-readonly" value="danyel@bpmsd.com" readonly>
+
+    <!-- To with autocomplete -->
+    <div class="compose-to-wrap">
+      <input class="compose-field" id="composeTo" type="text" placeholder="To: recipient@email.com" autocomplete="off">
+      <div class="compose-autocomplete" id="composeAcList"></div>
+    </div>
+
+    <!-- CC/BCC toggle -->
+    <button class="compose-cc-toggle" id="composeCcToggle">+ Add CC / BCC</button>
+    <div class="compose-cc-wrap" id="composeCcWrap">
+      <input class="compose-field" id="composeCc" type="text" placeholder="CC: address1@email.com, address2@email.com">
+      <input class="compose-field" id="composeBcc" type="text" placeholder="BCC: address@email.com">
+    </div>
+
+    <!-- Subject -->
+    <input class="compose-field" id="composeSubject" type="text" placeholder="Subject">
+
+    <!-- Body -->
+    <textarea class="compose-field" id="composeBody" rows="8" placeholder="Write your message..." style="resize:vertical;"></textarea>
+
+    <!-- Buttons -->
+    <div class="compose-btn-row">
+      <button class="btn btn-primary" id="composeSendBtn">Send</button>
+      <button class="btn" id="composeDraftBtn" style="background:#6c757d;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">&#10022; Draft with AI</button>
+      <span id="composeDraftStatus" style="font-size:0.8rem;color:#6c757d;display:none;">Drafting…</span>
+      <button class="btn btn-secondary" id="composeCancelBtn" style="margin-left:auto;">Cancel</button>
+    </div>
+    <p class="compose-note">Will be sent from danyel@bpmsd.com</p>
+    <div id="composeSendStatus" style="font-size:0.82rem;margin-top:6px;min-height:18px;"></div>
+
+    <hr class="compose-sep">
+
+    <!-- Best Practice -->
+    <div style="font-size:0.9rem;font-weight:700;color:#2c3e50;margin-bottom:4px;">Best Practice</div>
+    <div id="composeBpLinkedWrap"></div>
+    <input class="compose-bp-input" id="composeBpInput" type="text" placeholder="Search best practices…" autocomplete="off">
+    <div class="compose-bp-results" id="composeBpResults"></div>
+  </div>
+</div>
 
 </body>
 </html>

@@ -300,7 +300,9 @@
 <script type="module">
   import { requireAuth, renderHeader, renderSidebar } from './auth.js'
 
-  const API         = 'http://localhost:3006'
+  const API = window.location.hostname === 'localhost'
+    ? 'http://localhost:3006'
+    : 'https://bpm-onboarding-portal.onrender.com'
   let allRows       = []
   let currentFilter = 'all'
   let noteOnboardingId = null
@@ -423,7 +425,8 @@
               <button class="action-btn" onclick="openNote('${escHtml(r.id)}')">Note</button>
               <button class="action-btn" onclick="downloadIntakePDF('${escHtml(r.id)}', '${escHtml(r.shortAddress)}')">Intake PDF</button>
               ${r.status !== 'revoked' && r.status !== 'complete'
-                ? `<button class="action-btn danger" onclick="revokeOnboarding('${escHtml(r.id)}', '${escHtml(r.ownerName)}')">Revoke</button>`
+                ? `<button class="action-btn" onclick="markComplete('${escHtml(r.id)}', '${escHtml(r.ownerName)}')">Mark Complete</button>
+                   <button class="action-btn danger" onclick="revokeOnboarding('${escHtml(r.id)}', '${escHtml(r.ownerName)}')">Revoke</button>`
                 : ''}
             </div>
           </td>
@@ -522,6 +525,18 @@
     const row = allRows.find(r => r.id === id)
     document.getElementById('note-textarea').value = row?.staffNotes || ''
     document.getElementById('note-modal-overlay').classList.add('open')
+  }
+
+  window.markComplete = async function(id, name) {
+    if (!confirm(`Mark onboarding for ${name} as complete? This will generate the Entry Sheet PDF, sync to AppFolio, and send a completion notification.`)) return
+    try {
+      const res = await fetch(`${API}/api/onboarding/${id}/complete`, {
+        method: 'POST',
+        headers: authHeaders(),
+      })
+      if (!res.ok) throw new Error('Failed')
+      await loadData()
+    } catch { alert('Failed to mark complete — try again.') }
   }
 
   window.revokeOnboarding = async function(id, name) {

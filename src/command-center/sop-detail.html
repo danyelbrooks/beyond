@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOP Detail — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    /* ── Back link ───────────────────────────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--color-accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .back-link:hover { color: var(--color-accent-hover); text-decoration: underline; }
+
+    /* ── Two-column layout ───────────────────────────────── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Content panel ───────────────────────────────────── */
+    .content-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .content-panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .sop-cat-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #e8f4fd;
+      color: #1e40af;
+      margin-bottom: 10px;
+    }
+
+    .sop-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .sop-meta-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+    }
+
+    .content-panel-body {
+      padding: 24px;
+    }
+
+    /* Rendered SOP content */
+    .sop-content {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--color-text);
+      max-width: 100%;
+      word-break: break-word;
+    }
+
+    .sop-content img { max-width: 100%; height: auto; }
+
+    .sop-content h1, .sop-content h2, .sop-content h3 {
+      margin: 20px 0 10px;
+      color: var(--color-primary);
+    }
+
+    .sop-content p { margin-bottom: 12px; }
+
+    .sop-content ul, .sop-content ol {
+      margin: 0 0 12px 20px;
+    }
+
+    .sop-content a { color: var(--color-accent); }
+
+    /* ── Checklist section ───────────────────────────────── */
+    .checklist-section {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .checklist-heading {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 14px;
+    }
+
+    .checklist-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .checklist-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .checklist-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .checklist-row input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      cursor: pointer;
+      flex-shrink: 0;
+      accent-color: var(--color-accent);
+    }
+
+    .checklist-label {
+      font-size: 0.9rem;
+      color: var(--color-text);
+      cursor: pointer;
+      line-height: 1.4;
+    }
+
+    .checklist-reveal {
+      margin-left: 27px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.83rem;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .checklist-reveal.visible { display: block; }
+    .checklist-reveal.yes { background: #f0fff4; border: 1px solid #9ae6b4; color: #22543d; }
+    .checklist-reveal.no  { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+
+    .btn-reset-checklist {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .btn-reset-checklist:hover { background: #e2e8f0; color: var(--color-text); }
+
+    /* ── Action panel ────────────────────────────────────── */
+    .action-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .action-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .action-card h3 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+    }
+
+    .detail-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 10px;
+    }
+
+    .detail-row:last-child { margin-bottom: 0; }
+
+    .detail-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .detail-value {
+      font-size: 0.875rem;
+      color: var(--color-text);
+    }
+
+    /* ── Loading / error ─────────────────────────────────── */
+    .error-box {
+      background: #fff0f0;
+      border: 1px solid var(--color-danger);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--color-danger);
+      font-size: .875rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <div id="page-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading&hellip;</p>
+      </div>
+
+      <div id="page-content" style="display:none;"></div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    ;(async () => {
+
+    const sopId = sessionStorage.getItem('bpm_sop_id')
+    if (!sopId) { location.href = '/command-center/sop-library.html'; return }
+
+    const auth = await requireAuth()
+    if (!auth) return
+    const { profile } = auth
+    renderHeader(profile)
+    renderSidebar('sop-library', profile.role)
+
+    const isAdmin = profile.role === 'admin'
+
+    // ── Load SOP ─────────────────────────────────────────────
+    const { data: sop, error } = await supabase
+      .from('sops')
+      .select('id, title, description, content, created_by, created_at, updated_at, category_id, sop_categories(name)')
+      .eq('id', sopId)
+      .single()
+
+    if (error || !sop) {
+      showError(error ? error.message : 'SOP not found.')
+      return
+    }
+
+    // ── Load checklist items ─────────────────────────────────
+    const { data: items } = await supabase
+      .from('sop_checklist_items')
+      .select('id, label, if_yes, if_no, sort_order')
+      .eq('sop_id', sopId)
+      .order('sort_order')
+
+    const checklistItems = items || []
+
+    // ── Render page ──────────────────────────────────────────
+    const catName = sop.sop_categories ? esc(sop.sop_categories.name) : ''
+
+    const adminBtns = isAdmin ? `
+      <button class="btn btn-secondary btn-sm" id="btn-edit">Edit SOP</button>
+      <button class="btn btn-secondary btn-sm" id="btn-reminder">Add Reminder</button>
+    ` : ''
+
+    const checklistHtml = buildChecklist(checklistItems)
+
+    document.getElementById('page-loading').style.display = 'none'
+    const pc = document.getElementById('page-content')
+    pc.style.display = 'block'
+    pc.innerHTML = `
+      <a class="back-link" href="/command-center/sop-library.html">&#8592; Back to Best Practices</a>
+
+      <div class="detail-grid">
+
+        <!-- LEFT: content -->
+        <div class="content-panel">
+          <div class="content-panel-header">
+            ${catName ? `<div class="sop-cat-badge">${catName}</div>` : ''}
+            <div class="sop-title">${esc(sop.title)}</div>
+            <div class="sop-meta-row">
+              <span>Last updated: ${formatDate(sop.updated_at)}</span>
+              ${sop.created_by ? `<span>Created by: ${esc(sop.created_by)}</span>` : ''}
+            </div>
+          </div>
+          <div class="content-panel-body">
+            <div class="sop-content" id="sop-body">${sanitizeHtml(sop.content || '')}</div>
+            ${checklistHtml}
+          </div>
+        </div>
+
+        <!-- RIGHT: details -->
+        <div class="action-panel">
+          <div class="action-card">
+            <h3>Details</h3>
+            ${catName ? `
+            <div class="detail-row">
+              <span class="detail-label">Category</span>
+              <span class="detail-value"><span class="sop-cat-badge">${catName}</span></span>
+            </div>` : ''}
+            <div class="detail-row">
+              <span class="detail-label">Created</span>
+              <span class="detail-value">${formatDate(sop.created_at)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Updated</span>
+              <span class="detail-value">${formatDate(sop.updated_at)}</span>
+            </div>
+            ${adminBtns ? `<div class="flex flex-col gap-8 mt-12">${adminBtns}</div>` : ''}
+          </div>
+        </div>
+
+      </div>`
+
+    // Wire admin buttons
+    if (isAdmin) {
+      document.getElementById('btn-edit').addEventListener('click', () => {
+        sessionStorage.setItem('bpm_sop_edit_id', sop.id)
+        location.href = '/command-center/sop-editor.html'
+      })
+      document.getElementById('btn-reminder').addEventListener('click', () => {
+        sessionStorage.setItem('bpm_reminder_sop_id', sop.id)
+        location.href = '/command-center/sop-reminders.html'
+      })
+    }
+
+    // Wire checklist
+    wireChecklist()
+
+    // ── Checklist builder ────────────────────────────────────
+    function buildChecklist(items) {
+      if (!items.length) return ''
+      const rows = items.map((item, i) => {
+        const hasReveal = item.if_yes || item.if_no
+        return `
+          <div class="checklist-item" data-index="${i}">
+            <div class="checklist-row">
+              <input type="checkbox" id="cl-${i}" class="cl-checkbox" data-index="${i}">
+              <label class="checklist-label" for="cl-${i}">${esc(item.label)}</label>
+            </div>
+            ${hasReveal ? `
+            <div class="checklist-reveal yes" id="cl-yes-${i}" style="display:none;">
+              ${item.if_yes ? esc(item.if_yes) : ''}
+            </div>
+            <div class="checklist-reveal no" id="cl-no-${i}" style="display:none;">
+              ${item.if_no ? esc(item.if_no) : ''}
+            </div>` : ''}
+          </div>`
+      }).join('')
+
+      return `
+        <div class="checklist-section">
+          <div class="checklist-heading">Checklist</div>
+          <div class="checklist-list" id="checklist-list">${rows}</div>
+          <button class="btn-reset-checklist" id="btn-reset-checklist">Reset checklist</button>
+        </div>`
+    }
+
+    function wireChecklist() {
+      const list = document.getElementById('checklist-list')
+      if (!list) return
+
+      list.addEventListener('change', e => {
+        if (!e.target.matches('.cl-checkbox')) return
+        const i = e.target.dataset.index
+        const checked = e.target.checked
+        const yesEl = document.getElementById(`cl-yes-${i}`)
+        const noEl  = document.getElementById(`cl-no-${i}`)
+        if (yesEl) yesEl.style.display = checked ? 'block' : 'none'
+        if (noEl)  noEl.style.display  = (!checked && e.target._wasTouched) ? 'block' : 'none'
+        e.target._wasTouched = true
+      })
+
+      const resetBtn = document.getElementById('btn-reset-checklist')
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          list.querySelectorAll('.cl-checkbox').forEach(cb => {
+            cb.checked = false
+            cb._wasTouched = false
+          })
+          list.querySelectorAll('.checklist-reveal').forEach(el => {
+            el.style.display = 'none'
+          })
+        })
+      }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    function showError(msg) {
+      document.getElementById('page-loading').style.display = 'none'
+      document.getElementById('page-content').style.display = 'block'
+      document.getElementById('page-content').innerHTML = `
+        <div class="error-box">
+          <strong>Could not load SOP.</strong><br><br>${esc(msg)}<br><br>
+          <a href="/command-center/sop-library.html" style="color:#3498db;">&#8592; Back to Best Practices</a>
+        </div>`
+    }
+
+    function sanitizeHtml(html) {
+      if (!html) return ''
+      return html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+        .replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '')
+        .replace(/javascript\s*:/gi, 'nojavascript:')
+    }
+
+    function esc(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    function formatDate(iso) {
+      if (!iso) return ''
+      const d = new Date(iso)
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+    }
+
+    })()
+  </script>
+
+</body>
+</html>

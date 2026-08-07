@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal CFO — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Plaid Link — opens the bank connection modal. Loaded from Plaid's CDN (required). -->
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
+  <style>
+    /* =========================================================
+       CFO DASHBOARD — page-specific styles
+       ========================================================= */
+
+    .app-content.cfo { max-width: 1200px; }
+
+    /* ── Attention banner ─────────────────────────────────── */
+    .cfo-attention-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 11px 18px;
+      margin-bottom: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #92400e;
+    }
+    .cfo-attention-banner.visible { display: flex; }
+    .cfo-attention-dismiss {
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #92400e;
+      line-height: 1;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* ── Status bar in page header ────────────────────────── */
+    .cfo-status-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .cfo-status-line {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+    .cfo-status-line.overdue { color: #d97706; font-weight: 600; }
+
+    /* ── Section wrapper ──────────────────────────────────── */
+    .cfo-section {
+      margin-bottom: 32px;
+    }
+
+    .cfo-section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Net Worth Hero ───────────────────────────────────── */
+    .cfo-hero {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 32px 36px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .cfo-hero-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .cfo-net-worth-total {
+      font-size: 3.4rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .cfo-change-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+    .cfo-change-pill.up   { background: #dcfce7; color: #15803d; }
+    .cfo-change-pill.down { background: #fee2e2; color: #b91c1c; }
+    .cfo-change-pill.flat { background: #f3f4f6; color: #6b7280; }
+
+    .cfo-hero-as-of {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      margin-top: 6px;
+    }
+
+    .cfo-hero-sides {
+      display: flex;
+      gap: 32px;
+    }
+
+    .cfo-hero-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cfo-hero-stat-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+    }
+
+    .cfo-hero-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    /* ── Asset Buckets ────────────────────────────────────── */
+    .cfo-buckets-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-bottom: 0;
+    }
+
+    .cfo-bucket-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 16px 14px 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .cfo-bucket-card:hover {
+      border-color: var(--color-accent);
+      box-shadow: 0 2px 8px rgba(52,152,219,.15);
+    }
+
+    .cfo-bucket-card.active {
+      border-color: var(--color-accent);
+      background: #f0f7ff;
+    }
+
+    .cfo-bucket-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .cfo-bucket-name {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .cfo-bucket-equity {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .cfo-bucket-value-line {
+      font-size: 0.72rem;
+      color: var(--color-text-muted);
+      margin-bottom: 10px;
+    }
+
+    .cfo-bucket-bar {
+      height: 3px;
+      border-radius: 0 0 4px 4px;
+      margin: 0 -14px;
+    }
+    .cfo-bucket-bar.up   { background: var(--color-success); }
+    .cfo-bucket-bar.down { background: var(--color-danger); }
+    .cfo-bucket-bar.flat { background: var(--color-border); }
+
+    /* Bucket detail panel */
+    .cfo-bucket-detail {
+      display: none;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-top: 3px solid var(--color-accent);
+      border-radius: 10px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      margin-top: 10px;
+    }
+    .cfo-bucket-detail.open { display: block; }
+
+    .cfo-bucket-detail-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 14px;
+    }
+
+    /* ── Stat Tiles ───────────────────────────────────────── */
+    .cfo-stat-tiles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .cfo-stat-tile {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 20px 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+
+    .cfo-stat-tile-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .cfo-stat-tile-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--color-text);
+      line-height: 1;
+    }
+
+    .cfo-stat-tile-sub {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      margin-top: 5px;
+    }
+
+    .cfo-stat-tile.accent { border-top: 3px solid var(--color-accent); }
+    .cfo-stat-tile.green  { border-top: 3px solid var(--color-success); }
+
+    /* ── Chart wrapper ────────────────────────────────────── */
+    .cfo-chart-wrap {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+
+    .cfo-chart-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: 16px;
+    }
+
+    .cfo-chart-canvas-wrap {
+      height: 200px;
+      position: relative;
+    }
+
+    /* ── Projection Cards ─────────────────────────────────── */
+    .cfo-projection-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    .cfo-projection-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 22px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+
+    .cfo-projection-card:first-child { border-top: 3px solid #94a3b8; }
+    .cfo-projection-card:nth-child(2) { border-top: 3px solid var(--color-accent); }
+    .cfo-projection-card:last-child   { border-top: 3px solid var(--color-success); }
+
+    .cfo-projection-horizon {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .cfo-projection-value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--color-text);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .cfo-projection-sub {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+
+    .cfo-projection-disclaimer {
+      font-size: 0.75rem;
+      font-style: italic;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── Collapsible Section ──────────────────────────────── */
+    .cfo-collapsible-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s;
+    }
+
+    .cfo-collapsible-header:hover { background: #f8f9fa; }
+
+    .cfo-collapsible-header.open {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-bottom-color: transparent;
+    }
+
+    .cfo-collapsible-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cfo-collapsible-summary {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      font-weight: 400;
+    }
+
+    .cfo-collapsible-chevron {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      transition: transform 0.2s;
+    }
+    .cfo-collapsible-header.open .cfo-collapsible-chevron {
+      transform: rotate(180deg);
+    }
+
+    .cfo-collapsible-body {
+      display: none;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      overflow: hidden;
+    }
+    .cfo-collapsible-body.open { display: block; }
+
+    /* Sub-collapsible (inside Monthly Entry) */
+    .cfo-sub-collapsible-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      user-select: none;
+    }
+    .cfo-sub-collapsible-header:hover { background: #f0f4f8; }
+
+    .cfo-sub-collapsible-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+    }
+
+    .cfo-sub-collapsible-body {
+      display: none;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .cfo-sub-collapsible-body.open { display: block; }
+
+    /* Entry rows */
+    .cfo-entry-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .cfo-entry-row:last-child { margin-bottom: 0; }
+
+    .cfo-entry-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--color-text);
+      min-width: 200px;
+      flex-shrink: 0;
+    }
+
+    .cfo-entry-input {
+      width: 160px;
+      padding: 7px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      color: var(--color-text);
+      background: var(--color-surface);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .cfo-entry-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(52,152,219,.15);
+    }
+    .cfo-entry-input[readonly] {
+      background: #f8f9fa;
+      color: var(--color-text-muted);
+      cursor: default;
+    }
+
+    .cfo-entry-hint {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Liabilities tables */
+    .cfo-liabilities-inner {
+      padding: 20px 24px;
+    }
+
+    .cfo-liability-table-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+    .cfo-liability-table-label:first-child { margin-top: 0; }
+
+    .rate-alert-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      color: #92400e;
+      white-space: nowrap;
+    }
+
+    /* Subscription audit */
+    .cfo-sub-audit-section {
+      margin-bottom: 32px;
+    }
+
+    .cfo-sub-row-keep {
+      background: #f0fff4 !important;
+    }
+    .cfo-sub-row-flag {
+      background: #fffbeb !important;
+    }
+
+    .cfo-sub-btn {
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 5px;
+      border: 1px solid;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .cfo-sub-btn-keep {
+      background: #f0fff4;
+      border-color: #9ae6b4;
+      color: #22543d;
+    }
+    .cfo-sub-btn-keep:hover { background: #dcfce7; }
+    .cfo-sub-btn-flag {
+      background: #fffbeb;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
+    .cfo-sub-btn-flag:hover { background: #fef9c3; }
+
+    /* Multifamily table */
+    .cfo-mf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .cfo-mf-table th {
+      background: #f8f9fa;
+      color: var(--color-text-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 9px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    .cfo-mf-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+    }
+    .cfo-mf-table tr:last-child td { border-bottom: none; }
+    .cfo-mf-table tr:hover td { background: #f8f9fa; }
+
+    .cfo-mf-input {
+      width: 120px;
+      padding: 5px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: 5px;
+      font-size: 0.85rem;
+      color: var(--color-text);
+      background: var(--color-surface);
+    }
+    .cfo-mf-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(52,152,219,.15);
+    }
+    .cfo-mf-input.readonly {
+      background: #f0f7ff;
+      color: var(--color-accent);
+      font-weight: 700;
+      cursor: default;
+    }
+
+    /* Save all button */
+    .cfo-save-all-wrap {
+      padding: 20px 24px;
+      border-top: 1px solid var(--color-border);
+      background: #fafbfc;
+      border-radius: 0 0 10px 10px;
+    }
+
+    .cfo-save-all-btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: var(--color-accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 7px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: background 0.15s;
+    }
+    .cfo-save-all-btn:hover { background: var(--color-accent-hover); }
+    .cfo-save-all-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Mobile ───────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .cfo-buckets-row {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .cfo-hero {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .cfo-hero-center { min-width: auto; }
+      .cfo-hero-sides {
+        justify-content: center;
+      }
+      .cfo-stat-tiles,
+      .cfo-projection-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .cfo-buckets-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .cfo-net-worth-total {
+        font-size: 2.4rem;
+      }
+      .cfo-hero-sides { flex-wrap: wrap; gap: 16px; }
+      .cfo-entry-label { min-width: 140px; }
+      .cfo-entry-input { width: 130px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content cfo">
+
+      <!-- Loading state -->
+      <div class="loading-state" id="cfoLoadingState">
+        <div class="spinner"></div>
+        <span id="cfoLoadingMsg">Checking login...</span>
+      </div>
+
+      <!-- Page content (hidden until auth passes) -->
+      <div id="cfoContent" style="display:none;">
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="flex justify-between items-center flex-wrap gap-12">
+            <div>
+              <div class="page-title">Personal CFO</div>
+              <div class="page-subtitle">Net worth, passive income, and financial projections</div>
+            </div>
+            <!-- Status bar (top right) -->
+            <div class="cfo-status-bar">
+              <div class="cfo-status-line" id="cfoStatusPulled">Data last pulled: &mdash;</div>
+              <div class="cfo-status-line" id="cfoStatusReconciled">Last reconciled: &mdash;</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attention banner (hidden by default, shown via JS) -->
+        <div class="cfo-attention-banner" id="cfoAttentionBanner">
+          <span id="cfoAttentionMsg">0 items need your attention</span>
+          <button class="cfo-attention-dismiss" id="cfoAttentionDismiss" title="Dismiss">&#10005;</button>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             SECTION 1 — NET WORTH HERO
+             ══════════════════════════════════════════════════ -->
+        <div class="cfo-section">
+          <div class="cfo-hero">
+
+            <!-- Left — Total Assets -->
+            <div class="cfo-hero-sides">
+              <div class="cfo-hero-stat">
+                <div class="cfo-hero-stat-label">Total Assets</div>
+                <div class="cfo-hero-stat-value" id="total-assets">&mdash;</div>
+              </div>
+            </div>
+
+            <!-- Center — Net Worth -->
+            <div class="cfo-hero-center">
+              <div class="cfo-net-worth-total" id="net-worth-total">&mdash;</div>
+              <div class="cfo-change-pill flat" id="net-worth-change">
+                <span id="net-worth-change-arrow">&mdash;</span>
+                <span id="net-worth-change-value">&mdash;</span>
+              </div>
+              <div class="cfo-hero-as-of" id="net-worth-month">as of &mdash;</div>
+            </div>
+
+            <!-- Right — Total Liabilities -->
+            <div class="cfo-hero-sides">
+              <div class="cfo-hero-stat">
+                <div class="cfo-hero-stat-label">Total Liabilities</div>
+                <div class="cfo-hero-stat-value" id="total-liabilities">&mdash;</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             SECTION 2 — ASSET BUCKETS
+             ══════════════════════════════════════════════════ -->
+        <div class="cfo-section">
+          <div class="cfo-section-label">Asset Buckets</div>
+
+          <div class="cfo-buckets-row" id="bucketRow">
+
+            <!-- Real Estate -->
+            <div class="cfo-bucket-card" data-bucket="real_estate" id="bucket-card-real_estate" role="button" tabindex="0" aria-label="Real Estate bucket">
+              <span class="cfo-bucket-icon">🏠</span>
+              <div class="cfo-bucket-name">Real Estate</div>
+              <div class="cfo-bucket-equity" id="bucket-equity-real_estate">&mdash;</div>
+              <div class="cfo-bucket-value-line" id="bucket-value-real_estate">Value: &mdash;</div>
+              <div class="cfo-bucket-bar flat" id="bucket-bar-real_estate"></div>
+            </div>
+
+            <!-- Cash -->
+            <div class="cfo-bucket-card" data-bucket="cash" id="bucket-card-cash" role="button" tabindex="0" aria-label="Cash bucket">
+              <span class="cfo-bucket-icon">💵</span>
+              <div class="cfo-bucket-name">Cash</div>
+              <div class="cfo-bucket-equity" id="bucket-equity-cash">&mdash;</div>
+              <div class="cfo-bucket-value-line" id="bucket-value-cash">Value: &mdash;</div>
+              <div class="cfo-bucket-bar flat" id="bucket-bar-cash"></div>
+            </div>
+
+            <!-- Investments -->
+            <div class="cfo-bucket-card" data-bucket="investments" id="bucket-card-investments" role="button" tabindex="0" aria-label="Investments bucket">
+              <span class="cfo-bucket-icon">📈</span>
+              <div class="cfo-bucket-name">Investments</div>
+              <div class="cfo-bucket-equity" id="bucket-equity-investments">&mdash;</div>
+              <div class="cfo-bucket-value-line" id="bucket-value-investments">Value: &mdash;</div>
+              <div class="cfo-bucket-bar flat" id="bucket-bar-investments"></div>
+            </div>
+
+            <!-- Business -->
+            <div class="cfo-bucket-card" data-bucket="business" id="bucket-card-business" role="button" tabindex="0" aria-label="Business bucket">
+              <span class="cfo-bucket-icon">🏢</span>
+              <div class="cfo-bucket-name">Business</div>
+              <div class="cfo-bucket-equity" id="bucket-equity-business">&mdash;</div>
+              <div class="cfo-bucket-value-line" id="bucket-value-business">Value: &mdash;</div>
+              <div class="cfo-bucket-bar flat" id="bucket-bar-business"></div>
+            </div>
+
+            <!-- Life Insurance -->
+            <div class="cfo-bucket-card" data-bucket="life_insurance" id="bucket-card-life_insurance" role="button" tabindex="0" aria-label="Life Insurance bucket">
+              <span class="cfo-bucket-icon">🛡️</span>
+              <div class="cfo-bucket-name">Life Insurance</div>
+              <div class="cfo-bucket-equity" id="bucket-equity-life_insurance">&mdash;</div>
+              <div class="cfo-bucket-value-line" id="bucket-value-life_insurance">Value: &mdash;</div>
+              <div class="cfo-bucket-bar flat" id="bucket-bar-life_insurance"></div>
+            </div>
+
+            <!-- Vehicles -->
+            <div class="cfo-bucket-card" data-bucket="vehicles" id="bucket-card-vehicles" role="button" tabindex="0" aria-label="Vehicles bucket">
+              <span class="cfo-bucket-icon">🚗</span>
+              <div class="cfo-bucket-name">Vehicles</div>
+              <div class="cfo-bucket-equity" id="bucket-equity-vehicles">&mdash;</div>
+              <div class="cfo-bucket-value-line" id="bucket-value-vehicles">Value: &mdash;</div>
+              <div class="cfo-bucket-bar flat" id="bucket-bar-vehicles"></div>
+            </div>
+
+            <!-- Other -->
+            <div class="cfo-bucket-card" data-bucket="other" id="bucket-card-other" role="button" tabindex="0" aria-label="Other assets bucket">
+              <span class="cfo-bucket-icon">📦</span>
+              <div class="cfo-bucket-name">Other</div>
+              <div class="cfo-bucket-equity" id="bucket-equity-other">&mdash;</div>
+              <div class="cfo-bucket-value-line" id="bucket-value-other">Value: &mdash;</div>
+              <div class="cfo-bucket-bar flat" id="bucket-bar-other"></div>
+            </div>
+
+          </div><!-- /cfo-buckets-row -->
+
+          <!-- Expandable detail panel (JS will populate content) -->
+          <div class="cfo-bucket-detail" id="bucket-detail-panel" data-active-bucket="">
+            <div class="cfo-bucket-detail-title" id="bucket-detail-title">Details</div>
+            <div id="bucket-detail-content">
+              <span class="text-muted" style="font-size:0.875rem;">Select a bucket above to see details.</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             SECTION 3 — PASSIVE INCOME TRACKER
+             ══════════════════════════════════════════════════ -->
+        <div class="cfo-section">
+          <div class="cfo-section-label">Passive Income</div>
+
+          <div class="cfo-stat-tiles">
+            <div class="cfo-stat-tile">
+              <div class="cfo-stat-tile-label">Rental Income (Net)</div>
+              <div class="cfo-stat-tile-value" id="passive-rental-net">&mdash;</div>
+              <div class="cfo-stat-tile-sub" id="passive-rental-sub">per month</div>
+            </div>
+            <div class="cfo-stat-tile accent">
+              <div class="cfo-stat-tile-label">Dividends &amp; Interest</div>
+              <div class="cfo-stat-tile-value" id="passive-dividends">&mdash;</div>
+              <div class="cfo-stat-tile-sub" id="passive-dividends-sub">per month</div>
+            </div>
+            <div class="cfo-stat-tile green">
+              <div class="cfo-stat-tile-label">Total Passive Income</div>
+              <div class="cfo-stat-tile-value" id="passive-income-total">&mdash;</div>
+              <div class="cfo-stat-tile-sub" id="passive-income-sub">per month</div>
+            </div>
+          </div>
+
+          <div class="cfo-chart-wrap">
+            <div class="cfo-chart-title">Monthly Passive Income — Last 12 Months</div>
+            <div class="cfo-chart-canvas-wrap">
+              <canvas id="passive-income-chart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             SECTION 4 — PROJECTIONS
+             ══════════════════════════════════════════════════ -->
+        <div class="cfo-section">
+          <div class="cfo-section-label">Net Worth Projections</div>
+
+          <div class="cfo-projection-grid">
+
+            <div class="cfo-projection-card">
+              <div class="cfo-projection-horizon">1 Year &mdash; Sept 2027</div>
+              <div class="cfo-projection-value" id="projection-1yr">$0</div>
+              <div class="cfo-projection-sub">Mason&rsquo;s College Fund: <span id="projection-1yr-college">&mdash;</span></div>
+              <div class="cfo-projection-sub">Support Reserve: <span id="projection-1yr-reserve">&mdash;</span></div>
+            </div>
+
+            <div class="cfo-projection-card">
+              <div class="cfo-projection-horizon">5 Years &mdash; Sept 2031</div>
+              <div class="cfo-projection-value" id="projection-5yr">$0</div>
+              <div class="cfo-projection-sub">Mason&rsquo;s College Fund: <span id="projection-5yr-college">&mdash;</span></div>
+              <div class="cfo-projection-sub">Support Reserve: <span id="projection-5yr-reserve">&mdash;</span></div>
+            </div>
+
+            <div class="cfo-projection-card">
+              <div class="cfo-projection-horizon">Retirement &mdash; Sept 2041 (Age 60)</div>
+              <div class="cfo-projection-value" id="projection-retirement">$0</div>
+              <div class="cfo-projection-sub">Mason&rsquo;s College Fund: <span id="projection-ret-college">&mdash;</span></div>
+              <div class="cfo-projection-sub">Support Reserve: <span id="projection-ret-reserve">&mdash;</span></div>
+            </div>
+
+          </div>
+
+          <div class="cfo-projection-disclaimer">
+            Estimates based on 3% property appreciation, 7% investment growth, crypto held flat.
+          </div>
+
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             SECTION 5 — LIABILITIES
+             ══════════════════════════════════════════════════ -->
+        <div class="cfo-section">
+
+          <div class="cfo-collapsible-header" id="liabilitiesToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="liabilitiesBody">
+            <div class="cfo-collapsible-title">
+              Liabilities
+              <span class="cfo-collapsible-summary" id="liabilities-total-summary">Total: &mdash;</span>
+            </div>
+            <span class="cfo-collapsible-chevron">&#9660;</span>
+          </div>
+
+          <div class="cfo-collapsible-body" id="liabilitiesBody">
+            <div class="cfo-liabilities-inner">
+
+              <!-- Mortgages table -->
+              <div class="cfo-liability-table-label">Mortgages</div>
+              <div class="table-wrapper" style="margin-bottom: 20px;">
+                <table class="data-table" id="mortgages-table">
+                  <thead>
+                    <tr>
+                      <th>Property</th>
+                      <th>Lender</th>
+                      <th>Balance</th>
+                      <th>Rate</th>
+                      <th>Alert</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mortgages-table-body">
+                    <tr>
+                      <td>110 W Robertson, Ridgecrest</td>
+                      <td><span class="text-muted">&mdash;</span></td>
+                      <td id="mortgage-robertson-balance">&mdash;</td>
+                      <td id="mortgage-robertson-rate">&mdash;</td>
+                      <td id="mortgage-robertson-alert"><span class="text-muted">&mdash;</span></td>
+                    </tr>
+                    <tr>
+                      <td>7987-89 Lincoln, Lemon Grove</td>
+                      <td><span class="text-muted">&mdash;</span></td>
+                      <td id="mortgage-lincoln-balance">&mdash;</td>
+                      <td id="mortgage-lincoln-rate">&mdash;</td>
+                      <td id="mortgage-lincoln-alert"><span class="text-muted">&mdash;</span></td>
+                    </tr>
+                    <tr>
+                      <td>Weslaco, TX (Unilaco)</td>
+                      <td><span class="text-muted">&mdash;</span></td>
+                      <td id="mortgage-weslaco-balance">&mdash;</td>
+                      <td id="mortgage-weslaco-rate">&mdash;</td>
+                      <td id="mortgage-weslaco-alert"><span class="text-muted">&mdash;</span></td>
+                    </tr>
+                    <tr>
+                      <td>McAllen 32-unit (McNorth)</td>
+                      <td><span class="text-muted">&mdash;</span></td>
+                      <td id="mortgage-mcallen32-balance">&mdash;</td>
+                      <td id="mortgage-mcallen32-rate">&mdash;</td>
+                      <td id="mortgage-mcallen32-alert"><span class="text-muted">&mdash;</span></td>
+                    </tr>
+                    <tr>
+                      <td>McAllen 35-unit (McDove)</td>
+                      <td><span class="text-muted">&mdash;</span></td>
+                      <td id="mortgage-mcallen35-balance">&mdash;</td>
+                      <td id="mortgage-mcallen35-rate">&mdash;</td>
+                      <td id="mortgage-mcallen35-alert"><span class="text-muted">&mdash;</span></td>
+                    </tr>
+                    <tr>
+                      <td>Cherry Hill (105-unit)</td>
+                      <td><span class="text-muted">&mdash;</span></td>
+                      <td id="mortgage-cherryhill-balance">&mdash;</td>
+                      <td id="mortgage-cherryhill-rate">&mdash;</td>
+                      <td id="mortgage-cherryhill-alert"><span class="text-muted">&mdash;</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Credit Cards table -->
+              <div class="cfo-liability-table-label">Credit Cards</div>
+              <div class="table-wrapper">
+                <table class="data-table" id="credit-cards-table">
+                  <thead>
+                    <tr>
+                      <th>Card</th>
+                      <th>Balance</th>
+                      <th>Note</th>
+                    </tr>
+                  </thead>
+                  <tbody id="credit-cards-table-body">
+                    <tr>
+                      <td colspan="3"><span class="text-muted" style="font-size:0.875rem;font-style:italic;">No credit cards on file &mdash; Q will populate from API.</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div><!-- /liabilitiesBody -->
+
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             SECTION 6 — SUBSCRIPTION AUDIT
+             (hidden by default; JS shows it when data exists)
+             ══════════════════════════════════════════════════ -->
+        <div class="cfo-section cfo-sub-audit-section" id="subscriptionAuditSection" style="display:none;">
+
+          <div class="cfo-section-label">Subscription Audit</div>
+
+          <div class="table-wrapper">
+            <table class="data-table" id="subscriptions-table">
+              <thead>
+                <tr>
+                  <th>Merchant</th>
+                  <th>Amount</th>
+                  <th>Frequency</th>
+                  <th>Last Charged</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="subscriptions-table-body">
+                <!-- JS will populate rows; keep/flag buttons per row -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             SECTION 7 — MONTHLY DATA ENTRY PANEL
+             ══════════════════════════════════════════════════ -->
+        <div class="cfo-section">
+
+          <div class="cfo-collapsible-header" id="monthlyEntryToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="monthlyEntryBody">
+            <div class="cfo-collapsible-title">
+              Monthly Updates
+            </div>
+            <span class="cfo-collapsible-chevron">&#9660;</span>
+          </div>
+
+          <div class="cfo-collapsible-body" id="monthlyEntryBody">
+
+            <!-- 1. Mortgages -->
+            <div class="cfo-sub-collapsible-header" id="subToggle-mortgages" role="button" tabindex="0" aria-expanded="false" aria-controls="subBody-mortgages">
+              <span class="cfo-sub-collapsible-title">Mortgages</span>
+              <span class="cfo-collapsible-chevron" style="font-size:0.7rem;">&#9660;</span>
+            </div>
+            <div class="cfo-sub-collapsible-body" id="subBody-mortgages">
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">110 W Robertson, Ridgecrest</div>
+                <input class="cfo-entry-input" type="text" id="entry-mortgage-robertson" placeholder="$0.00" data-field="mortgage_robertson">
+                <span class="cfo-entry-hint">Current balance</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">7987-89 Lincoln, Lemon Grove</div>
+                <input class="cfo-entry-input" type="text" id="entry-mortgage-lincoln" placeholder="$0.00" data-field="mortgage_lincoln">
+                <span class="cfo-entry-hint">Current balance</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Weslaco, TX (Unilaco)</div>
+                <input class="cfo-entry-input" type="text" id="entry-mortgage-weslaco" placeholder="$0.00" data-field="mortgage_weslaco">
+                <span class="cfo-entry-hint">Your share</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">McAllen 32-unit (McNorth)</div>
+                <input class="cfo-entry-input" type="text" id="entry-mortgage-mcallen32" placeholder="$0.00" data-field="mortgage_mcallen32">
+                <span class="cfo-entry-hint">Your share</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">McAllen 35-unit (McDove)</div>
+                <input class="cfo-entry-input" type="text" id="entry-mortgage-mcallen35" placeholder="$0.00" data-field="mortgage_mcallen35">
+                <span class="cfo-entry-hint">Your share</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Cherry Hill 105-unit</div>
+                <input class="cfo-entry-input" type="text" id="entry-mortgage-cherryhill" placeholder="$0.00" data-field="mortgage_cherryhill">
+                <span class="cfo-entry-hint">Your share</span>
+              </div>
+            </div>
+
+            <!-- 2. Life Insurance -->
+            <div class="cfo-sub-collapsible-header" id="subToggle-insurance" role="button" tabindex="0" aria-expanded="false" aria-controls="subBody-insurance">
+              <span class="cfo-sub-collapsible-title">Life Insurance (Cash Value)</span>
+              <span class="cfo-collapsible-chevron" style="font-size:0.7rem;">&#9660;</span>
+            </div>
+            <div class="cfo-sub-collapsible-body" id="subBody-insurance">
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Transamerica (Main)</div>
+                <input class="cfo-entry-input" type="text" id="entry-insurance-transamerica-main" placeholder="$0.00" data-field="insurance_transamerica_main">
+                <span class="cfo-entry-hint">Cash value</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Transamerica (Mason)</div>
+                <input class="cfo-entry-input" type="text" id="entry-insurance-transamerica-mason" placeholder="$0.00" data-field="insurance_transamerica_mason">
+                <span class="cfo-entry-hint">Cash value</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Prudential</div>
+                <input class="cfo-entry-input" type="text" id="entry-insurance-prudential" placeholder="$0.00" data-field="insurance_prudential">
+                <span class="cfo-entry-hint">Cash value</span>
+              </div>
+            </div>
+
+            <!-- 3. Vehicles -->
+            <div class="cfo-sub-collapsible-header" id="subToggle-vehicles" role="button" tabindex="0" aria-expanded="false" aria-controls="subBody-vehicles">
+              <span class="cfo-sub-collapsible-title">Vehicles (Market Value)</span>
+              <span class="cfo-collapsible-chevron" style="font-size:0.7rem;">&#9660;</span>
+            </div>
+            <div class="cfo-sub-collapsible-body" id="subBody-vehicles">
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Sprinter 2025</div>
+                <input class="cfo-entry-input" type="text" id="entry-vehicle-sprinter" placeholder="$0.00" data-field="vehicle_sprinter_2025">
+                <span class="cfo-entry-hint">KBB estimate</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Santa Fe 2017</div>
+                <input class="cfo-entry-input" type="text" id="entry-vehicle-santafe" placeholder="$0.00" data-field="vehicle_santafe_2017">
+                <span class="cfo-entry-hint">KBB estimate</span>
+              </div>
+              <div class="cfo-entry-row">
+                <div class="cfo-entry-label">Prius C 2012</div>
+                <input class="cfo-entry-input" type="text" id="entry-vehicle-priusc" placeholder="$0.00" data-field="vehicle_priusc_2012">
+                <span class="cfo-entry-hint">KBB estimate</span>
+              </div>
+            </div>
+
+            <!-- 4. Multi-Family Valuations -->
+            <div class="cfo-sub-collapsible-header" id="subToggle-multifamily" role="button" tabindex="0" aria-expanded="false" aria-controls="subBody-multifamily">
+              <span class="cfo-sub-collapsible-title">Multi-Family Valuations (Cap Rate Method)</span>
+              <span class="cfo-collapsible-chevron" style="font-size:0.7rem;">&#9660;</span>
+            </div>
+            <div class="cfo-sub-collapsible-body" id="subBody-multifamily" style="padding: 0;">
+              <div class="table-wrapper" style="border-radius: 0; border: none; border-top: 1px solid var(--color-border);">
+                <table class="cfo-mf-table" id="multifamily-table">
+                  <thead>
+                    <tr>
+                      <th>Property</th>
+                      <th>T-12 NOI</th>
+                      <th>Cap Rate</th>
+                      <th>Est. Value (Your Share)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Weslaco, TX — 41 units (20.1%)</td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-noi-weslaco" placeholder="$0" data-field="mf_noi_weslaco"></td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-cap-weslaco" placeholder="5.5%" data-field="mf_cap_weslaco"></td>
+                      <td><input class="cfo-mf-input readonly" type="text" id="entry-mf-val-weslaco" readonly placeholder="&mdash;"></td>
+                    </tr>
+                    <tr>
+                      <td>McAllen 32-unit (McNorth)</td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-noi-mcallen32" placeholder="$0" data-field="mf_noi_mcallen32"></td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-cap-mcallen32" placeholder="5.5%" data-field="mf_cap_mcallen32"></td>
+                      <td><input class="cfo-mf-input readonly" type="text" id="entry-mf-val-mcallen32" readonly placeholder="&mdash;"></td>
+                    </tr>
+                    <tr>
+                      <td>McAllen 35-unit (McDove)</td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-noi-mcallen35" placeholder="$0" data-field="mf_noi_mcallen35"></td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-cap-mcallen35" placeholder="5.5%" data-field="mf_cap_mcallen35"></td>
+                      <td><input class="cfo-mf-input readonly" type="text" id="entry-mf-val-mcallen35" readonly placeholder="&mdash;"></td>
+                    </tr>
+                    <tr>
+                      <td>Cherry Hill — 105 units (20%)</td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-noi-cherryhill" placeholder="$0" data-field="mf_noi_cherryhill"></td>
+                      <td><input class="cfo-mf-input" type="text" id="entry-mf-cap-cherryhill" placeholder="5.5%" data-field="mf_cap_cherryhill"></td>
+                      <td><input class="cfo-mf-input readonly" type="text" id="entry-mf-val-cherryhill" readonly placeholder="&mdash;"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Save All -->
+            <div class="cfo-save-all-wrap">
+              <button class="cfo-save-all-btn" id="cfoSaveAllBtn" type="button">Save All Updates</button>
+            </div>
+
+          </div><!-- /monthlyEntryBody -->
+
+        </div>
+
+      </div><!-- /cfoContent -->
+    </div><!-- /app-content -->
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    // =========================================================================
+    // BOOT
+    // =========================================================================
+    const setMsg = msg => {
+      const el = document.getElementById('cfoLoadingMsg')
+      if (el) el.textContent = msg
+    }
+
+    setMsg('Checking login...')
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+
+    const { user, profile } = auth
+    renderHeader(profile)
+    renderSidebar('cfo-dashboard', profile.role, user.email)
+
+    // Show main content
+    document.getElementById('cfoLoadingState').style.display = 'none'
+    document.getElementById('cfoContent').style.display = ''
+
+    // =========================================================================
+    // COLLAPSIBLE TOGGLE HELPER
+    // =========================================================================
+    function bindCollapsible(headerId, bodyId) {
+      const header = document.getElementById(headerId)
+      const body   = document.getElementById(bodyId)
+      if (!header || !body) return
+
+      header.addEventListener('click', () => {
+        const isOpen = header.classList.contains('open')
+        header.classList.toggle('open', !isOpen)
+        body.classList.toggle('open', !isOpen)
+        header.setAttribute('aria-expanded', String(!isOpen))
+      })
+      header.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); header.click() }
+      })
+    }
+
+    // Wire up all collapsibles
+    bindCollapsible('liabilitiesToggle',   'liabilitiesBody')
+    bindCollapsible('monthlyEntryToggle',  'monthlyEntryBody')
+    bindCollapsible('subToggle-mortgages', 'subBody-mortgages')
+    bindCollapsible('subToggle-insurance', 'subBody-insurance')
+    bindCollapsible('subToggle-vehicles',  'subBody-vehicles')
+    bindCollapsible('subToggle-multifamily','subBody-multifamily')
+
+    // =========================================================================
+    // ASSET BUCKET EXPAND/COLLAPSE
+    // =========================================================================
+    const bucketKeys = ['real_estate','cash','investments','business','life_insurance','vehicles','other']
+    const detailPanel = document.getElementById('bucket-detail-panel')
+
+    bucketKeys.forEach(key => {
+      const card = document.getElementById('bucket-card-' + key)
+      if (!card) return
+
+      card.addEventListener('click', () => {
+        const currentActive = detailPanel.getAttribute('data-active-bucket')
+        const isAlreadyOpen = currentActive === key && detailPanel.classList.contains('open')
+
+        // Close all cards first
+        bucketKeys.forEach(k => {
+          const c = document.getElementById('bucket-card-' + k)
+          if (c) c.classList.remove('active')
+        })
+
+        if (isAlreadyOpen) {
+          // Toggle closed
+          detailPanel.classList.remove('open')
+          detailPanel.setAttribute('data-active-bucket', '')
+        } else {
+          // Open this bucket
+          card.classList.add('active')
+          detailPanel.setAttribute('data-active-bucket', key)
+          detailPanel.classList.add('open')
+          document.getElementById('bucket-detail-title').textContent = card.querySelector('.cfo-bucket-name').textContent + ' — Details'
+          document.getElementById('bucket-detail-content').innerHTML =
+            '<span class="text-muted" style="font-size:0.875rem;">Loading details…</span>'
+          // Q will replace this content via cfo-dashboard.js
+          detailPanel.dispatchEvent(new CustomEvent('bucket-changed', { detail: { bucket: key } }))
+        }
+      })
+
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click() }
+      })
+    })
+
+    // =========================================================================
+    // ATTENTION BANNER DISMISS
+    // =========================================================================
+    document.getElementById('cfoAttentionDismiss').addEventListener('click', () => {
+      document.getElementById('cfoAttentionBanner').classList.remove('visible')
+    })
+
+    // =========================================================================
+    // MULTI-FAMILY CAP RATE CALCULATOR (live)
+    // Calculates estimated value as NOI / cap rate * ownership share
+    // =========================================================================
+    const MF_ROWS = [
+      { noi: 'entry-mf-noi-weslaco',   cap: 'entry-mf-cap-weslaco',   val: 'entry-mf-val-weslaco',   share: 0.201 },
+      { noi: 'entry-mf-noi-mcallen32', cap: 'entry-mf-cap-mcallen32', val: 'entry-mf-val-mcallen32',  share: 0.35  },
+      { noi: 'entry-mf-noi-mcallen35', cap: 'entry-mf-cap-mcallen35', val: 'entry-mf-val-mcallen35',  share: 0.225 },
+      { noi: 'entry-mf-noi-cherryhill',cap: 'entry-mf-cap-cherryhill',val: 'entry-mf-val-cherryhill', share: 0.20  },
+    ]
+
+    function calcMFValue(row) {
+      const noiEl = document.getElementById(row.noi)
+      const capEl = document.getElementById(row.cap)
+      const valEl = document.getElementById(row.val)
+      if (!noiEl || !capEl || !valEl) return
+
+      const noi = parseFloat(String(noiEl.value).replace(/[$,]/g, '')) || 0
+      const cap = parseFloat(String(capEl.value).replace(/[%]/g, '')) || 0
+
+      if (noi > 0 && cap > 0) {
+        const totalValue  = noi / (cap / 100)
+        const myShare     = row.share != null ? totalValue * row.share : totalValue
+        valEl.value = '$' + Math.round(myShare).toLocaleString()
+      } else {
+        valEl.value = ''
+      }
+    }
+
+    MF_ROWS.forEach(row => {
+      const noiEl = document.getElementById(row.noi)
+      const capEl = document.getElementById(row.cap)
+      if (noiEl) noiEl.addEventListener('input', () => calcMFValue(row))
+      if (capEl) capEl.addEventListener('input', () => calcMFValue(row))
+    })
+
+    // =========================================================================
+    // SAVE ALL BUTTON (stub — Q will wire the actual API call)
+    // =========================================================================
+    document.getElementById('cfoSaveAllBtn').addEventListener('click', () => {
+      const btn = document.getElementById('cfoSaveAllBtn')
+      btn.disabled    = true
+      btn.textContent = 'Saving...'
+      // cfo-dashboard.js will handle the actual save
+      document.dispatchEvent(new CustomEvent('cfo-save-all'))
+      // Re-enable after 3s fallback
+      setTimeout(() => {
+        btn.disabled    = false
+        btn.textContent = 'Save All Updates'
+      }, 3000)
+    })
+  </script>
+
+  <!-- Q will create this file to wire up data fetching and saving -->
+  <script src="/cfo-dashboard.js" defer></script>
+
+</body>
+</html>

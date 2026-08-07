@@ -1,0 +1,269 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — [YOUR COMPANY] Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Login page — centered, no sidebar */
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--color-bg);
+    }
+
+    .login-box {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .login-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo-mark {
+      width: 64px;
+      height: 64px;
+      background: var(--color-primary);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .login-logo-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .login-logo-sub {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    .login-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--color-text);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .login-error {
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      color: #9b2c2c;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .login-error.visible {
+      display: block;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--color-accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
+    }
+
+    .login-btn:hover {
+      background: var(--color-accent-hover);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+
+  <!-- Supabase CDN — must load before auth.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body>
+
+  <div class="login-box">
+
+    <!-- Logo / brand area -->
+    <div class="login-logo">
+      <div class="login-logo-mark">BPM</div>
+      <div class="login-logo-name">[YOUR COMPANY]</div>
+      <div class="login-logo-sub">Command Center</div>
+    </div>
+
+    <div class="login-title">Sign in to your account</div>
+
+    <!-- Error message — shown on failed login -->
+    <div class="login-error" id="loginError"></div>
+
+    <!-- Login form -->
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input
+          class="form-input"
+          type="email"
+          id="email"
+          name="email"
+          placeholder="you@yourdomain.com"
+          autocomplete="email"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input
+          class="form-input"
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Your password"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <button class="login-btn" type="submit" id="loginBtn">Sign In</button>
+    </form>
+
+    <div style="text-align:center;margin-top:16px;">
+      <a href="#" id="forgotLink" style="font-size:0.82rem;color:var(--color-text-muted);text-decoration:none;">
+        Forgot password?
+      </a>
+    </div>
+
+    <!-- Forgot password panel — hidden by default -->
+    <div id="forgotPanel" style="display:none;margin-top:20px;border-top:1px solid var(--color-border);padding-top:20px;">
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:10px;">Reset your password</div>
+      <div style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:14px;">
+        Enter your email and we'll send you a reset link.
+      </div>
+      <div id="resetMsg" style="display:none;font-size:0.85rem;padding:10px 14px;border-radius:6px;margin-bottom:12px;"></div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <input class="form-input" type="email" id="resetEmail" placeholder="you@yourdomain.com" autocomplete="email">
+      </div>
+      <button class="login-btn" type="button" id="resetBtn">Send Reset Link</button>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { supabase } from './auth.js'
+
+    // If already logged in, skip the login page entirely
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      window.location.href = 'dashboard.html'
+    }
+
+    // Handle form submission
+    const form   = document.getElementById('loginForm')
+    const btn    = document.getElementById('loginBtn')
+    const errBox = document.getElementById('loginError')
+
+    // Forgot password toggle
+    document.getElementById('forgotLink').addEventListener('click', e => {
+      e.preventDefault()
+      const panel = document.getElementById('forgotPanel')
+      panel.style.display = panel.style.display === 'none' ? '' : 'none'
+      if (panel.style.display !== 'none') {
+        document.getElementById('resetEmail').value = document.getElementById('email').value
+        document.getElementById('resetEmail').focus()
+      }
+    })
+
+    document.getElementById('resetBtn').addEventListener('click', async () => {
+      const email  = document.getElementById('resetEmail').value.trim()
+      const msg    = document.getElementById('resetMsg')
+      const btn    = document.getElementById('resetBtn')
+
+      if (!email) {
+        msg.style.display = ''
+        msg.style.background = '#fff5f5'
+        msg.style.border = '1px solid #fed7d7'
+        msg.style.color = '#9b2c2c'
+        msg.textContent = 'Please enter your email address.'
+        return
+      }
+
+      btn.disabled = true
+      btn.textContent = 'Sending...'
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html'
+      })
+
+      msg.style.display = ''
+      if (error) {
+        msg.style.background = '#fff5f5'
+        msg.style.border = '1px solid #fed7d7'
+        msg.style.color = '#9b2c2c'
+        msg.textContent = error.message || 'Could not send reset email.'
+        btn.disabled = false
+        btn.textContent = 'Send Reset Link'
+      } else {
+        msg.style.background = '#f0fff4'
+        msg.style.border = '1px solid #9ae6b4'
+        msg.style.color = '#22543d'
+        msg.textContent = `Reset link sent to ${email}. Check your inbox.`
+        btn.textContent = 'Sent!'
+      }
+    })
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+
+      const email    = document.getElementById('email').value.trim()
+      const password = document.getElementById('password').value
+
+      btn.disabled       = true
+      btn.textContent    = 'Signing in...'
+      errBox.className   = 'login-error'
+      errBox.textContent = ''
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+      if (error) {
+        errBox.textContent = error.message || 'Sign in failed. Check your email and password.'
+        errBox.className   = 'login-error visible'
+        btn.disabled       = false
+        btn.textContent    = 'Sign In'
+      } else {
+        window.location.href = 'dashboard.html'
+      }
+    })
+  </script>
+
+</body>
+</html>

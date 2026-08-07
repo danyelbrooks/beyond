@@ -1,0 +1,1767 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Detail — [YOUR COMPANY] Command Center</title>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <style>
+    /* =========================================================
+       DESIGN TOKENS
+    ========================================================= */
+    :root {
+      --color-primary:       #1e3a5f;
+      --color-primary-light: #2a4f7c;
+      --color-accent:        #3498db;
+      --color-accent-hover:  #2980b9;
+      --color-success:       #2ecc71;
+      --color-warning:       #f39c12;
+      --color-danger:        #e74c3c;
+      --color-bg:            #f3f4f6;
+      --color-surface:       #ffffff;
+      --color-border:        #e1e4e8;
+      --color-text:          #2c3e50;
+      --color-text-muted:    #6c757d;
+      --sidebar-width:       220px;
+      --header-height:       60px;
+    }
+
+    /* =========================================================
+       RESET & BASE
+    ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   Helvetica, Arial, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+    }
+
+    /* =========================================================
+       LAYOUT SHELL
+    ========================================================= */
+    #app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      background: var(--color-primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 100;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    }
+
+    .app-header-brand {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .app-header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .app-header-user {
+      font-size: 0.85rem;
+      color: #93c5fd;
+    }
+
+    .btn-logout {
+      background: transparent;
+      color: #cbd5e1;
+      border: 1px solid rgba(255,255,255,.2);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-logout:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    #app-sidebar {
+      position: fixed;
+      top: var(--header-height);
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-width);
+      background: var(--color-primary);
+      overflow-y: auto;
+      z-index: 90;
+      padding: 16px 0;
+    }
+
+    .nav-section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #64748b;
+      padding: 16px 18px 6px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 9px 18px;
+      color: #cbd5e1;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: background .12s, color .12s;
+    }
+
+    .nav-link:hover { background: var(--color-primary-light); color: #fff; text-decoration: none; }
+    .nav-link.active { background: var(--color-primary-light); color: #fff; border-left-color: var(--color-accent); }
+    .nav-link-external { opacity: .75; font-size: .82rem; }
+    .nav-link-external:hover { opacity: 1; }
+
+    .nav-divider {
+      height: 1px;
+      background: rgba(255,255,255,.08);
+      margin: 10px 18px;
+    }
+
+    #main-content {
+      margin-top: var(--header-height);
+      margin-left: var(--sidebar-width);
+      padding: 24px 20px;
+      min-height: calc(100vh - var(--header-height));
+    }
+
+    /* =========================================================
+       LOADING / ERROR / NOT FOUND
+    ========================================================= */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 80px 20px;
+      color: var(--color-text-muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-state {
+      background: #fff0f0;
+      border: 1px solid var(--color-danger);
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: var(--color-danger);
+      font-size: 0.9rem;
+    }
+
+    .not-found {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--color-text-muted);
+    }
+
+    .not-found a { color: var(--color-accent); text-decoration: none; }
+    .not-found a:hover { text-decoration: underline; }
+
+    /* =========================================================
+       BACK LINK
+    ========================================================= */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--color-accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .back-link:hover { color: var(--color-accent-hover); text-decoration: underline; }
+
+    /* =========================================================
+       TWO-COLUMN LAYOUT
+    ========================================================= */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* =========================================================
+       EMAIL BODY PANEL
+    ========================================================= */
+    .email-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .email-meta {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .email-subject {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .meta-row {
+      display: flex;
+      gap: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .meta-label {
+      color: var(--color-text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .meta-value { color: var(--color-text); }
+
+    .meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    /* Generic badge */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .badge-new      { background: #dbeafe; color: #1e40af; }
+    .badge-assigned { background: #fef3c7; color: #92400e; }
+    .badge-handled  { background: #d1fae5; color: #065f46; }
+
+    /* Email body */
+    .email-body-wrap {
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    .email-body {
+      max-width: 100%;
+      word-break: break-word;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--color-text);
+    }
+
+    /* Contain images inside the body */
+    .email-body img { max-width: 100%; height: auto; }
+
+    /* =========================================================
+       ACTION PANEL
+    ========================================================= */
+    .action-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .action-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .action-card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Form controls */
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      color: var(--color-text);
+      background: var(--color-surface);
+      margin-bottom: 10px;
+      transition: border-color 0.15s;
+    }
+
+    select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.12);
+    }
+
+    textarea { resize: vertical; }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 9px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .btn-primary  { background: var(--color-accent);   color: #fff; }
+    .btn-primary:hover:not(:disabled)  { background: var(--color-accent-hover); }
+
+    .btn-success  { background: var(--color-success);  color: #fff; }
+    .btn-success:hover:not(:disabled)  { background: #27ae60; }
+
+    .btn-neutral  { background: #e2e8f0; color: var(--color-text); }
+    .btn-neutral:hover:not(:disabled)  { background: #cbd5e1; }
+
+    /* Inline status messages */
+    .action-msg {
+      font-size: 0.8rem;
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .action-msg.success { background: #d1fae5; color: #065f46; display: block; }
+    .action-msg.error   { background: #fee2e2; color: #991b1b; display: block; }
+
+    .reply-note {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .reply-subject {
+      width: 100%;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      color: var(--color-text);
+      background: var(--color-surface);
+      margin-bottom: 6px;
+    }
+
+    .reply-to-field {
+      background: var(--color-bg, #f8f9fa);
+      color: var(--color-text-muted);
+      cursor: default;
+    }
+
+    .reply-subject:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.12);
+    }
+
+    .cc-bcc-toggle {
+      background: none;
+      border: none;
+      color: var(--color-accent);
+      font-size: 0.78rem;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .cc-bcc-toggle:hover { text-decoration: underline; }
+
+    .cc-bcc-wrap { display: none; }
+    .cc-bcc-wrap.open { display: block; }
+
+    .badge-snoozed { background: #ede9fe; color: #5b21b6; }
+
+    .snooze-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .snooze-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .snooze-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .btn-snooze-preset {
+      padding: 5px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 5px;
+      background: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+
+    .btn-snooze-preset:hover { background: #ede9fe; border-color: #7c3aed; color: #5b21b6; }
+
+    .snooze-custom {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .snooze-date-input {
+      flex: 1;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      font-family: inherit;
+    }
+
+    .btn-snooze-custom {
+      padding: 6px 12px;
+      background: #7c3aed;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-snooze-custom:hover { background: #6d28d9; }
+
+    .snoozed-info {
+      background: #ede9fe;
+      border: 1px solid #c4b5fd;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      color: #5b21b6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .btn-unsnooze {
+      padding: 3px 8px;
+      background: #fff;
+      border: 1px solid #c4b5fd;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #5b21b6;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-unsnooze:hover { background: #f5f3ff; }
+
+    /* =========================================================
+       PAGE HEADER BAR (back link + Snooze + Resolve)
+    ========================================================= */
+    .page-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      transition: background 0.15s;
+    }
+
+    .btn-header:hover:not(:disabled) { background: #f1f5f9; }
+    .btn-header:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .btn-header-success { background: var(--color-success); color: #fff; border-color: transparent; }
+    .btn-header-success:hover:not(:disabled) { background: #27ae60; }
+
+    .btn-header-neutral { background: #e2e8f0; color: var(--color-text); border-color: transparent; }
+    .btn-header-neutral:hover:not(:disabled) { background: #cbd5e1; }
+
+    /* Snooze dropdown */
+    .snooze-wrap { position: relative; }
+
+    .snooze-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      width: 230px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+      padding: 14px;
+      z-index: 200;
+    }
+
+    .snooze-panel.open { display: block; }
+
+    .snooze-panel-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* Reply card — prominent */
+    .reply-card {
+      border-left: 3px solid var(--color-accent);
+    }
+
+    .reply-card h3 { color: var(--color-accent); }
+
+    .reply-btn-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .reply-btn-row .btn { width: auto; }
+
+    /* =========================================================
+       ACTION HISTORY (timeline)
+    ========================================================= */
+    .history-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 4px;
+    }
+
+    .history-card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .history-item {
+      display: flex;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 0.82rem;
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .history-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .history-text { color: var(--color-text); line-height: 1.4; }
+    .history-time { color: var(--color-text-muted); font-size: 0.75rem; margin-top: 2px; }
+
+    .history-empty {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* =========================================================
+       BEST PRACTICE SEARCH
+    ========================================================= */
+    .bp-search-wrap {
+      position: relative;
+    }
+
+    .bp-input {
+      width: 100%;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      color: var(--color-text);
+      background: var(--color-surface);
+      transition: border-color 0.15s;
+    }
+
+    .bp-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.12);
+    }
+
+    .bp-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 50;
+      display: none;
+    }
+
+    .bp-results.open { display: block; }
+
+    .bp-result-item {
+      padding: 9px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--color-border);
+      line-height: 1.3;
+    }
+
+    .bp-result-item:last-child { border-bottom: none; }
+    .bp-result-item:hover { background: #f0f6ff; }
+
+    .bp-linked {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: #f0f6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      font-size: 0.82rem;
+    }
+
+    .bp-linked-title {
+      color: var(--color-primary);
+      font-weight: 600;
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bp-linked-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .bp-btn {
+      padding: 3px 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .bp-btn-view   { background: var(--color-accent); color: #fff; }
+    .bp-btn-remove { background: #e2e8f0; color: var(--color-text); }
+    .bp-btn-view:hover   { background: var(--color-accent-hover); }
+    .bp-btn-remove:hover { background: #cbd5e1; }
+
+    /* =========================================================
+       SOP MODAL (slide-in panel)
+    ========================================================= */
+    .sop-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 200;
+      display: none;
+    }
+
+    .sop-modal-overlay.open { display: block; }
+
+    .sop-modal {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(560px, 90vw);
+      background: var(--color-surface);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.18);
+      z-index: 201;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+    }
+
+    .sop-modal-overlay.open .sop-modal {
+      transform: translateX(0);
+    }
+
+    .sop-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-primary);
+      color: #fff;
+    }
+
+    .sop-modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .sop-modal-close {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 4px;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    .sop-modal-close:hover { opacity: 1; }
+
+    .sop-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--color-text);
+    }
+
+    .sop-modal-body h1 { font-size: 1.1rem; margin: 16px 0 8px; color: var(--color-primary); }
+    .sop-modal-body h2 { font-size: 1rem;   margin: 14px 0 6px; color: var(--color-primary); }
+    .sop-modal-body h3 { font-size: 0.9rem; margin: 12px 0 4px; font-weight: 700; }
+    .sop-modal-body p  { margin-bottom: 10px; }
+    .sop-modal-body ul, .sop-modal-body ol { margin: 8px 0 10px 20px; }
+    .sop-modal-body li { margin-bottom: 4px; }
+    .sop-modal-body blockquote { border-left: 3px solid var(--color-accent); padding-left: 12px; color: var(--color-text-muted); margin: 10px 0; }
+    .sop-modal-body hr { border: none; border-top: 1px solid var(--color-border); margin: 14px 0; }
+    .sop-modal-body img { max-width: 100%; border-radius: 4px; }
+    .sop-modal-body pre { background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; margin: 8px 0; }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+    @media (max-width: 900px) {
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      #app-sidebar    { display: none; }
+      #main-content   { margin-left: 0; padding: 16px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-header">[YOUR COMPANY] Command Center</div>
+  <nav id="app-sidebar"></nav>
+
+  <!-- SOP slide-in modal -->
+  <div class="sop-modal-overlay" id="sop-modal-overlay">
+    <div class="sop-modal" id="sop-modal">
+      <div class="sop-modal-header">
+        <div class="sop-modal-title" id="sop-modal-title"></div>
+        <button class="sop-modal-close" id="sop-modal-close">&#x2715;</button>
+      </div>
+      <div class="sop-modal-body" id="sop-modal-body">
+        <div style="color:#6c757d;font-style:italic;">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <main id="main-content">
+    <!-- Filled by JS -->
+    <div class="loading-state" id="page-loading">
+      <div class="spinner"></div>
+      <p>Loading email...</p>
+    </div>
+    <div id="page-content" style="display:none;"></div>
+  </main>
+
+  <script>
+    // Fallback: if the page is still spinning after 10 seconds, show what happened
+    setTimeout(() => {
+      const el = document.getElementById('page-loading')
+      if (el && el.style.display !== 'none') {
+        el.innerHTML = `
+          <div style="color:#e74c3c;max-width:500px;text-align:left;">
+            <strong>Timed out loading email.</strong><br><br>
+            URL: ${location.href}<br><br>
+            This usually means the database query is taking too long.<br><br>
+            <a href="/email-triage.html" style="color:#3498db;">← Back to Inbox</a>
+          </div>`
+      }
+    }, 10000)
+  </script>
+  <script type="module">
+    import { supabase as db, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    ;(async () => {
+    const emailId = sessionStorage.getItem('bpm_email_id')
+    sessionStorage.removeItem('bpm_email_id')
+    if (!emailId) { location.href = '/email-triage.html'; return }
+
+    const auth = await requireAuth()
+    if (!auth) return
+    const { user, profile } = auth
+    renderHeader(profile)
+    renderSidebar('email-triage', profile.role)
+
+    /* =========================================================
+       HELPERS
+    ========================================================= */
+    function showError(msg) {
+      document.getElementById('page-loading').style.display = 'none'
+      document.getElementById('page-content').style.display = 'block'
+      document.getElementById('page-content').innerHTML = `
+        <div class="error-state">
+          <strong>Could not load email.</strong><br><br>
+          ${msg}<br><br>
+          <a href="/email-triage.html" style="color:#3498db;">← Back to Inbox</a>
+        </div>`
+    }
+
+    function withTimeout(promise, ms) {
+      const timer = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Timed out after ${ms / 1000}s`)), ms))
+      return Promise.race([promise, timer])
+    }
+
+    /* =========================================================
+       LOAD EMAIL — metadata only first (no body_html)
+    ========================================================= */
+    let email
+    try {
+      const { data, error } = await withTimeout(
+        db.from('email_cache')
+          .select('id, subject, from_address, from_name, received_at, status, assigned_to, category_id, body_preview')
+          .eq('id', emailId)
+          .single(),
+        15000
+      )
+      if (error) { showError(`DB error: ${error.message} (${error.code})`); return }
+      if (!data)  { showError('Email not found.'); return }
+      email = data
+    } catch (err) {
+      showError(`Error: ${err.message}`)
+      return
+    }
+
+    /* =========================================================
+       BPM INBOXES — used for the forward/assign dropdown
+    ========================================================= */
+    const BPM_INBOXES = [
+      'you@yourdomain.com', 'help@yourdomain.com', 'info@yourdomain.com',
+      'accounts@yourdomain.com', 'manager@yourdomain.com', 'success@yourdomain.com', 'home@yourdomain.com',
+      'admin@yourdomain.com', 'hello@yourdomain.com', 'care@yourdomain.com'
+    ]
+
+    /* =========================================================
+       LOAD SUPPORTING DATA
+    ========================================================= */
+    const [categoriesRes, historyRes] = await Promise.all([
+      db.from('email_categories').select('id, name, color').order('name'),
+      db.from('email_actions')
+        .select('*, profiles!performed_by(display_name), email_categories(name)')
+        .eq('email_id', emailId)
+        .order('performed_at', { ascending: false })
+    ])
+
+    const allCategories = categoriesRes.data || []
+    const actionHistory = historyRes.data   || []
+
+    /* =========================================================
+       SANITIZE EMAIL BODY HTML
+       Strip <script>, <iframe>, and on* event attributes.
+    ========================================================= */
+    function sanitizeHtml(html) {
+      if (!html) return ''
+      return html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+        .replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '')
+        .replace(/javascript\s*:/gi, 'nojavascript:')
+    }
+
+    /* =========================================================
+       HELPERS
+    ========================================================= */
+    function escapeHtml(str) {
+      if (!str) return ''
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return ''
+      if (bytes < 1024) return bytes + ' B'
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB'
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+    }
+
+    function escapeAttr(str) {
+      if (!str) return ''
+      return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
+    }
+
+    function formatDateTime(isoString) {
+      if (!isoString) return ''
+      const d = new Date(isoString)
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      const hh   = d.getHours()
+      const mm   = String(d.getMinutes()).padStart(2, '0')
+      const ampm = hh >= 12 ? 'PM' : 'AM'
+      const h12  = hh % 12 || 12
+      return `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${h12}:${mm} ${ampm}`
+    }
+
+    function timeAgo(isoString) {
+      if (!isoString) return ''
+      const secs = Math.floor((Date.now() - new Date(isoString)) / 1000)
+      if (secs < 60)   return 'just now'
+      if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
+      if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
+      return `${Math.floor(secs / 86400)}d ago`
+    }
+
+    function statusBadgeHtml(status) {
+      const map = {
+        new:      '<span class="badge badge-new">New</span>',
+        assigned: '<span class="badge badge-assigned">Assigned</span>',
+        handled:  '<span class="badge badge-handled">Handled</span>',
+      }
+      return map[status] || ''
+    }
+
+    function categoryBadgeHtml(cat) {
+      if (!cat) return ''
+      return `<span class="badge"
+        style="background:${escapeAttr(cat.color)}20; color:${escapeAttr(cat.color)}; border:1px solid ${escapeAttr(cat.color)}40;">
+        ${escapeHtml(cat.name)}
+      </span>`
+    }
+
+    function showMsg(el, type, text) {
+      el.className = `action-msg ${type}`
+      el.textContent = text
+      clearTimeout(el._timer)
+      if (type === 'success') {
+        el._timer = setTimeout(() => { el.className = 'action-msg'; el.textContent = '' }, 5000)
+      }
+    }
+
+    /* =========================================================
+       RENDER PAGE
+    ========================================================= */
+    function buildPage(em) {
+      const isStaff = profile.role === 'staff'
+
+      const inboxOptions = BPM_INBOXES
+        .map(inbox => `<option value="${escapeAttr(inbox)}"
+            ${em.forwarded_to === inbox ? 'selected' : ''}>
+            ${escapeHtml(inbox)}
+          </option>`)
+        .join('')
+
+      const categoryOptions = allCategories
+        .map(c => `<option value="${escapeAttr(c.id)}"
+            ${em.category_id === c.id ? 'selected' : ''}>
+            ${escapeHtml(c.name)}
+          </option>`)
+        .join('')
+
+      const assignedDisplay = em.forwarded_to || 'Unassigned'
+
+      // Assign + Forward section — hidden for staff
+      const assignSection = isStaff ? '' : `
+        <div class="action-card" id="card-assign">
+          <h3>Forward to Inbox</h3>
+          <select id="select-assignee">
+            <option value="">— Select inbox —</option>
+            ${inboxOptions}
+          </select>
+          <button class="btn btn-primary" id="btn-assign">Forward</button>
+          <div class="action-msg" id="msg-assign"></div>
+        </div>`
+
+      // Status button label — uses header button style
+      const isHandled = em.status === 'handled'
+      const statusBtnHeader = isHandled
+        ? `<button class="btn-header btn-header-neutral" id="btn-status">Reopen</button>`
+        : `<button class="btn-header btn-header-success" id="btn-status">&#10003; Resolve</button>`
+
+      const snoozedUntil = em.snoozed_until && new Date(em.snoozed_until) > new Date()
+        ? new Date(em.snoozed_until).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+        : null
+
+      return `
+        <div class="page-header-bar">
+          <a class="back-link" href="/email-triage.html">&#8592; Back to Inbox</a>
+          <div class="header-actions">
+            <div class="snooze-wrap" id="snooze-wrap">
+              <button class="btn-header" id="btn-snooze-trigger">&#9201; Snooze &#9660;</button>
+              <div class="snooze-panel" id="snooze-panel">
+                <div class="snooze-panel-label">Snooze until</div>
+                ${snoozedUntil ? `
+                  <div class="snoozed-info" id="snoozed-info">
+                    Snoozed until ${snoozedUntil}
+                    <button class="btn-unsnooze" id="btn-unsnooze">Unsnooze</button>
+                  </div>` : ''}
+                <div class="snooze-presets">
+                  <button class="btn-snooze-preset" data-preset="tomorrow">Tomorrow</button>
+                  <button class="btn-snooze-preset" data-preset="3days">3 Days</button>
+                  <button class="btn-snooze-preset" data-preset="nextweek">Next Week</button>
+                </div>
+                <div class="snooze-custom">
+                  <input type="date" class="snooze-date-input" id="snooze-date">
+                  <button class="btn-snooze-custom" id="btn-snooze-custom">Snooze</button>
+                </div>
+                <div class="action-msg" id="msg-snooze"></div>
+              </div>
+            </div>
+            <div id="status-btn-wrap">${statusBtnHeader}</div>
+            <div class="action-msg" id="msg-status" style="margin:0"></div>
+          </div>
+        </div>
+
+        <div class="detail-grid" id="detail-grid">
+
+          <!-- LEFT: email body -->
+          <div class="email-panel">
+            <div class="email-meta">
+              <div class="email-subject">${escapeHtml(em.subject || '(no subject)')}</div>
+              <div class="meta-row">
+                <span class="meta-label">From:</span>
+                <span class="meta-value">
+                  ${escapeHtml(em.from_name || '')}
+                  ${em.from_address ? `&lt;${escapeHtml(em.from_address)}&gt;` : ''}
+                </span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Received:</span>
+                <span class="meta-value">${formatDateTime(em.received_at)}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Forwarded to:</span>
+                <span class="meta-value" id="assigned-display">${escapeHtml(assignedDisplay)}</span>
+              </div>
+              <div class="meta-badges" id="status-badges">
+                ${statusBadgeHtml(em.status)}
+              </div>
+            </div>
+            <div class="email-body-wrap">
+              <div class="email-body" id="email-body-content"></div>
+              <div id="email-attachments-wrap"></div>
+            </div>
+          </div>
+
+          <!-- RIGHT: actions -->
+          <div class="action-panel">
+
+            <div class="action-card reply-card">
+              <h3>Reply</h3>
+              <input type="text" class="reply-subject reply-to-field" id="reply-to"
+                value="${escapeHtml(em.from_name ? em.from_name + ' <' + em.from_address + '>' : em.from_address || '')}"
+                readonly placeholder="To:">
+              <input type="text" class="reply-subject" id="reply-subject"
+                value="Re: ${escapeHtml(em.subject || '')}"
+                placeholder="Subject">
+              <button type="button" class="cc-bcc-toggle" id="toggle-cc-bcc">+ Add CC / BCC</button>
+              <div class="cc-bcc-wrap" id="cc-bcc-wrap">
+                <input type="text" class="reply-subject" id="reply-cc"
+                  placeholder="CC: address1@example.com, address2@example.com">
+                <input type="text" class="reply-subject" id="reply-bcc"
+                  placeholder="BCC: address@example.com">
+              </div>
+              <textarea id="reply-text" rows="8"
+                placeholder="Type your reply here..."></textarea>
+              <div class="reply-btn-row">
+                <button class="btn btn-primary" id="btn-reply">Send Reply</button>
+                <button class="btn" id="btn-draft-ai" style="background:#6c757d;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">&#10022; Draft with AI</button>
+                <span id="draft-ai-status" style="font-size:0.8rem;color:var(--color-text-muted);display:none;">Drafting…</span>
+              </div>
+              <p class="reply-note">Reply will be sent from the inbox that received this email</p>
+              <div class="action-msg" id="msg-reply"></div>
+            </div>
+
+            ${assignSection}
+
+            <div class="action-card" id="card-best-practice">
+              <h3>Best Practice</h3>
+              <div id="bp-linked-wrap">
+                ${em.sops ? `
+                  <div class="bp-linked" id="bp-linked">
+                    <span class="bp-linked-title">${escapeHtml(em.sops.title)}</span>
+                    <div class="bp-linked-actions">
+                      <button class="bp-btn bp-btn-view" id="bp-btn-view">View</button>
+                      <button class="bp-btn bp-btn-remove" id="bp-btn-remove">Remove</button>
+                    </div>
+                  </div>` : ''}
+              </div>
+              <div class="bp-search-wrap">
+                <input type="text" class="bp-input" id="bp-input"
+                  placeholder="Search best practices…" autocomplete="off">
+                <div class="bp-results" id="bp-results"></div>
+              </div>
+              <div class="action-msg" id="msg-bp"></div>
+            </div>
+
+            <!-- Action history -->
+            <div class="history-card">
+              <h3>Activity</h3>
+              <div class="history-list" id="history-list">
+                ${buildHistory(actionHistory)}
+              </div>
+            </div>
+
+          </div>
+        </div>`
+    }
+
+    function buildHistory(actions) {
+      if (!actions.length) {
+        return '<p class="history-empty">No activity yet.</p>'
+      }
+      return actions.map(a => {
+        const who = a.profiles ? a.profiles.display_name : 'Someone'
+        let desc = ''
+        switch (a.action_type) {
+          case 'forwarded':      desc = `forwarded to ${escapeHtml(a.forwarded_to || 'an inbox')}`; break
+          case 'assigned':       desc = `assigned to ${escapeHtml(a.forwarded_to || 'someone')}`; break
+          case 'categorized':    desc = `labeled ${escapeHtml(a.email_categories ? a.email_categories.name : 'a category')}`; break
+          case 'replied':        desc = 'sent a reply'; break
+          case 'marked_handled': desc = 'marked as handled'; break
+          case 'marked_new':     desc = 'reopened'; break
+          default:               desc = a.action_type
+        }
+        return `
+          <div class="history-item">
+            <div class="history-dot"></div>
+            <div>
+              <div class="history-text"><strong>${escapeHtml(who)}</strong> ${desc}</div>
+              <div class="history-time">${timeAgo(a.performed_at)}</div>
+            </div>
+          </div>`
+      }).join('')
+    }
+
+    /* =========================================================
+       INSERT PAGE + WIRE EVENTS
+    ========================================================= */
+    document.getElementById('page-loading').style.display = 'none'
+    const pageContent = document.getElementById('page-content')
+    pageContent.style.display = 'block'
+    pageContent.innerHTML = buildPage(email)
+
+    // Load body separately after page renders (body_html can be large)
+    const bodyEl = document.getElementById('email-body-content')
+    bodyEl.innerHTML = '<em style="color:#6c757d">Loading message body…</em>'
+
+    function setBodyHtml(html) {
+      bodyEl.innerHTML = sanitizeHtml(html)
+      bodyEl.querySelectorAll('a[href]').forEach(a => {
+        a.setAttribute('target', '_blank')
+        a.setAttribute('rel', 'noopener noreferrer')
+      })
+    }
+
+    db.from('email_cache')
+      .select('body_html, attachments')
+      .eq('id', emailId)
+      .single()
+      .then(({ data }) => {
+        setBodyHtml(data?.body_html || email.body_preview || '<em style="color:#6c757d">No message body.</em>')
+        const atts = data?.attachments
+        if (atts && atts.length > 0) {
+          const wrap = document.getElementById('email-attachments-wrap')
+          if (wrap) {
+            wrap.innerHTML = `<div style="padding:12px 24px 16px;border-top:1px solid var(--color-border)">
+              <div style="font-size:0.75rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Attachments (${atts.length})</div>
+              ${atts.map(a => `<div style="margin-top:4px;font-size:0.875rem;display:flex;align-items:center;gap:6px">
+                <span>📎</span>
+                <span>${escapeHtml(a.filename)}</span>
+                <span style="color:var(--color-text-muted);font-size:0.8rem">${formatFileSize(a.size)}</span>
+              </div>`).join('')}
+            </div>`
+          }
+        }
+      })
+      .catch(() => {
+        setBodyHtml(email.body_preview || '<em style="color:#6c757d">No message body.</em>')
+      })
+
+    // Mutable state mirror
+    let currentStatus       = email.status
+    let currentCategory     = email.category_id
+    let currentSnoozedUntil = email.snoozed_until || null
+
+    /* ---- ASSIGN + FORWARD ---- */
+    if (profile.role !== 'staff') {
+      document.getElementById('btn-assign').addEventListener('click', async () => {
+        const btn    = document.getElementById('btn-assign')
+        const sel    = document.getElementById('select-assignee')
+        const msg    = document.getElementById('msg-assign')
+        const toInbox = sel.value
+        if (!toInbox) { showMsg(msg, 'error', 'Please select an inbox.'); return }
+
+        btn.disabled = true
+        btn.textContent = 'Forwarding…'
+
+        // 1. Send the forward via the API server
+        let apiOk = false
+        try {
+          const res = await fetch('http://localhost:3005/api/forward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emailId, toInbox })
+          })
+          const json = await res.json()
+          if (!res.ok) throw new Error(json.error || 'API error')
+          apiOk = true
+        } catch (err) {
+          showMsg(msg, 'error', 'Could not forward: ' + err.message)
+          btn.disabled = false; btn.textContent = 'Forward'
+          return
+        }
+
+        // 2. Update the database
+        await db.from('email_cache')
+          .update({ forwarded_to: toInbox, status: 'assigned' })
+          .eq('id', emailId)
+
+        await db.from('email_actions').insert({
+          email_id:     emailId,
+          action_type:  'forwarded',
+          performed_by: user.id,
+          forwarded_to: toInbox,
+        })
+
+        if (currentStatus !== 'assigned') {
+          currentStatus = 'assigned'
+          refreshStatusBadges()
+        }
+
+        document.getElementById('assigned-display').textContent = toInbox
+        showMsg(msg, 'success', `Forwarded to ${toInbox}`)
+        btn.disabled = false; btn.textContent = 'Forward'
+        await refreshHistory()
+      })
+    }
+
+    /* ---- CATEGORIZE ---- */
+    document.getElementById('btn-category')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-category')
+      const sel = document.getElementById('select-category')
+      const msg = document.getElementById('msg-category')
+      const catId = sel.value
+      if (!catId) { showMsg(msg, 'error', 'Please select a category.'); return }
+
+      btn.disabled = true; btn.textContent = 'Saving...'
+
+      const { error } = await db
+        .from('email_cache')
+        .update({ category_id: catId })
+        .eq('id', emailId)
+
+      if (error) {
+        showMsg(msg, 'error', 'Could not apply category: ' + error.message)
+        btn.disabled = false; btn.textContent = 'Apply Category'
+        return
+      }
+
+      await db.from('email_actions').insert({
+        email_id:    emailId,
+        action_type: 'categorized',
+        performed_by: user.id,
+        category_id: catId,
+      })
+
+      currentCategory = catId
+      refreshStatusBadges()
+      showMsg(msg, 'success', 'Category applied.')
+      btn.disabled = false; btn.textContent = 'Apply Category'
+      await refreshHistory()
+    })
+
+    /* ---- CC / BCC TOGGLE ---- */
+    document.getElementById('toggle-cc-bcc').addEventListener('click', () => {
+      const wrap = document.getElementById('cc-bcc-wrap')
+      const btn  = document.getElementById('toggle-cc-bcc')
+      const open = wrap.classList.toggle('open')
+      btn.textContent = open ? '− Remove CC / BCC' : '+ Add CC / BCC'
+    })
+
+    /* ---- DRAFT WITH AI ---- */
+    document.getElementById('btn-draft-ai').addEventListener('click', async () => {
+      const btn    = document.getElementById('btn-draft-ai')
+      const status = document.getElementById('draft-ai-status')
+      const area   = document.getElementById('reply-text')
+
+      btn.disabled = true
+      status.style.display = ''
+      status.textContent   = 'Looking up contact…'
+
+      let crmContext = null
+      try {
+        if (email.from_address) {
+          const ctxRes = await fetch(
+            `http://localhost:3005/api/crm-context?email=${encodeURIComponent(email.from_address)}`
+          )
+          if (ctxRes.ok) crmContext = await ctxRes.json()
+        }
+      } catch (_) { /* silently skip — draft still works without context */ }
+
+      status.textContent = crmContext?.found
+        ? 'Drafting with history…'
+        : 'Drafting…'
+
+      try {
+        const res = await fetch('http://localhost:3005/api/draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject:          email.subject || '',
+            body:             email.body_preview || '',
+            fromName:         email.from_name || '',
+            fromAddress:      email.from_address || '',
+            crmContext
+          })
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'API error')
+        area.value = json.draft
+        area.focus()
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message
+        status.style.color = '#e74c3c'
+        setTimeout(() => {
+          status.style.display = 'none'
+          status.textContent = 'Looking up contact…'
+          status.style.color = ''
+        }, 4000)
+      } finally {
+        btn.disabled = false
+        if (status.textContent === 'Drafting with history…' || status.textContent === 'Drafting…') {
+          status.style.display = 'none'
+          status.textContent = 'Looking up contact…'
+        }
+      }
+    })
+
+    /* ---- REPLY ---- */
+    document.getElementById('btn-reply').addEventListener('click', async () => {
+      const btn     = document.getElementById('btn-reply')
+      const area    = document.getElementById('reply-text')
+      const msg     = document.getElementById('msg-reply')
+      const body    = area.value.trim()
+      const subject = document.getElementById('reply-subject').value.trim()
+      const cc      = document.getElementById('reply-cc').value.trim()
+      const bcc     = document.getElementById('reply-bcc').value.trim()
+      if (!body) { showMsg(msg, 'error', 'Please enter a reply.'); return }
+
+      btn.disabled = true; btn.textContent = 'Sending…'
+
+      // 1. Send the reply via the API server
+      try {
+        const res = await fetch('http://localhost:3005/api/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emailId, replyBody: body, subject, cc, bcc })
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'API error')
+      } catch (err) {
+        showMsg(msg, 'error', 'Could not send: ' + err.message)
+        btn.disabled = false; btn.textContent = 'Send Reply'
+        return
+      }
+
+      // 2. Log the reply in the database
+      await db.from('email_actions').insert({
+        email_id:     emailId,
+        action_type:  'replied',
+        performed_by: user.id,
+        reply_body:   body,
+      })
+
+      area.value = ''
+      showMsg(msg, 'success', 'Reply sent.')
+      btn.disabled = false; btn.textContent = 'Send Reply'
+      await refreshHistory()
+    })
+
+    /* ---- STATUS TOGGLE ---- */
+    document.getElementById('status-btn-wrap').addEventListener('click', async (e) => {
+      if (!e.target.matches('#btn-status')) return
+      const btn = document.getElementById('btn-status')
+      const msg = document.getElementById('msg-status')
+
+      const newStatus    = currentStatus === 'handled' ? 'new' : 'handled'
+      const actionType   = newStatus === 'handled' ? 'marked_handled' : 'marked_new'
+      const label        = newStatus === 'handled' ? 'Marking as handled...' : 'Reopening...'
+
+      btn.disabled = true; btn.textContent = label
+
+      const { error } = await db
+        .from('email_cache')
+        .update({ status: newStatus })
+        .eq('id', emailId)
+
+      if (error) {
+        showMsg(msg, 'error', 'Could not update status: ' + error.message)
+        btn.disabled = false
+        btn.textContent = currentStatus === 'handled' ? 'Reopen' : 'Mark as Handled'
+        return
+      }
+
+      await db.from('email_actions').insert({
+        email_id:    emailId,
+        action_type: actionType,
+        performed_by: user.id,
+      })
+
+      currentStatus = newStatus
+      refreshStatusBadges()
+      updateStatusButton()
+      showMsg(msg, 'success', newStatus === 'handled' ? 'Marked as handled.' : 'Reopened.')
+      btn.disabled = false
+      await refreshHistory()
+    })
+
+    /* ---- SNOOZE ---- */
+    function snoozeUntilDate(preset) {
+      const d = new Date()
+      if (preset === 'tomorrow')  { d.setDate(d.getDate() + 1) }
+      if (preset === '3days')     { d.setDate(d.getDate() + 3) }
+      if (preset === 'nextweek')  { d.setDate(d.getDate() + 7) }
+      d.setHours(9, 0, 0, 0)
+      return d.toISOString()
+    }
+
+    async function applySnooze(isoDate) {
+      const msg = document.getElementById('msg-snooze')
+      const { error } = await db
+        .from('email_cache')
+        .update({ snoozed_until: isoDate })
+        .eq('id', emailId)
+      if (error) { showMsg(msg, 'error', 'Could not snooze: ' + error.message); return }
+
+      await db.from('email_actions').insert({
+        email_id:    emailId,
+        action_type: 'snoozed',
+        performed_by: user.id,
+      })
+
+      currentSnoozedUntil = isoDate
+      refreshStatusBadges()
+      const d = new Date(isoDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      const infoEl = document.getElementById('snoozed-info')
+      if (infoEl) {
+        infoEl.innerHTML = `Snoozed until ${d} <button class="btn-unsnooze" id="btn-unsnooze">Unsnooze</button>`
+        wireUnsnooze()
+      } else {
+        const panel = document.getElementById('snooze-panel')
+        const infoDiv = document.createElement('div')
+        infoDiv.className = 'snoozed-info'
+        infoDiv.id = 'snoozed-info'
+        infoDiv.innerHTML = `Snoozed until ${d} <button class="btn-unsnooze" id="btn-unsnooze">Unsnooze</button>`
+        panel.insertBefore(infoDiv, panel.querySelector('.snooze-presets'))
+        wireUnsnooze()
+      }
+      showMsg(msg, 'success', `Snoozed until ${d}`)
+      await refreshHistory()
+    }
+
+    function wireUnsnooze() {
+      document.getElementById('btn-unsnooze')?.addEventListener('click', async () => {
+        const msg = document.getElementById('msg-snooze')
+        await db.from('email_cache').update({ snoozed_until: null }).eq('id', emailId)
+        await db.from('email_actions').insert({
+          email_id:    emailId,
+          action_type: 'unsnoozed',
+          performed_by: user.id,
+        })
+        currentSnoozedUntil = null
+        refreshStatusBadges()
+        document.getElementById('snoozed-info')?.remove()
+        showMsg(msg, 'success', 'Email unsnoozed.')
+        await refreshHistory()
+      })
+    }
+
+    // Preset buttons
+    document.querySelectorAll('.btn-snooze-preset').forEach(btn => {
+      btn.addEventListener('click', () => applySnooze(snoozeUntilDate(btn.dataset.preset)))
+    })
+
+    // Custom date
+    document.getElementById('btn-snooze-custom').addEventListener('click', () => {
+      const dateVal = document.getElementById('snooze-date').value
+      if (!dateVal) { showMsg(document.getElementById('msg-snooze'), 'error', 'Pick a date first.'); return }
+      const d = new Date(dateVal)
+      d.setHours(9, 0, 0, 0)
+      applySnooze(d.toISOString())
+    })
+
+    // Wire unsnooze if already snoozed on load
+    wireUnsnooze()
+
+    /* ---- SNOOZE DROPDOWN TOGGLE ---- */
+    const snoozeWrap    = document.getElementById('snooze-wrap')
+    const snoozePanel   = document.getElementById('snooze-panel')
+    const snoozeTrigger = document.getElementById('btn-snooze-trigger')
+
+    snoozeTrigger.addEventListener('click', (e) => {
+      e.stopPropagation()
+      snoozePanel.classList.toggle('open')
+    })
+
+    document.addEventListener('click', (e) => {
+      if (!snoozeWrap.contains(e.target)) snoozePanel.classList.remove('open')
+    })
+
+    /* =========================================================
+       DOM REFRESH HELPERS
+    ========================================================= */
+    function refreshStatusBadges() {
+      const cat = allCategories.find(c => c.id === currentCategory) || null
+      document.getElementById('status-badges').innerHTML =
+        statusBadgeHtml(currentStatus) + categoryBadgeHtml(cat)
+    }
+
+    function updateStatusButton() {
+      const isHandled = currentStatus === 'handled'
+      document.getElementById('status-btn-wrap').innerHTML = isHandled
+        ? `<button class="btn-header btn-header-neutral" id="btn-status">Reopen</button>`
+        : `<button class="btn-header btn-header-success" id="btn-status">&#10003; Resolve</button>`
+    }
+
+    async function refreshHistory() {
+      const { data } = await db
+        .from('email_actions')
+        .select('*, profiles!performed_by(display_name), email_categories(name)')
+        .eq('email_id', emailId)
+        .order('performed_at', { ascending: false })
+      document.getElementById('history-list').innerHTML = buildHistory(data || [])
+    }
+
+    /* =========================================================
+       BEST PRACTICE SEARCH
+    ========================================================= */
+    let bpDebounce = null
+    let currentBpId = email.best_practice_id || null
+
+    const bpInput   = document.getElementById('bp-input')
+    const bpResults = document.getElementById('bp-results')
+    const bpMsg     = document.getElementById('msg-bp')
+
+    function renderBpLinked(sop) {
+      const wrap = document.getElementById('bp-linked-wrap')
+      if (!sop) { wrap.innerHTML = ''; return }
+      wrap.innerHTML = `
+        <div class="bp-linked" id="bp-linked">
+          <span class="bp-linked-title">${escapeHtml(sop.title)}</span>
+          <div class="bp-linked-actions">
+            <button class="bp-btn bp-btn-view" id="bp-btn-view">View</button>
+            <button class="bp-btn bp-btn-remove" id="bp-btn-remove">Remove</button>
+          </div>
+        </div>`
+      document.getElementById('bp-btn-view').addEventListener('click', () => {
+        openSopModal(sop.id, sop.title)
+      })
+      document.getElementById('bp-btn-remove').addEventListener('click', async () => {
+        await db.from('email_cache').update({ best_practice_id: null }).eq('id', emailId)
+        currentBpId = null
+        renderBpLinked(null)
+        showMsg(bpMsg, 'success', 'Best practice removed.')
+      })
+    }
+
+    /* ---- SOP MODAL ---- */
+    const sopOverlay = document.getElementById('sop-modal-overlay')
+    const sopModalTitle = document.getElementById('sop-modal-title')
+    const sopModalBody  = document.getElementById('sop-modal-body')
+
+    async function openSopModal(sopId, sopTitle) {
+      sopModalTitle.textContent = sopTitle || 'Best Practice'
+      sopModalBody.innerHTML = '<div style="color:#6c757d;font-style:italic;">Loading…</div>'
+      sopOverlay.classList.add('open')
+
+      const { data } = await db.from('sops').select('content').eq('id', sopId).single()
+      sopModalBody.innerHTML = data?.content || '<p style="color:#6c757d;">No content available.</p>'
+    }
+
+    document.getElementById('sop-modal-close').addEventListener('click', () => {
+      sopOverlay.classList.remove('open')
+    })
+
+    sopOverlay.addEventListener('click', (e) => {
+      if (e.target === sopOverlay) sopOverlay.classList.remove('open')
+    })
+
+    // Wire up View/Remove if a SOP was already linked on load
+    if (email.sops) {
+      document.getElementById('bp-btn-view')?.addEventListener('click', () => {
+        openSopModal(email.sops.id, email.sops.title)
+      })
+      document.getElementById('bp-btn-remove')?.addEventListener('click', async () => {
+        await db.from('email_cache').update({ best_practice_id: null }).eq('id', emailId)
+        currentBpId = null
+        renderBpLinked(null)
+        showMsg(bpMsg, 'success', 'Best practice removed.')
+      })
+    }
+
+    bpInput.addEventListener('input', () => {
+      clearTimeout(bpDebounce)
+      const term = bpInput.value.trim()
+      if (term.length < 2) { bpResults.classList.remove('open'); bpResults.innerHTML = ''; return }
+      bpDebounce = setTimeout(async () => {
+        const { data } = await db
+          .from('sops')
+          .select('id, title')
+          .ilike('title', `%${term}%`)
+          .limit(10)
+        if (!data || !data.length) {
+          bpResults.innerHTML = '<div class="bp-result-item" style="color:#6c757d;cursor:default;">No results</div>'
+        } else {
+          bpResults.innerHTML = data.map(s =>
+            `<div class="bp-result-item" data-id="${escapeAttr(s.id)}" data-title="${escapeAttr(s.title)}">
+              ${escapeHtml(s.title)}
+            </div>`
+          ).join('')
+          bpResults.querySelectorAll('.bp-result-item[data-id]').forEach(el => {
+            el.addEventListener('click', async () => {
+              const sopId    = el.dataset.id
+              const sopTitle = el.dataset.title
+              bpResults.classList.remove('open')
+              bpInput.value = ''
+              await db.from('email_cache').update({ best_practice_id: sopId }).eq('id', emailId)
+              currentBpId = sopId
+              renderBpLinked({ id: sopId, title: sopTitle })
+              showMsg(bpMsg, 'success', 'Best practice linked.')
+            })
+          })
+        }
+        bpResults.classList.add('open')
+      }, 300)
+    })
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#card-best-practice')) {
+        bpResults.classList.remove('open')
+      }
+    })
+
+    })()
+  </script>
+
+</body>
+</html>

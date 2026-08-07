@@ -1,0 +1,1421 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Scorecard — [YOUR COMPANY] Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+
+    /* ── Page header row ──────────────────────────────────── */
+    .sc-page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .sc-page-title   { font-size: 1.4rem; font-weight: 800; }
+    .sc-page-sub     { font-size: .85rem; color: var(--color-text-muted); margin-top: 2px; }
+    .sc-week-picker  {
+      padding: 7px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: .85rem;
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+      outline: none;
+    }
+    .sc-week-picker:focus { border-color: var(--color-accent); }
+
+    /* ── Loading / error ──────────────────────────────────── */
+    .loading-state {
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px;
+      padding: 60px 20px;
+      color: var(--color-text-muted); font-size: .875rem;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Person sections ──────────────────────────────────── */
+    .person-section {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .person-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      background: var(--color-surface);
+      user-select: none;
+      transition: background .1s;
+    }
+    .person-header:hover { background: var(--color-bg); }
+
+    .person-name  { font-size: .95rem; font-weight: 700; min-width: 80px; flex: 1; }
+    .person-score {
+      font-size: .78rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+    .person-score.all-green {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+    .expand-icon {
+      font-size: .7rem;
+      color: var(--color-text-muted);
+      transition: transform .2s;
+    }
+    .expand-icon.open { transform: rotate(90deg); }
+
+    .person-body {
+      display: none;
+      border-top: 1px solid var(--color-border);
+      padding: 0;
+    }
+    .person-body.open { display: block; }
+
+    /* ── Scorecard table ──────────────────────────────────── */
+    .sc-table-wrap { overflow-x: auto; }
+
+    .sc-table {
+      border-collapse: collapse;
+      font-size: .82rem;
+      width: 100%;
+      min-width: 700px;
+    }
+
+    .sc-table th, .sc-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--color-border);
+      border-right: 1px solid var(--color-border);
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .sc-table th:last-child, .sc-table td:last-child { border-right: none; }
+
+    .sc-table thead th {
+      background: var(--color-surface);
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--color-text-muted);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    /* Sticky first two columns */
+    .col-measurable {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: var(--color-surface);
+      min-width: 190px;
+      max-width: 220px;
+    }
+    .col-goal {
+      position: sticky;
+      left: 190px;
+      z-index: 3;
+      background: var(--color-surface);
+      min-width: 72px;
+      border-right: 2px solid var(--color-border) !important;
+    }
+
+    /* thead needs higher z-index for sticky columns so they sit above body cells */
+    .sc-table thead .col-measurable,
+    .sc-table thead .col-goal {
+      z-index: 5;
+    }
+
+    /* In tbody, hover should still show sticky columns correctly */
+    .sc-table tbody tr:hover td {
+      background: var(--color-bg);
+    }
+    .sc-table tbody tr:hover td.col-measurable,
+    .sc-table tbody tr:hover td.col-goal {
+      background: var(--color-bg);
+    }
+
+    /* Current week highlight */
+    .week-current { background: rgba(52, 152, 219, 0.06); }
+    thead th.week-current { background: rgba(52, 152, 219, 0.12); }
+
+    /* Past weeks — read-only cells */
+    .cell-value {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 52px;
+      justify-content: flex-start;
+    }
+
+    /* Dot indicators */
+    .dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-green { background: #22c55e; }
+    .dot-red   { background: #ef4444; }
+    .dot-gray  { background: #cbd5e1; }
+
+    /* Pass/fail display */
+    .pf-pass { color: #16a34a; font-weight: 700; }
+    .pf-fail { color: #dc2626; font-weight: 700; }
+
+    /* Editable inputs in current week */
+    .sc-input {
+      width: 68px;
+      padding: 4px 6px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-size: .82rem;
+      background: var(--color-bg);
+      color: var(--color-text);
+      outline: none;
+      font-family: inherit;
+    }
+    .sc-input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(52,152,219,.15); }
+
+    .sc-select {
+      width: 80px;
+      padding: 4px 6px;
+      cursor: pointer;
+    }
+
+    /* Auto-synced cell styling */
+    .cell-auto {
+      font-style: italic;
+      color: var(--color-text-muted);
+      font-size: .75rem;
+    }
+
+    /* ── Toast ────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1e293b; color: #fff;
+      padding: 10px 18px; border-radius: 8px;
+      font-size: .85rem; font-weight: 500;
+      opacity: 0; transition: opacity .25s;
+      z-index: 200; pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Drill-down panel ──────────────────────────────────── */
+    #dd-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.3);
+      z-index: 300;
+    }
+    #dd-backdrop.open { display: block; }
+
+    #dd-panel {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 380px;
+      background: var(--color-surface);
+      border-left: 1px solid var(--color-border);
+      z-index: 301;
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform .25s ease;
+      box-shadow: -4px 0 24px rgba(0,0,0,.12);
+    }
+    #dd-panel.open { transform: translateX(0); }
+
+    .dd-panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--color-border);
+      gap: 8px;
+    }
+    .dd-panel-title {
+      font-size: .95rem; font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.3;
+    }
+    .dd-panel-sub {
+      font-size: .75rem;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+    .dd-close-btn {
+      background: none; border: none;
+      cursor: pointer; font-size: 1rem;
+      color: var(--color-text-muted);
+      padding: 2px 6px; border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .dd-close-btn:hover { background: var(--color-bg); }
+
+    .dd-panel-body {
+      flex: 1; overflow-y: auto;
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+
+    .dd-count {
+      font-size: .78rem;
+      color: var(--color-text-muted);
+      font-weight: 600;
+    }
+    .dd-empty {
+      font-size: .83rem;
+      color: var(--color-text-muted);
+      padding: 4px 0;
+    }
+    .dd-auto-msg {
+      font-size: .83rem;
+      color: var(--color-text);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      line-height: 1.55;
+    }
+
+    .dd-records-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .78rem;
+    }
+    .dd-records-table th {
+      text-align: left;
+      padding: 5px 8px;
+      border-bottom: 2px solid var(--color-border);
+      color: var(--color-text-muted);
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .dd-records-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text);
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dd-records-table tr:last-child td { border-bottom: none; }
+
+    .dd-notes-section {
+      border-top: 1px solid var(--color-border);
+      padding-top: 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .dd-notes-label {
+      font-size: .72rem; font-weight: 700;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .dd-notes-textarea {
+      width: 100%; box-sizing: border-box;
+      min-height: 80px;
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: .83rem;
+      font-family: inherit;
+      background: var(--color-bg);
+      color: var(--color-text);
+      resize: vertical;
+      outline: none;
+    }
+    .dd-notes-textarea:focus { border-color: var(--color-accent); }
+    .dd-save-btn {
+      padding: 6px 14px;
+      background: var(--color-accent);
+      color: #fff; border: none;
+      border-radius: 5px;
+      font-size: .82rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .dd-save-btn:hover { opacity: .88; }
+    .dd-saved-msg {
+      font-size: .8rem;
+      color: #16a34a;
+      font-weight: 600;
+    }
+
+    /* Info icon on editable (current-week) cells */
+    .cell-editable-wrap .dd-cell-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .dd-info-btn {
+      opacity: 0;
+      transition: opacity .15s;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      font-size: .78rem;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .cell-editable-wrap:hover .dd-info-btn { opacity: 1; }
+
+    /* Past-week read-only cells are clickable */
+    .dd-cell { cursor: pointer; }
+    .dd-cell:hover { background: var(--color-bg) !important; }
+
+    /* ── Cheatsheet popover ──────────────────────────────────── */
+    .cs-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: none;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      font-size: .6rem; font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      line-height: 1;
+      padding: 0;
+      vertical-align: middle;
+    }
+    .cs-btn:hover {
+      background: var(--color-bg);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .cs-popover {
+      position: fixed;
+      background: #fff;
+      color: #1e293b;
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.13);
+      padding: 10px 13px;
+      font-size: .75rem;
+      line-height: 1.55;
+      z-index: 500;
+      width: 280px;
+    }
+
+    /* ── Team Summary Card ────────────────────────────────── */
+    #teamSummaryCard {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: var(--color-surface);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .ts-title {
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--color-text-muted);
+      margin-bottom: 14px;
+    }
+    .ts-big-numbers {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .ts-stat { display: flex; flex-direction: column; align-items: flex-start; }
+    .ts-stat-num  { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .ts-stat-label {
+      font-size: .68rem; font-weight: 600;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .ts-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 600px) { .ts-cols { grid-template-columns: 1fr; } }
+    .ts-col-title {
+      font-size: .68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+    .ts-attention-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .82rem; margin-bottom: 4px;
+    }
+    .ts-attention-link {
+      cursor: pointer;
+      color: var(--color-accent);
+      text-decoration: underline;
+      font-weight: 600;
+    }
+    .ts-attention-link:hover { opacity: .8; }
+    .ts-red-count { font-size: .75rem; color: #dc2626; font-weight: 600; }
+    .ts-celebrate-item { font-size: .82rem; color: #16a34a; font-weight: 600; margin-bottom: 4px; }
+    .ts-below-line { border-top: 1px solid var(--color-border); padding-top: 12px; }
+    .ts-below-title {
+      font-size: .68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: var(--color-text-muted); margin-bottom: 6px;
+    }
+    .ts-below-item { font-size: .82rem; color: #dc2626; margin-bottom: 3px; }
+    .ts-below-ok   { font-size: .82rem; color: #16a34a; }
+
+  </style>
+</head>
+<body>
+  <div id="app-header" class="app-header"></div>
+  <div class="app-shell">
+    <nav id="app-sidebar" class="app-sidebar"></nav>
+    <main class="app-main">
+
+      <div class="sc-page-header">
+        <div>
+          <div class="sc-page-title">Team Scorecard</div>
+          <div class="sc-page-sub">EOS Traction — 13-week rolling view</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label for="weekPicker" style="font-size:.8rem;color:var(--color-text-muted);font-weight:600;">Week ending:</label>
+          <select class="sc-week-picker" id="weekPicker"></select>
+        </div>
+      </div>
+
+      <div id="teamSummaryCard" style="display:none;"></div>
+
+      <div id="loadingState">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <span id="loadingMsg">Checking login…</span>
+        </div>
+      </div>
+
+      <div id="scorecardBody" style="display:none;"></div>
+
+    </main>
+  </div>
+
+  <!-- Drill-down panel -->
+  <div id="dd-backdrop" onclick="closeDrilldown()"></div>
+  <div id="dd-panel">
+    <div class="dd-panel-header">
+      <div>
+        <div class="dd-panel-title" id="dd-panel-title"></div>
+        <div class="dd-panel-sub" id="dd-panel-sub"></div>
+      </div>
+      <button class="dd-close-btn" onclick="closeDrilldown()">&#x2715;</button>
+    </div>
+    <div class="dd-panel-body" id="dd-panel-body"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let currentUser   = null
+    let allMetrics    = []   // scorecard_metrics rows
+    let entryMap      = {}   // 'person_key:metric_key:week_start' → entry row
+    let selectedWeek  = null // ISO date string (Monday of selected week)
+    let todayWeek     = null // ISO date string (Monday of actual current week)
+    let weeks         = []   // array of 13 ISO date strings (oldest → newest = selected)
+    let _ddCells      = {}   // drill-down cell registry, cleared on each render()
+    let _currentDdInfo = null // info for the currently open panel
+    let _csActiveBtn   = null // tracks the active cheatsheet "?" button
+
+    const setMsg = m => { const el = document.getElementById('loadingMsg'); if (el) el.textContent = m }
+
+    // ── Person display order ─────────────────────────────────────────────────
+    // Replace with your team member IDs (lowercase, no spaces)
+    const PERSON_ORDER = [
+      'team_member_1','team_member_2','team_member_3','team_member_4','team_member_5'
+    ]
+
+    // ── Cheatsheet definitions ────────────────────────────────────────────────
+    // Add your KPI keys here with a plain-English description and goal.
+    // These appear as tooltips when a team member clicks the (?) icon on any metric.
+    const CHEATSHEET = {
+      metric_1:   '[DEFINE YOUR METRIC HERE]. Goal: [YOUR GOAL].',
+      metric_2:   '[DEFINE YOUR METRIC HERE]. Goal: [YOUR GOAL].',
+      metric_3:   '[DEFINE YOUR METRIC HERE]. Goal: [YOUR GOAL].',
+      metric_4:   '[DEFINE YOUR METRIC HERE]. Goal: [YOUR GOAL].',
+      metric_5:   '[DEFINE YOUR METRIC HERE]. Goal: [YOUR GOAL].',
+      tasks:      'Number of tasks completed by this team member this week. Goal varies by role.',
+      emails:     'Number of emails sent from this team member\'s inbox this week. Goal varies by role.',
+      call_answer_rate: 'Percentage of inbound calls answered this week. Goal: [YOUR GOAL].',
+      response_24hr:    'Were all client inquiries responded to within 24 hours? Pass = yes.',
+      review_requested: 'Number of review requests sent this week. Goal: ≥1.',
+    }
+
+    // ── Week helpers ─────────────────────────────────────────────────────────
+
+    function getWeekStart(date = new Date()) {
+      const d   = new Date(date)
+      const day = d.getDay()
+      const diff = day === 0 ? -6 : 1 - day
+      d.setDate(d.getDate() + diff)
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+
+    function toDateStr(d) {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${dd}`
+    }
+
+    function addDays(dateStr, days) {
+      const d = new Date(dateStr + 'T00:00:00')
+      d.setDate(d.getDate() + days)
+      return toDateStr(d)
+    }
+
+    // Format a week_start date as "Jul 14"
+    function fmtWeekLabel(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00')
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }
+
+    // Build the 13-week array ending at selectedWeek (inclusive)
+    function buildWeeks(refWeek) {
+      const arr = []
+      for (let i = 12; i >= 0; i--) {
+        // subtract i*7 days from refWeek
+        const d = new Date(refWeek + 'T00:00:00')
+        d.setDate(d.getDate() - i * 7)
+        arr.push(toDateStr(d))
+      }
+      return arr // arr[0] = oldest, arr[12] = refWeek (newest)
+    }
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+
+    setMsg('Checking login…')
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+
+    currentUser = auth
+    renderHeader(auth.profile)
+    renderSidebar('team-scorecard', auth.profile.role, auth.user.email)
+
+    // Calculate current week
+    todayWeek    = toDateStr(getWeekStart())
+    selectedWeek = todayWeek
+
+    // Build week picker (last 52 weeks, newest first)
+    const picker = document.getElementById('weekPicker')
+    for (let i = 0; i < 52; i++) {
+      const d = new Date(todayWeek + 'T00:00:00')
+      d.setDate(d.getDate() - i * 7)
+      const val = toDateStr(d)
+      const opt = document.createElement('option')
+      opt.value = val
+      opt.textContent = `Week of ${fmtWeekLabel(val)}`
+      if (i === 0) opt.textContent += ' (current)'
+      picker.appendChild(opt)
+    }
+    picker.value = selectedWeek
+    picker.addEventListener('change', async () => {
+      selectedWeek = picker.value
+      weeks = buildWeeks(selectedWeek)
+      setMsg('Loading entries…')
+      document.getElementById('scorecardBody').style.display = 'none'
+      document.getElementById('teamSummaryCard').style.display = 'none'
+      document.getElementById('loadingState').style.display = ''
+      await loadEntries()
+      render()
+    })
+
+    setMsg('Loading scorecard data…')
+    await loadAll()
+
+    // ── Load ─────────────────────────────────────────────────────────────────
+
+    async function loadAll() {
+      // Load metrics
+      const { data: metrics, error: mErr } = await supabase
+        .from('scorecard_metrics')
+        .select('*')
+        .eq('active', true)
+        .order('display_order')
+
+      if (mErr) { showError('Could not load scorecard metrics: ' + mErr.message); return }
+      allMetrics = metrics || []
+
+      // Build 13-week window
+      weeks = buildWeeks(selectedWeek)
+
+      await loadEntries()
+      render()
+    }
+
+    async function loadEntries() {
+      const oldest = weeks[0]
+      const newest = weeks[12]
+
+      const { data: entries, error: eErr } = await supabase
+        .from('scorecard_entries')
+        .select('*')
+        .gte('week_start', oldest)
+        .lte('week_start', newest)
+
+      if (eErr) { showError('Could not load entries: ' + eErr.message); return }
+
+      // Build lookup
+      entryMap = {}
+      for (const e of entries || []) {
+        entryMap[`${e.person_key}:${e.metric_key}:${e.week_start}`] = e
+      }
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    function render() {
+      _ddCells = {} // clear registry so cell IDs stay fresh
+      const body = document.getElementById('scorecardBody')
+
+      // Group metrics by person
+      const byPerson = {}
+      for (const m of allMetrics) {
+        if (!byPerson[m.person_key]) byPerson[m.person_key] = []
+        byPerson[m.person_key].push(m)
+      }
+
+      const html = PERSON_ORDER
+        .filter(pk => byPerson[pk])
+        .map(pk => renderPersonSection(pk, byPerson[pk]))
+        .join('')
+
+      body.innerHTML = html || '<div style="padding:40px;text-align:center;color:var(--color-text-muted);">No scorecard data found. Run the migration first.</div>'
+      attachInputListeners()
+
+      document.getElementById('loadingState').style.display = 'none'
+      body.style.display = ''
+      renderTeamSummary()
+    }
+
+    function renderPersonSection(personKey, metrics) {
+      const first      = metrics[0]
+      const personName = first.person_name
+      const email      = first.person_email || ''
+      const score      = calcScore(personKey, metrics)
+      const scoreClass = score.green === score.withGoal && score.withGoal > 0 ? 'all-green' : ''
+      const scoreTxt   = score.withGoal > 0
+        ? `${score.green} of ${score.withGoal} green`
+        : 'No goals set'
+
+      const headerLabel = email ? `${esc(personName)} / ${esc(email)}` : esc(personName)
+      return `
+        <div class="person-section" id="section-${esc(personKey)}">
+          <div class="person-header" onclick="toggleSection('${esc(personKey)}')">
+            <span class="person-name">${headerLabel}</span>
+            <span class="person-score ${scoreClass}" id="score-${esc(personKey)}">${scoreTxt}</span>
+            <span class="expand-icon" id="icon-${esc(personKey)}">&#9654;</span>
+          </div>
+          <div class="person-body" id="body-${esc(personKey)}">
+            <div class="sc-table-wrap">
+              ${renderTable(personKey, metrics)}
+            </div>
+          </div>
+        </div>
+      `
+    }
+
+    function renderTable(personKey, metrics) {
+      // Display newest week first (reverse of storage order)
+      const displayWeeks = [...weeks].reverse()
+
+      // Week column headers — col 3 = current week, col 4 = last week, etc.
+      const weekHeaders = displayWeeks.map((w) => {
+        const isCurrent = w === todayWeek
+        return `<th class="${isCurrent ? 'week-current' : ''}">${esc(fmtWeekLabel(w))}</th>`
+      }).join('')
+
+      // Metric rows
+      const rows = metrics.map(m => renderRow(personKey, m, displayWeeks)).join('')
+
+      return `
+        <table class="sc-table">
+          <thead>
+            <tr>
+              <th class="col-measurable">Measurable</th>
+              <th class="col-goal">Goal</th>
+              ${weekHeaders}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `
+    }
+
+    function renderRow(personKey, metric, displayWeeks) {
+      const cells = displayWeeks.map(w => renderCell(personKey, metric, w)).join('')
+      const csBtn = CHEATSHEET[metric.metric_key]
+        ? `<button class="cs-btn" onclick="toggleCheatsheet(event,'${esc(metric.metric_key)}')" title="What is this?">?</button>`
+        : ''
+      return `
+        <tr>
+          <td class="col-measurable"><div style="display:flex;align-items:center;gap:5px;">${esc(metric.metric_label)}${csBtn}</div></td>
+          <td class="col-goal" style="color:var(--color-text-muted);font-size:.75rem;">${goalLabel(metric)}</td>
+          ${cells}
+        </tr>
+      `
+    }
+
+    function renderCell(personKey, metric, weekDate) {
+      const isCurrent  = weekDate === todayWeek
+      const isSelected = weekDate === selectedWeek
+      const colClass   = isSelected ? 'week-current' : ''
+
+      const key   = `${personKey}:${metric.metric_key}:${weekDate}`
+      const entry = entryMap[key]
+
+      // Only the ACTUAL current week is editable — if viewing a historical window,
+      // the current-week column may not even appear, so editable only if
+      // weekDate === todayWeek.
+      const editable = isCurrent
+
+      // Register cell in the drill-down lookup so openDrilldown() can find the data.
+      // Use a safe ID: replace special chars so it works as a JS string key.
+      const ddId = `${personKey}__${metric.metric_key}__${weekDate.replace(/-/g, '')}`
+      _ddCells[ddId] = {
+        personKey,
+        metricKey:   metric.metric_key,
+        metricLabel: metric.metric_label,
+        autoSource:  metric.auto_source  || null,
+        personEmail: metric.person_email || '',
+        personName:  metric.person_name  || personKey,
+        weekStart:   weekDate,
+        value:       entry?.value ?? null,
+        valueType:   metric.value_type,
+      }
+
+      // Small info icon shown on hover for editable cells — opens drill-down
+      // without interfering with the inline input.
+      const infoBtn = `<button class="dd-info-btn" onclick="openDrilldown('${ddId}');event.stopPropagation();" title="View details">&#x2139;</button>`
+
+      if (editable) {
+        if (metric.value_type === 'pass_fail') {
+          const cur = entry?.value_text || ''
+          return `
+            <td class="${colClass} cell-editable-wrap">
+              <div class="dd-cell-inner">
+                <select class="sc-input sc-select"
+                  data-person="${esc(personKey)}"
+                  data-metric="${esc(metric.metric_key)}"
+                  data-week="${esc(weekDate)}"
+                  data-type="pass_fail"
+                  onchange="handleSave(this)">
+                  <option value="" ${cur === '' ? 'selected' : ''}>—</option>
+                  <option value="pass" ${cur === 'pass' ? 'selected' : ''}>&#10003; Pass</option>
+                  <option value="fail" ${cur === 'fail' ? 'selected' : ''}>&#10007; Fail</option>
+                </select>
+                ${infoBtn}
+              </div>
+            </td>
+          `
+        } else {
+          const cur = entry?.value !== null && entry?.value !== undefined ? entry.value : ''
+          return `
+            <td class="${colClass} cell-editable-wrap">
+              <div class="dd-cell-inner">
+                <input type="number" class="sc-input"
+                  data-person="${esc(personKey)}"
+                  data-metric="${esc(metric.metric_key)}"
+                  data-week="${esc(weekDate)}"
+                  data-type="${esc(metric.value_type)}"
+                  value="${cur}"
+                  step="any"
+                  placeholder="—"
+                  onblur="handleSave(this)">
+                ${infoBtn}
+              </div>
+            </td>
+          `
+        }
+      } else {
+        // Read-only past-week cells — clicking opens the drill-down panel.
+        return `<td class="${colClass} dd-cell" onclick="openDrilldown('${ddId}')">${renderCellValue(metric, entry)}</td>`
+      }
+    }
+
+    // Render a read-only cell value with a colored dot.
+    // Uses explicit hex inline styles so colors always render regardless of CSS loading order.
+    function renderCellValue(metric, entry) {
+      if (!entry || (entry.value === null && !entry.value_text)) {
+        return `<div class="cell-value"><span class="dot" style="background:#9ca3af"></span><span style="color:var(--color-text-muted)">—</span></div>`
+      }
+
+      if (metric.value_type === 'pass_fail') {
+        const pf = entry.value_text
+        if (pf === 'pass') return `<div class="cell-value"><span style="color:#16a34a;font-weight:700;font-size:1rem;">&#10003;</span></div>`
+        if (pf === 'fail') return `<div class="cell-value"><span style="color:#dc2626;font-weight:700;font-size:1rem;">&#10007;</span></div>`
+        return `<div class="cell-value"><span class="dot" style="background:#9ca3af"></span><span style="color:var(--color-text-muted)">—</span></div>`
+      }
+
+      const val      = entry.value
+      const dotStyle = getDotStyle(metric, val)
+      const display  = metric.value_type === 'percent' ? `${val}%` : val
+      const autoMark = entry.is_auto ? ' <span class="cell-auto">auto</span>' : ''
+
+      return `<div class="cell-value"><span class="dot" style="${dotStyle}"></span>${esc(String(display))}${autoMark}</div>`
+    }
+
+    function getDotStyle(metric, value) {
+      if (value === null || value === undefined || metric.goal_value === null) return 'background:#9ca3af'
+      const v = Number(value)
+      const g = Number(metric.goal_value)
+      if (metric.goal_direction === 'above') return v >= g ? 'background:#16a34a' : 'background:#dc2626'
+      if (metric.goal_direction === 'below') return v <= g ? 'background:#16a34a' : 'background:#dc2626'
+      return 'background:#9ca3af'
+    }
+
+    function goalLabel(metric) {
+      if (metric.goal_value === null) return '—'
+      const dir = metric.goal_direction === 'above' ? '≥' : '≤'
+      const val = metric.value_type === 'percent' ? `${metric.goal_value}%` : metric.goal_value
+      return `${dir}${val}`
+    }
+
+    // Calculate green/total for a person's current week
+    function calcScore(personKey, metrics) {
+      let green = 0, withGoal = 0
+      for (const m of metrics) {
+        if (m.goal_value === null) continue
+        withGoal++
+        const key   = `${personKey}:${m.metric_key}:${todayWeek}`
+        const entry = entryMap[key]
+        if (!entry) continue
+        if (m.value_type === 'pass_fail') {
+          if (entry.value_text === 'pass') green++
+        } else if (entry.value !== null) {
+          const v = Number(entry.value)
+          const g = Number(m.goal_value)
+          const isGreen = m.goal_direction === 'above' ? v >= g : v <= g
+          if (isGreen) green++
+        }
+      }
+      return { green, withGoal }
+    }
+
+    // ── Team Summary ──────────────────────────────────────────────────────────
+
+    function renderTeamSummary() {
+      const card = document.getElementById('teamSummaryCard')
+      if (!card) return
+      if (!allMetrics.length) { card.style.display = 'none'; return }
+
+      // Group metrics by person (same structure as render())
+      const byPerson = {}
+      for (const m of allMetrics) {
+        if (!byPerson[m.person_key]) byPerson[m.person_key] = []
+        byPerson[m.person_key].push(m)
+      }
+      const personKeys = PERSON_ORDER.filter(pk => byPerson[pk])
+
+      // ── Per-person and team-wide counts for selectedWeek ─────────────────
+      let totalGreen = 0, totalRed = 0, totalNoData = 0
+      const personRedCount   = {}
+      const personGreenCount = {}
+      const personGoalCount  = {}
+
+      for (const pk of personKeys) {
+        personRedCount[pk]   = 0
+        personGreenCount[pk] = 0
+        personGoalCount[pk]  = 0
+        for (const m of byPerson[pk]) {
+          if (m.goal_value === null) continue
+          personGoalCount[pk]++
+          const key   = `${pk}:${m.metric_key}:${selectedWeek}`
+          const entry = entryMap[key]
+          if (!entry || (entry.value === null && !entry.value_text)) {
+            totalNoData++
+            continue
+          }
+          let isGreen = false
+          if (m.value_type === 'pass_fail') {
+            isGreen = entry.value_text === 'pass'
+          } else if (entry.value !== null) {
+            const v = Number(entry.value), g = Number(m.goal_value)
+            isGreen = m.goal_direction === 'above' ? v >= g : v <= g
+          }
+          if (isGreen) { totalGreen++; personGreenCount[pk]++ }
+          else         { totalRed++;   personRedCount[pk]++   }
+        }
+      }
+
+      const total     = totalGreen + totalRed
+      const teamScore = total > 0 ? Math.round(totalGreen / total * 100) : null
+      const scoreColor = teamScore === null  ? 'var(--color-text-muted)'
+                       : teamScore >= 80     ? '#16a34a'
+                       : teamScore >= 60     ? '#d97706'
+                       : '#dc2626'
+
+      // ── Needs Attention & Celebrating ─────────────────────────────────────
+      const needsAttention = personKeys
+        .filter(pk => personRedCount[pk] > 0)
+        .sort((a, b) => personRedCount[b] - personRedCount[a])
+
+      // Celebrating = no reds, at least one green metric this week
+      const celebrating = personKeys.filter(pk =>
+        personRedCount[pk] === 0 && personGreenCount[pk] > 0
+      )
+
+      // ── Consecutive reds across last 5 weeks ──────────────────────────────
+      // weeks[] is sorted oldest→newest; last 5 = weeks.slice(-5)
+      const last5 = weeks.slice(-5)
+      const consecutiveReds = []
+      for (const pk of personKeys) {
+        for (const m of byPerson[pk]) {
+          if (m.goal_value === null) continue
+          let streak = 0
+          for (let i = last5.length - 1; i >= 0; i--) {
+            const entry = entryMap[`${pk}:${m.metric_key}:${last5[i]}`]
+            if (!entry || (entry.value === null && !entry.value_text)) break
+            let isRed = false
+            if (m.value_type === 'pass_fail') {
+              isRed = entry.value_text === 'fail'
+            } else if (entry.value !== null) {
+              const v = Number(entry.value), g = Number(m.goal_value)
+              isRed = m.goal_direction === 'above' ? v < g : v > g
+            }
+            if (isRed) streak++
+            else break
+          }
+          if (streak >= 2) {
+            consecutiveReds.push({
+              pName:       byPerson[pk][0].person_name,
+              metricLabel: m.metric_label,
+              streak,
+            })
+          }
+        }
+      }
+      consecutiveReds.sort((a, b) => b.streak - a.streak)
+
+      // ── Date label ────────────────────────────────────────────────────────
+      const d = new Date(selectedWeek + 'T00:00:00')
+      const dateLbl = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+      // ── Build HTML ────────────────────────────────────────────────────────
+      const attentionHtml = needsAttention.length
+        ? needsAttention.map(pk => {
+            const pName = byPerson[pk][0].person_name
+            const cnt   = personRedCount[pk]
+            return `<div class="ts-attention-item">
+              <a class="ts-attention-link" onclick="scrollToAndExpand('${esc(pk)}')">${esc(pName)}</a>
+              <span class="ts-red-count">${cnt} red metric${cnt !== 1 ? 's' : ''}</span>
+            </div>`
+          }).join('')
+        : '<div style="font-size:.82rem;color:var(--color-text-muted);">None this week</div>'
+
+      const celebrateHtml = celebrating.length
+        ? celebrating.map(pk => {
+            const pName = byPerson[pk][0].person_name
+            return `<div class="ts-celebrate-item">&#10003; ${esc(pName)}</div>`
+          }).join('')
+        : '<div style="font-size:.82rem;color:var(--color-text-muted);">None this week</div>'
+
+      const belowLineHtml = consecutiveReds.length
+        ? consecutiveReds.map(r =>
+            `<div class="ts-below-item">&#x2715; ${esc(r.pName)} — ${esc(r.metricLabel)} — ${r.streak} week${r.streak !== 1 ? 's' : ''} red</div>`
+          ).join('')
+        : '<div class="ts-below-ok">&#9679; No metrics below the line this week</div>'
+
+      card.innerHTML = `
+        <div class="ts-title">Team This Week &mdash; ${esc(dateLbl)}</div>
+        <div class="ts-big-numbers">
+          <div class="ts-stat">
+            <span class="ts-stat-num" style="color:${scoreColor}">${teamScore !== null ? teamScore + '%' : '&mdash;'}</span>
+            <span class="ts-stat-label">Team Score</span>
+          </div>
+          <div class="ts-stat">
+            <span class="ts-stat-num" style="color:#16a34a">${totalGreen} &#10003;</span>
+            <span class="ts-stat-label">Green</span>
+          </div>
+          <div class="ts-stat">
+            <span class="ts-stat-num" style="color:#dc2626">${totalRed} &#10007;</span>
+            <span class="ts-stat-label">Red</span>
+          </div>
+          <div class="ts-stat">
+            <span class="ts-stat-num" style="color:var(--color-text-muted)">${totalNoData} &mdash;</span>
+            <span class="ts-stat-label">No Data</span>
+          </div>
+        </div>
+        <div class="ts-cols">
+          <div>
+            <div class="ts-col-title">Needs Attention</div>
+            ${attentionHtml}
+          </div>
+          <div>
+            <div class="ts-col-title">Celebrating</div>
+            ${celebrateHtml}
+          </div>
+        </div>
+        <div class="ts-below-line">
+          <div class="ts-below-title">Consecutive Reds (EOS "Below the Line")</div>
+          ${belowLineHtml}
+        </div>
+      `
+      card.style.display = ''
+    }
+
+    // Scroll to and expand a person section (called from Team Summary "Needs Attention")
+    window.scrollToAndExpand = function(personKey) {
+      const section = document.getElementById(`section-${personKey}`)
+      if (!section) return
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const body = document.getElementById(`body-${personKey}`)
+      if (body && !body.classList.contains('open')) {
+        toggleSection(personKey)
+      }
+    }
+
+    // ── Section toggle ────────────────────────────────────────────────────────
+
+    window.toggleSection = function(personKey) {
+      const body = document.getElementById(`body-${personKey}`)
+      const icon = document.getElementById(`icon-${personKey}`)
+      const isOpen = body.classList.contains('open')
+      body.classList.toggle('open', !isOpen)
+      icon.classList.toggle('open', !isOpen)
+    }
+
+    // ── Save handler ──────────────────────────────────────────────────────────
+
+    async function saveEntry(personKey, metricKey, weekDate, rawValue, valueType) {
+      let value     = null
+      let valueText = null
+
+      if (valueType === 'pass_fail') {
+        valueText = rawValue || null
+      } else {
+        value = rawValue !== '' && rawValue !== null ? parseFloat(rawValue) : null
+      }
+
+      const row = {
+        week_start:  weekDate,
+        person_key:  personKey,
+        metric_key:  metricKey,
+        value,
+        value_text:  valueText,
+        is_auto:     false,
+        entered_by:  currentUser.user.email,
+      }
+
+      const { error } = await supabase
+        .from('scorecard_entries')
+        .upsert(row, { onConflict: 'week_start,person_key,metric_key' })
+
+      if (error) {
+        showToast('Save failed: ' + error.message)
+        return false
+      }
+
+      // Update local map
+      entryMap[`${personKey}:${metricKey}:${weekDate}`] = row
+
+      // Update section header score
+      const metricsForPerson = allMetrics.filter(m => m.person_key === personKey)
+      const score      = calcScore(personKey, metricsForPerson)
+      const scoreEl    = document.getElementById(`score-${personKey}`)
+      if (scoreEl) {
+        const scoreClass = score.green === score.withGoal && score.withGoal > 0 ? 'all-green' : ''
+        scoreEl.className = `person-score ${scoreClass}`
+        scoreEl.textContent = score.withGoal > 0
+          ? `${score.green} of ${score.withGoal} green`
+          : 'No goals set'
+      }
+
+      showToast('Saved')
+      return true
+    }
+
+    window.handleSave = async function(el) {
+      const personKey = el.dataset.person
+      const metricKey = el.dataset.metric
+      const weekDate  = el.dataset.week
+      const valueType = el.dataset.type
+      const rawValue  = el.value
+      await saveEntry(personKey, metricKey, weekDate, rawValue, valueType)
+    }
+
+    // Attach change listener for selects (blur doesn't fire reliably on <select>)
+    function attachInputListeners() {
+      // Number inputs — save on blur (already handled by inline onblur)
+      // Select inputs — save on change (handled by inline onchange)
+      // Tab key: move to next input within the same table
+      document.querySelectorAll('.sc-input').forEach(input => {
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur() }
+        })
+      })
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function showError(msg) {
+      document.getElementById('loadingState').innerHTML = `
+        <div class="alert alert-danger" style="max-width:520px;">
+          <div style="margin-bottom:12px;">${esc(msg)}</div>
+          <button onclick="location.reload()" style="padding:8px 16px;background:var(--color-accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Try Again</button>
+        </div>
+      `
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    let _toastTimer = null
+    function showToast(msg) {
+      const el = document.getElementById('toast')
+      el.textContent = msg
+      el.classList.add('show')
+      clearTimeout(_toastTimer)
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 2400)
+    }
+
+    // ── Cheatsheet popover ────────────────────────────────────────────────────
+
+    window.toggleCheatsheet = function(event, metricKey) {
+      event.stopPropagation()
+      const btn = event.currentTarget
+      const existing = document.getElementById('cs-popover')
+      if (existing) {
+        existing.remove()
+        // Clicking the same "?" again toggles the popover off
+        if (_csActiveBtn === btn) { _csActiveBtn = null; return }
+      }
+      const text = CHEATSHEET[metricKey]
+      if (!text) return
+      _csActiveBtn = btn
+
+      const popover = document.createElement('div')
+      popover.id = 'cs-popover'
+      popover.className = 'cs-popover'
+      popover.textContent = text
+      document.body.appendChild(popover)
+
+      // Position: right of the button; flip left if near the right edge
+      const rect = btn.getBoundingClientRect()
+      const pw   = 280
+      let left = rect.right + 8
+      if (left + pw > window.innerWidth - 10) left = rect.left - pw - 8
+      let top = rect.top
+      if (top + 110 > window.innerHeight) top = Math.max(0, window.innerHeight - 120)
+      popover.style.left = left + 'px'
+      popover.style.top  = top  + 'px'
+    }
+
+    // Close cheatsheet on click anywhere outside it
+    document.addEventListener('click', () => {
+      const p = document.getElementById('cs-popover')
+      if (p) { p.remove(); _csActiveBtn = null }
+    })
+
+    // ── Drill-down panel ──────────────────────────────────────────────────────
+
+    window.openDrilldown = async function(ddId) {
+      const info = _ddCells[ddId]
+      if (!info) return
+      _currentDdInfo = info
+
+      document.getElementById('dd-panel-title').textContent = `${info.personName} — ${info.metricLabel}`
+      document.getElementById('dd-panel-sub').textContent   = `Week of ${fmtWeekLabel(info.weekStart)}`
+
+      const body = document.getElementById('dd-panel-body')
+      body.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>'
+      document.getElementById('dd-panel').classList.add('open')
+      document.getElementById('dd-backdrop').classList.add('open')
+
+      const ws  = info.weekStart
+      const we7 = addDays(ws, 7) // exclusive upper bound = next Monday
+
+      let recordsHtml = ''
+
+      try {
+        if (info.autoSource === 'email_count') {
+          const { data } = await supabase
+            .from('email_cache')
+            .select('received_at, subject, to_address')
+            .ilike('from_address', `%${info.personEmail}%`)
+            .gte('received_at', ws)
+            .lt('received_at', we7)
+            .order('received_at', { ascending: false })
+            .limit(50)
+          if (data && data.length > 0) {
+            recordsHtml = `<div class="dd-count">${data.length} email${data.length !== 1 ? 's' : ''} this week</div>`
+              + `<div style="overflow-x:auto;"><table class="dd-records-table"><thead><tr><th>Date</th><th>Subject</th><th>To</th></tr></thead><tbody>`
+              + data.map(r => `<tr><td>${r.received_at ? r.received_at.substring(0,10) : '—'}</td><td>${esc(r.subject||'—')}</td><td>${esc(r.to_address||'—')}</td></tr>`).join('')
+              + `</tbody></table></div>`
+          } else {
+            recordsHtml = `<div class="dd-empty">No emails found for this week.</div>`
+          }
+
+        } else if (info.autoSource === 'turning_points_email') {
+          const { data } = await supabase
+            .from('email_cache')
+            .select('received_at, subject, to_address')
+            .ilike('from_address', '%you@yourdomain%')
+            .ilike('subject', '%turning%')
+            .gte('received_at', ws)
+            .lt('received_at', we7)
+            .order('received_at', { ascending: false })
+          if (data && data.length > 0) {
+            recordsHtml = `<div class="dd-count">${data.length} Turning Point email${data.length !== 1 ? 's' : ''}</div>`
+              + `<div style="overflow-x:auto;"><table class="dd-records-table"><thead><tr><th>Date</th><th>Subject</th><th>To</th></tr></thead><tbody>`
+              + data.map(r => `<tr><td>${r.received_at ? r.received_at.substring(0,10) : '—'}</td><td>${esc(r.subject||'—')}</td><td>${esc(r.to_address||'—')}</td></tr>`).join('')
+              + `</tbody></table></div>`
+          } else {
+            recordsHtml = `<div class="dd-empty">No Turning Point emails found for this week.</div>`
+          }
+
+        } else if (info.autoSource === 'resident_health') {
+          const { data } = await supabase
+            .from('v_resident_health')
+            .select('resident_name, property_address, unit, tier')
+            .eq('tier', 'at_risk')
+          if (data && data.length > 0) {
+            recordsHtml = `<div class="dd-count">${data.length} at-risk resident${data.length !== 1 ? 's' : ''}</div>`
+              + `<div style="overflow-x:auto;"><table class="dd-records-table"><thead><tr><th>Resident</th><th>Property</th><th>Unit</th></tr></thead><tbody>`
+              + data.map(r => `<tr><td>${esc(r.resident_name||'—')}</td><td>${esc(r.property_address||'—')}</td><td>${esc(r.unit||'—')}</td></tr>`).join('')
+              + `</tbody></table></div>`
+          } else {
+            recordsHtml = `<div class="dd-empty">No at-risk residents found.</div>`
+          }
+
+        } else if (info.autoSource === 'owner_health') {
+          const { data } = await supabase
+            .from('v_owner_health')
+            .select('owner_name, property_count, score')
+            .eq('tier', 'at_risk')
+          if (data && data.length > 0) {
+            recordsHtml = `<div class="dd-count">${data.length} at-risk owner${data.length !== 1 ? 's' : ''}</div>`
+              + `<div style="overflow-x:auto;"><table class="dd-records-table"><thead><tr><th>Owner</th><th>Properties</th><th>Score</th></tr></thead><tbody>`
+              + data.map(r => `<tr><td>${esc(r.owner_name||'—')}</td><td>${r.property_count??'—'}</td><td>${r.score??'—'}</td></tr>`).join('')
+              + `</tbody></table></div>`
+          } else {
+            recordsHtml = `<div class="dd-empty">No at-risk owners found.</div>`
+          }
+
+        } else if (info.autoSource && [
+          'auto_metric_1','auto_metric_2','auto_metric_3'
+        ].includes(info.autoSource)) {
+          const srcName = info.autoSource.startsWith('auto') ? '[YOUR SYSTEM]'
+                        : info.autoSource.startsWith('birdeye')  ? 'BirdEye'
+                        : '[YOUR SYSTEM]'
+          recordsHtml = `<div class="dd-auto-msg">This metric is pulled automatically from <strong>${esc(srcName)}</strong>.<br>The value for this week is <strong>${info.value ?? '—'}</strong>.<br>Use the notes field below to add context.</div>`
+        }
+        // null auto_source = manual — no records list, go straight to notes
+      } catch (err) {
+        recordsHtml = `<div class="dd-empty">Could not load records: ${esc(err.message)}</div>`
+      }
+
+      // Pre-fill notes: for pass_fail the value_text holds 'pass'/'fail', not a user note
+      const noteKey      = `${info.personKey}:${info.metricKey}:${info.weekStart}`
+      const existingRow  = entryMap[noteKey]
+      const noteVal      = info.valueType === 'pass_fail' ? '' : (existingRow?.value_text || '')
+
+      body.innerHTML = recordsHtml + `
+        <div class="dd-notes-section">
+          <div class="dd-notes-label">Notes for this week</div>
+          <textarea class="dd-notes-textarea" id="dd-notes-textarea" placeholder="Add context or notes…">${esc(noteVal)}</textarea>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+            <button class="dd-save-btn" onclick="saveDdNote()">Save Note</button>
+            <span class="dd-saved-msg" id="dd-saved-msg" style="display:none;">Saved &#10003;</span>
+          </div>
+        </div>
+      `
+    }
+
+    window.closeDrilldown = function() {
+      document.getElementById('dd-panel').classList.remove('open')
+      document.getElementById('dd-backdrop').classList.remove('open')
+      _currentDdInfo = null
+    }
+
+    window.saveDdNote = async function() {
+      const info = _currentDdInfo
+      if (!info) return
+      const note    = document.getElementById('dd-notes-textarea').value.trim()
+      const noteKey = `${info.personKey}:${info.metricKey}:${info.weekStart}`
+      const existing = entryMap[noteKey]
+
+      const row = {
+        week_start: info.weekStart,
+        person_key: info.personKey,
+        metric_key: info.metricKey,
+        // Preserve the numeric value; for pass_fail preserve the existing value_text
+        value:      existing?.value ?? null,
+        value_text: info.valueType === 'pass_fail'
+                      ? (existing?.value_text ?? null)  // don't overwrite pass/fail result
+                      : (note || null),
+        is_auto:    false,
+        entered_by: currentUser.user.email,
+      }
+
+      const { error } = await supabase
+        .from('scorecard_entries')
+        .upsert(row, { onConflict: 'week_start,person_key,metric_key' })
+
+      if (error) { showToast('Save failed: ' + error.message); return }
+
+      entryMap[noteKey] = { ...(existing || {}), ...row }
+
+      const savedEl = document.getElementById('dd-saved-msg')
+      if (savedEl) {
+        savedEl.style.display = ''
+        setTimeout(() => { savedEl.style.display = 'none' }, 2000)
+      }
+    }
+
+    // Close drill-down or cheatsheet on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (document.getElementById('dd-panel').classList.contains('open')) {
+          closeDrilldown()
+        } else {
+          const p = document.getElementById('cs-popover')
+          if (p) { p.remove(); _csActiveBtn = null }
+        }
+      }
+    })
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOP Reminders — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    /* ── Two-column layout ───────────────────────────────── */
+    .reminders-grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .reminders-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Reminders table ─────────────────────────────────── */
+    .section-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .section-card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+    }
+
+    .status-badge-active {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge-paused {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #f1f5f9;
+      color: var(--color-text-muted);
+    }
+
+    .btn-toggle {
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      cursor: pointer;
+      color: var(--color-text);
+      transition: background .12s;
+    }
+    .btn-toggle:hover { background: var(--color-bg); }
+
+    .btn-delete-reminder {
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      border: 1px solid transparent;
+      background: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      transition: background .12s, color .12s;
+    }
+    .btn-delete-reminder:hover { background: #fee2e2; color: var(--color-danger); }
+
+    /* ── Add reminder form ───────────────────────────────── */
+    .add-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .add-card-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Error box ───────────────────────────────────────── */
+    .error-box {
+      background: #fff0f0;
+      border: 1px solid var(--color-danger);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--color-danger);
+      font-size: 0.875rem;
+      display: none;
+    }
+    .error-box.visible { display: block; }
+
+    .success-box {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #22543d;
+      font-size: 0.85rem;
+      display: none;
+      margin-top: 10px;
+    }
+    .success-box.visible { display: block; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <div id="page-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading&hellip;</p>
+      </div>
+
+      <div id="page-content" style="display:none;"></div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    ;(async () => {
+
+    const auth = await requireAuth()
+    if (!auth) return
+    const { profile } = auth
+    renderHeader(profile)
+    renderSidebar('sop-library', profile.role)
+
+    // Admin gate
+    if (profile.role !== 'admin') {
+      location.href = '/command-center/sop-library.html'
+      return
+    }
+
+    // Check if a specific SOP was pre-selected via sessionStorage
+    const preselectedSopId = sessionStorage.getItem('bpm_reminder_sop_id')
+    sessionStorage.removeItem('bpm_reminder_sop_id')
+
+    // ── Load SOPs for the dropdown ───────────────────────────
+    const { data: sops, error: sopErr } = await supabase
+      .from('sops')
+      .select('id, title, sop_categories(name)')
+      .order('title')
+
+    if (sopErr) { showBootError('Could not load SOPs: ' + sopErr.message); return }
+
+    const sopOptions = (sops || []).map(s => {
+      const catLabel = s.sop_categories ? ` (${esc(s.sop_categories.name)})` : ''
+      return `<option value="${esc(s.id)}"${s.id === preselectedSopId ? ' selected' : ''}>${esc(s.title)}${catLabel}</option>`
+    }).join('')
+
+    // ── Render page shell ────────────────────────────────────
+    document.getElementById('page-loading').style.display = 'none'
+    const pc = document.getElementById('page-content')
+    pc.style.display = 'block'
+    pc.innerHTML = `
+      <div class="page-header">
+        <div class="page-title">SOP Reminders</div>
+        <div class="page-subtitle">Set up recurring reminders that email a team member with a link to the SOP</div>
+      </div>
+
+      <div class="reminders-grid">
+
+        <!-- LEFT: active reminders table -->
+        <div>
+          <div class="section-card">
+            <div class="section-card-header">Active Reminders</div>
+            <div id="reminders-table-area">
+              <div class="loading-state" style="padding:40px 20px;">
+                <div class="spinner"></div>
+                <p>Loading reminders&hellip;</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: add new reminder form -->
+        <div class="add-card">
+          <div class="add-card-title">Add New Reminder</div>
+
+          <div class="form-group">
+            <label class="form-label" for="r-sop">SOP <span style="color:var(--color-danger)">*</span></label>
+            <select class="form-select" id="r-sop">
+              <option value="">-- Select SOP --</option>
+              ${sopOptions}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r-title">Reminder Title <span style="color:var(--color-danger)">*</span></label>
+            <input type="text" class="form-input" id="r-title"
+              placeholder="e.g. Annual lease renewal audit">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r-email">Assigned To (email) <span style="color:var(--color-danger)">*</span></label>
+            <input type="email" class="form-input" id="r-email"
+              placeholder="e.g. manager@bpmsd.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r-frequency">Frequency <span style="color:var(--color-danger)">*</span></label>
+            <select class="form-select" id="r-frequency">
+              <option value="weekly">Weekly</option>
+              <option value="monthly" selected>Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r-next-due">Next Due Date <span style="color:var(--color-danger)">*</span></label>
+            <input type="date" class="form-input" id="r-next-due">
+          </div>
+
+          <div class="error-box" id="add-error"></div>
+
+          <button type="button" class="btn btn-primary w-full mt-8" id="btn-save-reminder">
+            Save Reminder
+          </button>
+
+          <div class="success-box" id="add-success">Reminder saved.</div>
+        </div>
+
+      </div>`
+
+    // ── Load and render reminders ────────────────────────────
+    await loadReminders()
+
+    // ── Save reminder ────────────────────────────────────────
+    document.getElementById('btn-save-reminder').addEventListener('click', async () => {
+      const btn     = document.getElementById('btn-save-reminder')
+      const errEl   = document.getElementById('add-error')
+      const sucEl   = document.getElementById('add-success')
+
+      const sopId     = document.getElementById('r-sop').value
+      const title     = document.getElementById('r-title').value.trim()
+      const email     = document.getElementById('r-email').value.trim()
+      const frequency = document.getElementById('r-frequency').value
+      const nextDue   = document.getElementById('r-next-due').value
+
+      errEl.classList.remove('visible')
+      sucEl.classList.remove('visible')
+
+      if (!sopId)   { showAddError('Please select a SOP.'); return }
+      if (!title)   { showAddError('Please enter a reminder title.'); return }
+      if (!email)   { showAddError('Please enter an email address.'); return }
+      if (!nextDue) { showAddError('Please enter a next due date.'); return }
+
+      btn.disabled = true
+      btn.textContent = 'Saving…'
+
+      const { error } = await supabase.from('sop_reminders').insert({
+        sop_id:            sopId,
+        title,
+        assigned_to_email: email,
+        frequency,
+        next_due_at:       nextDue,
+        active:            true,
+      })
+
+      btn.disabled = false
+      btn.textContent = 'Save Reminder'
+
+      if (error) {
+        showAddError('Could not save reminder: ' + error.message)
+        return
+      }
+
+      // Reset form
+      document.getElementById('r-sop').value       = ''
+      document.getElementById('r-title').value     = ''
+      document.getElementById('r-email').value     = ''
+      document.getElementById('r-frequency').value = 'monthly'
+      document.getElementById('r-next-due').value  = ''
+
+      sucEl.classList.add('visible')
+      setTimeout(() => sucEl.classList.remove('visible'), 4000)
+
+      await loadReminders()
+    })
+
+    // ── Load reminders ───────────────────────────────────────
+    async function loadReminders() {
+      const area = document.getElementById('reminders-table-area')
+
+      const { data: reminders, error } = await supabase
+        .from('sop_reminders')
+        .select('id, title, assigned_to_email, frequency, next_due_at, active, sop_id, sops(title)')
+        .order('next_due_at', { ascending: true })
+
+      if (error) {
+        area.innerHTML = `<div class="error-box visible" style="margin:16px;">${esc(error.message)}</div>`
+        return
+      }
+
+      if (!reminders || reminders.length === 0) {
+        area.innerHTML = `<div class="empty-state">No reminders set up yet.</div>`
+        return
+      }
+
+      area.innerHTML = `
+        <div class="table-wrapper" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>SOP Title</th>
+                <th>Assigned To</th>
+                <th>Frequency</th>
+                <th>Next Due</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${reminders.map(r => buildReminderRow(r)).join('')}
+            </tbody>
+          </table>
+        </div>`
+
+      // Wire toggle buttons
+      area.querySelectorAll('[data-toggle-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id      = btn.dataset.toggleId
+          const current = btn.dataset.active === 'true'
+          btn.disabled = true
+          const { error } = await supabase
+            .from('sop_reminders')
+            .update({ active: !current })
+            .eq('id', id)
+          if (!error) await loadReminders()
+          else { btn.disabled = false; alert('Could not update: ' + error.message) }
+        })
+      })
+
+      // Wire delete buttons
+      area.querySelectorAll('[data-delete-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this reminder?')) return
+          btn.disabled = true
+          const { error } = await supabase
+            .from('sop_reminders')
+            .delete()
+            .eq('id', btn.dataset.deleteId)
+          if (!error) await loadReminders()
+          else { btn.disabled = false; alert('Could not delete: ' + error.message) }
+        })
+      })
+    }
+
+    function buildReminderRow(r) {
+      const sopTitle    = r.sops ? esc(r.sops.title) : esc(r.sop_id)
+      const freqLabel   = { weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', yearly: 'Yearly' }[r.frequency] || esc(r.frequency)
+      const statusBadge = r.active
+        ? `<span class="status-badge-active">Active</span>`
+        : `<span class="status-badge-paused">Paused</span>`
+      const toggleLabel = r.active ? 'Pause' : 'Resume'
+
+      return `
+        <tr>
+          <td>${sopTitle}</td>
+          <td>${esc(r.assigned_to_email)}</td>
+          <td>${freqLabel}</td>
+          <td>${formatDate(r.next_due_at)}</td>
+          <td>${statusBadge}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn-toggle" data-toggle-id="${esc(r.id)}" data-active="${r.active}">${toggleLabel}</button>
+            <button class="btn-delete-reminder" data-delete-id="${esc(r.id)}" title="Delete">&times;</button>
+          </td>
+        </tr>`
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    function showBootError(msg) {
+      document.getElementById('page-loading').style.display = 'none'
+      document.getElementById('page-content').style.display = 'block'
+      document.getElementById('page-content').innerHTML =
+        `<div class="error-box visible">${esc(msg)}</div>`
+    }
+
+    function showAddError(msg) {
+      const el = document.getElementById('add-error')
+      el.textContent = msg
+      el.classList.add('visible')
+    }
+
+    function esc(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    function formatDate(iso) {
+      if (!iso) return ''
+      const d = new Date(iso)
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+    }
+
+    })()
+  </script>
+
+</body>
+</html>

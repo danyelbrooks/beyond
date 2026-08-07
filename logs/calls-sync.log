@@ -1,0 +1,70 @@
+[2026-08-04T14:53:31.476Z] Talkroute Call Sync — START
+Inbound calls (last 7d): 224
+  FLAGGED: Manivannan , Karpagam T — 3 calls in 7 days
+
+Owners flagged: 1
+Signals saved to owner_signals.
+[2026-08-04T14:53:35.636Z] DONE
+[2026-08-04T14:53:35.921Z] Owner Health Scoring — START
+Owners loaded: 286
+Failed to load emails: canceling statement due to statement timeout
+[2026-08-05T13:00:01.906Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 825
+
+Owners flagged: 0
+[2026-08-05T13:00:06.342Z] DONE
+[2026-08-05T13:00:06.445Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 28854
+Risk-since updates: 5
+
+--- Results ---
+Champion (90-100):  67
+Healthy  (75-89):   197
+Watch    (60-74):   22
+At Risk  (<60):      0
+
+New signals detected: 2
+Scores written: 286
+
+[2026-08-05T13:00:54.108Z] DONE
+[2026-08-06T13:00:01.300Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 846
+
+Owners flagged: 0
+[2026-08-06T13:00:05.648Z] DONE
+[2026-08-06T13:00:05.748Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 29162
+Risk-since updates: 5
+
+--- Results ---
+Champion (90-100):  63
+Healthy  (75-89):   202
+Watch    (60-74):   21
+At Risk  (<60):      0
+
+New signals detected: 6
+Scores written: 286
+
+[2026-08-06T13:00:27.613Z] DONE
+[2026-08-07T13:06:45.094Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 849
+
+Owners flagged: 0
+[2026-08-07T13:06:50.489Z] DONE
+[2026-08-07T13:06:50.585Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 29341
+Risk-since updates: 5
+
+--- Results ---
+Champion (90-100):  68
+Healthy  (75-89):   196
+Watch    (60-74):   22
+At Risk  (<60):      0
+
+New signals detected: 5
+Scores written: 286
+
+[2026-08-07T13:07:19.223Z] DONE

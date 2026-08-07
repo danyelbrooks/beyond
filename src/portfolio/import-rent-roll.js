@@ -78,12 +78,13 @@ function find(row, candidates) {
 // MAP CSV ROW → units table row
 // ============================================================================
 function mapRow(row, runStamp) {
-  const property = find(row, ['property name', 'property', 'building'])
-  const unit     = find(row, ['unit', 'unit number', 'unit no'])
+  // _property and _unit are pre-parsed from the AppFolio unit string
+  const property = row._property || find(row, ['property name', 'property', 'building'])
+  const unit     = row._unit     || find(row, ['unit number', 'unit no'])
   const status   = find(row, ['status', 'occupancy', 'lease status'])
-  const rent     = find(row, ['market rent', 'market rate', 'scheduled rent', 'rent amount', 'rent'])
-  const moveOut  = find(row, ['move out', 'lease end', 'end date'])
-  const moveIn   = find(row, ['move in', 'lease start', 'start date'])
+  const rent     = find(row, ['market rent', 'market rate', 'scheduled rent', 'rent amount'])
+  const moveOut  = find(row, ['move-out', 'move out', 'lease to', 'lease end', 'end date'])
+  const moveIn   = find(row, ['move-in', 'move in', 'lease from', 'lease start', 'start date'])
 
   if (!property) return null   // skip summary/blank rows
 
@@ -159,13 +160,76 @@ if (rows.length === 0) {
   process.exit(1)
 }
 
-// Print discovered columns so user can verify
-console.log(`Columns found in your CSV (${rows.length} data rows):`)
-Object.keys(rows[0]).forEach(k => console.log(`  "${k}"`))
+// AppFolio Rent Roll exports alternate rows:
+//   Odd rows:  "unit" column contains the property + address string
+//   Even rows: tenant, status, rent, etc. (unit column is empty)
+// We pair them up before mapping.
+function pairRows(rows) {
+  const paired = []
+  let i = 0
+  while (i < rows.length) {
+    const row = rows[i]
+    const unitStr = (row.unit || '').trim()
+    if (unitStr.startsWith('->') || unitStr.length > 5) {
+      // This is a header row — grab the data from the next row
+      const data = rows[i + 1] || {}
+      paired.push({ _unit_str: unitStr, ...data })
+      i += 2
+    } else {
+      i++
+    }
+  }
+  return paired
+}
+
+// Parse the AppFolio unit string into property_name + unit_number.
+// Format: "-> Shorthand (Owner) - Full Address"
+// Example: "-> 10th Ave. 253 #328 (David) - 253 10th Avenue Unit 328 San Diego, CA 92101"
+function parseUnitStr(str) {
+  const cleaned = str.replace(/^->\s*/, '').trim()
+
+  // Split on " - " to separate shorthand from full address
+  const dashIdx = cleaned.lastIndexOf(' - ')
+  const fullAddress = dashIdx >= 0 ? cleaned.slice(dashIdx + 3).trim() : cleaned
+
+  // Extract unit number from full address ("Unit 328" or "#328")
+  const unitMatch = fullAddress.match(/\bUnit\s+([^\s,]+)/i) || fullAddress.match(/#([^\s,]+)/)
+  const unitNumber = unitMatch ? unitMatch[1] : ''
+
+  // Property name = everything in full address before "Unit" or end of street (no city/state)
+  // Strip ", City, ST ZIP" and "Unit X" from the address
+  let propertyName = fullAddress
+    .replace(/,\s*[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\s*\d{5}(-\d{4})?$/, '')  // strip ", San Diego, CA 92101"
+    .replace(/\s+Unit\s+\S+/i, '')                                           // strip "Unit 328"
+    .replace(/\s+#\S+/, '')                                                  // strip "#328"
+    .trim()
+
+  return { propertyName, unitNumber }
+}
+
+const paired = pairRows(rows)
+console.log(`Paired into ${paired.length} unit records.\n`)
+
+// Show first 3 to verify
+console.log('Sample parsed records (verify these look right):')
+paired.slice(0, 3).forEach((r, i) => {
+  const { propertyName, unitNumber } = parseUnitStr(r._unit_str || '')
+  console.log(`\n  Unit ${i + 1}:`)
+  console.log(`    property_name: ${propertyName}`)
+  console.log(`    unit_number:   ${unitNumber}`)
+  console.log(`    tenant:        ${r.tenant || '(vacant)'}`)
+  console.log(`    status:        ${r.status || '(none)'}`)
+  console.log(`    market rent:   ${r['market rent'] || '(none)'}`)
+})
 console.log()
 
-// Map rows
-const mapped = rows.map(r => mapRow(r, runStamp)).filter(Boolean)
+// Map rows — now using paired records with parsed property/unit
+const mapped = paired.map(r => {
+  const { propertyName, unitNumber } = parseUnitStr(r._unit_str || '')
+  if (!propertyName) return null
+  // Inject property/unit into the row so mapRow() can find them
+  return mapRow({ ...r, _property: propertyName, _unit: unitNumber }, runStamp)
+}).filter(Boolean)
 
 if (mapped.length === 0) {
   console.error('No valid unit rows found. Make sure the CSV has a "Property" or "Property Name" column.')

@@ -1,4 +1,56 @@
 services:
+  # ============================================================
+  # Command Center — static site (free, always on)
+  # ============================================================
+  - type: web
+    name: bpm-command-center
+    runtime: static
+    staticPublishPath: src/command-center
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+
+  # ============================================================
+  # API Server — email sending, AI drafts, CFO, insurance
+  # ============================================================
+  - type: web
+    name: bpm-api
+    runtime: node
+    buildCommand: npm install
+    startCommand: node src/api/server.js
+    healthCheckPath: /api/health
+
+    envVars:
+      # Non-secret
+      - key: NODE_ENV
+        value: production
+
+      # Secrets — enter these manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: LEADSIMPLE_API_KEY
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: PLAID_CLIENT_ID
+        sync: false
+      - key: PLAID_SECRET
+        sync: false
+      - key: PLAID_ENV
+        sync: false
+      - key: APPFOLIO_CLIENT_ID
+        sync: false
+      - key: APPFOLIO_CLIENT_SECRET
+        sync: false
+
+  # ============================================================
+  # Onboarding Portal — client-facing intake form
+  # ============================================================
   - type: web
     name: bpm-onboarding-portal
     runtime: node

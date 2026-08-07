@@ -10,7 +10,7 @@
  *
  * What it does:
  *   1. Looks up the email in email_cache by ID to get the m365_message_id
- *   2. Sends the reply via the Graph API
+ *   2. Sends the reply via the Gmail API
  *   3. Inserts a row in email_actions (action_type = 'replied')
  *   4. Updates the email status to 'handled' in email_cache
  *
@@ -24,7 +24,7 @@
 
 import 'dotenv/config'
 import { supabase } from '../db/server-client.js'
-import { sendReply } from './graph-client.js'
+import { sendReply } from './gmail-client.js'
 
 // =============================================================================
 // PARSE ARGUMENTS

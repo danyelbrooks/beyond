@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Best Practices — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    /* ── Toolbar ─────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .toolbar-search {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+      max-width: 360px;
+    }
+
+    .toolbar-search input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+    }
+
+    .toolbar-search input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(52,152,219,.15);
+    }
+
+    .toolbar-search .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    /* ── Category pills ──────────────────────────────────── */
+    .pill-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .pill {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .12s, border-color .12s, color .12s;
+      color: var(--color-text);
+    }
+
+    .pill:hover { border-color: var(--color-accent); background: #f0f6ff; }
+
+    .pill.active {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+    }
+
+    /* ── SOP card grid ───────────────────────────────────── */
+    .sop-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 700px) {
+      .sop-grid { grid-template-columns: 1fr; }
+    }
+
+    .sop-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sop-card:hover {
+      border-color: var(--color-accent);
+      box-shadow: 0 2px 10px rgba(52,152,219,.12);
+    }
+
+    .sop-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .sop-card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.3;
+    }
+
+    .sop-cat-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #e8f4fd;
+      color: #1e40af;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .sop-card-desc {
+      font-size: 0.855rem;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .sop-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+
+    .sop-card-date {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+    }
+
+    .btn-view {
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--color-accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .btn-view:hover { background: var(--color-accent-hover); }
+
+    /* ── Empty / error states ────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .error-box {
+      background: #fff0f0;
+      border: 1px solid var(--color-danger);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--color-danger);
+      font-size: .875rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="flex justify-between items-center flex-wrap gap-12">
+          <div>
+            <div class="page-title">Best Practices</div>
+            <div class="page-subtitle" id="doc-count">Loading&hellip;</div>
+          </div>
+          <div id="admin-actions"></div>
+        </div>
+      </div>
+
+      <!-- Search + category filters -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="search-input" placeholder="Search by title or description&hellip;">
+        </div>
+      </div>
+
+      <div class="pill-row" id="category-pills">
+        <button class="pill active" data-cat="">All</button>
+      </div>
+
+      <!-- Card grid -->
+      <div id="grid-area">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading SOPs&hellip;</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    ;(async () => {
+
+    const auth = await requireAuth()
+    if (!auth) return
+    const { profile } = auth
+    renderHeader(profile)
+    renderSidebar('sop-library', profile.role)
+
+    const isAdmin = profile.role === 'admin'
+
+    // Show "New SOP" button for admin
+    if (isAdmin) {
+      document.getElementById('admin-actions').innerHTML =
+        `<button class="btn btn-primary" id="btn-new-sop">+ New SOP</button>`
+      document.getElementById('btn-new-sop').addEventListener('click', () => {
+        sessionStorage.removeItem('bpm_sop_edit_id')
+        location.href = '/command-center/sop-editor.html'
+      })
+    }
+
+    // ── State ───────────────────────────────────────────────
+    let allSops       = []
+    let selectedCat   = ''
+    let searchText    = ''
+    let searchTimer   = null
+
+    // ── Load categories ─────────────────────────────────────
+    const { data: cats, error: catErr } = await supabase
+      .from('sop_categories')
+      .select('id, name')
+      .order('name')
+
+    if (catErr) {
+      showError('Could not load categories: ' + catErr.message)
+      return
+    }
+
+    const pillRow = document.getElementById('category-pills')
+    for (const cat of (cats || [])) {
+      const btn = document.createElement('button')
+      btn.className = 'pill'
+      btn.dataset.cat = cat.id
+      btn.textContent = cat.name
+      pillRow.appendChild(btn)
+    }
+
+    pillRow.addEventListener('click', e => {
+      const btn = e.target.closest('.pill')
+      if (!btn) return
+      pillRow.querySelectorAll('.pill').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      selectedCat = btn.dataset.cat
+      renderFiltered()
+    })
+
+    // ── Load all SOPs once ───────────────────────────────────
+    const { data: sops, error: sopErr } = await supabase
+      .from('sops')
+      .select('id, title, description, updated_at, category_id, sop_categories(name)')
+      .order('title')
+
+    if (sopErr) {
+      showError('Could not load SOPs: ' + sopErr.message)
+      return
+    }
+
+    allSops = sops || []
+    renderFiltered()
+
+    // ── Search ───────────────────────────────────────────────
+    document.getElementById('search-input').addEventListener('input', e => {
+      clearTimeout(searchTimer)
+      const val = e.target.value.trim()
+      searchTimer = setTimeout(() => {
+        searchText = val.length >= 2 ? val.toLowerCase() : ''
+        renderFiltered()
+      }, 300)
+    })
+
+    // ── Render ───────────────────────────────────────────────
+    function renderFiltered() {
+      let list = allSops
+
+      if (selectedCat) {
+        list = list.filter(s => s.category_id === selectedCat)
+      }
+
+      if (searchText) {
+        list = list.filter(s =>
+          (s.title || '').toLowerCase().includes(searchText) ||
+          (s.description || '').toLowerCase().includes(searchText)
+        )
+      }
+
+      const total = allSops.length
+      document.getElementById('doc-count').textContent =
+        `${total} document${total !== 1 ? 's' : ''}`
+
+      if (list.length === 0) {
+        document.getElementById('grid-area').innerHTML =
+          `<div class="empty-state">No SOPs in this category yet.</div>`
+        return
+      }
+
+      const cards = list.map(buildCard).join('')
+      document.getElementById('grid-area').innerHTML =
+        `<div class="sop-grid">${cards}</div>`
+
+      document.getElementById('grid-area').addEventListener('click', e => {
+        const card = e.target.closest('[data-sop-id]')
+        if (!card) return
+        sessionStorage.setItem('bpm_sop_id', card.dataset.sopId)
+        location.href = '/command-center/sop-detail.html'
+      }, { once: true })
+    }
+
+    function buildCard(sop) {
+      const catName = sop.sop_categories ? esc(sop.sop_categories.name) : ''
+      const catBadge = catName
+        ? `<span class="sop-cat-badge">${catName}</span>`
+        : ''
+      const desc = sop.description
+        ? `<div class="sop-card-desc">${esc(sop.description)}</div>`
+        : ''
+      return `
+        <div class="sop-card" data-sop-id="${esc(sop.id)}">
+          <div class="sop-card-header">
+            <div class="sop-card-title">${esc(sop.title)}</div>
+            ${catBadge}
+          </div>
+          ${desc}
+          <div class="sop-card-footer">
+            <span class="sop-card-date">Last updated ${formatDate(sop.updated_at)}</span>
+            <button class="btn-view">View</button>
+          </div>
+        </div>`
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    function showError(msg) {
+      document.getElementById('grid-area').innerHTML =
+        `<div class="error-box">${esc(msg)}</div>`
+    }
+
+    function esc(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    function formatDate(iso) {
+      if (!iso) return ''
+      const d = new Date(iso)
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+    }
+
+    })()
+  </script>
+
+</body>
+</html>
