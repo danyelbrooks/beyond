@@ -1204,7 +1204,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'BPM Email A
 // START
 // =============================================================================
 
-const PORT = process.env.API_PORT || 3005
+const PORT = process.env.PORT || process.env.API_PORT || 3005
 app.listen(PORT, () => {
   console.log(`BPM Email API running on http://localhost:${PORT}`)
   console.log('Endpoints: POST /api/reply  |  POST /api/forward')
