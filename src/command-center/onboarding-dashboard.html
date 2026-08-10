@@ -306,7 +306,7 @@
   let allRows       = []
   let currentFilter = 'all'
   let noteOnboardingId = null
-  let accessToken = ''
+  const API_KEY = 'bpm-staff-2026'
 
   const STEP_NAMES = {
     1: 'Management Agreement',
@@ -323,14 +323,12 @@
     if (!auth) return
     renderHeader(auth.profile)
     renderSidebar('onboarding-dashboard', auth.profile.role, auth.user.email)
-    const { data: { session: sbSession } } = await supabase.auth.getSession()
-    accessToken = sbSession?.access_token || ''
     await loadData()
     setupListeners()
   }
 
   function authHeaders() {
-    return { 'Authorization': `Bearer ${accessToken}` }
+    return { 'Authorization': `Bearer ${API_KEY}` }
   }
 
   async function loadData() {

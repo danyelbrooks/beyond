@@ -117,28 +117,24 @@ function validateStrings(limits) {
 async function requireAuth(req, res, next) {
   const authHeader = req.headers['authorization']
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('[Auth] Missing or malformed Authorization header')
     return res.status(401).json({ error: 'Unauthorized' })
   }
   const token = authHeader.slice(7)
-  if (!token) {
-    console.log('[Auth] Empty token')
-    return res.status(401).json({ error: 'Unauthorized' })
+
+  // Accept static API key for staff command center
+  const apiKey = process.env.ONBOARDING_API_KEY
+  if (apiKey && token === apiKey) {
+    req.user = { id: 'staff', email: 'staff@bpmsd.com' }
+    return next()
   }
+
+  // Fall back to Supabase JWT validation
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token)
-    if (error) {
-      console.log('[Auth] getUser error:', error.message)
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
-    if (!user) {
-      console.log('[Auth] No user returned')
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
+    if (error || !user) return res.status(401).json({ error: 'Unauthorized' })
     req.user = user
     next()
-  } catch (err) {
-    console.log('[Auth] Exception:', err.message)
+  } catch {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 }

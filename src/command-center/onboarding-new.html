@@ -361,8 +361,8 @@
     ? 'http://localhost:3006'
     : 'https://bpm-onboarding-portal.onrender.com'
 
+  const API_KEY = 'bpm-staff-2026'
   let session = null
-  let accessToken = ''
 
   async function init() {
     const auth = await requireAuth()
@@ -370,8 +370,6 @@
     renderHeader(auth.profile)
     renderSidebar('onboarding-new', auth.profile.role, auth.user.email)
     session = auth
-    const { data: { session: sbSession } } = await supabase.auth.getSession()
-    accessToken = sbSession?.access_token || ''
     setupListeners()
   }
 
@@ -487,7 +485,7 @@
   }
 
   function authHeaders() {
-    return { 'Authorization': `Bearer ${accessToken}` }
+    return { 'Authorization': `Bearer ${API_KEY}` }
   }
 
   async function doCreate() {
