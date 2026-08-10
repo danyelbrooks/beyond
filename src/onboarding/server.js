@@ -38,9 +38,8 @@ import { syncAfterStep1 as afSyncStep1, syncAfterStep2 as afSyncStep2 } from './
 const STAFF_EMAILS  = ['help@bpmsd.com', 'care@bpmsd.com', 'danyel@bpmsd.com']
 const DASHBOARD_URL = 'http://localhost:3000/command-center/onboarding-dashboard.html'
 
-function notifyStaff(subject, bodyHtml) {
-  sendEmail(STAFF_EMAILS, subject, bodyHtml)
-    .catch(err => console.error('[Staff notify]', err.message))
+async function notifyStaff(subject, bodyHtml) {
+  await sendEmail(STAFF_EMAILS, subject, bodyHtml)
 }
 
 const __filename = fileURLToPath(import.meta.url)
@@ -69,7 +68,7 @@ function validateMagicBytes(buffer, mimetype) {
 
 const app = express()
 
-app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:3002', 'http://localhost:3006', 'https://portal.beyondpropertymanagement.com'] }))
+app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:3002', 'http://localhost:3006', 'https://portal.beyondpropertymanagement.com', 'https://app.bpmsd.com'] }))
 app.use(express.json({ limit: '10mb' }))
 
 // Rate limiters
@@ -740,20 +739,29 @@ app.post('/api/onboard/:token/step/1', requireToken, async (req, res) => {
     await touchActivity(ob.id)
     await supabase.from('onboardings').update({ status: 'in_progress' }).eq('id', ob.id).eq('status', 'pending')
 
-    // Fire-and-forget: create AppFolio owner + property after agreement is signed
-    afSyncStep1(ob.id, supabase)
-      .then(() => console.log(`[Step 1] AF sync completed for ${ob.id}`))
-      .catch(err => console.error('[Step 1 AF sync error]', err.message))
+    // Sync AppFolio owner + property — runs before response so errors surface immediately
+    try {
+      await afSyncStep1(ob.id, supabase)
+    } catch (err) {
+      console.error('[Step 1 AF sync error]', err.message)
+    }
 
     // Notify staff that onboarding has started
-    console.log(`[Step 1] Firing staff email notification`)
-    notifyStaff(
-      `[Onboarding Started] ${ob.owner_name} — ${ob.short_address}`,
-      `<p><strong>${ob.owner_name}</strong> has signed the management agreement and started their onboarding.</p>
-       <p><strong>Property:</strong> ${ob.property_address}</p>
-       <p><strong>Started:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} PT</p>
-       <p><a href="${DASHBOARD_URL}">View Onboarding Dashboard</a></p>`
-    )
+    try {
+      await notifyStaff(
+        `[Onboarding Started] ${ob.owner_name} — ${ob.short_address}`,
+        `<p><strong>${ob.owner_name}</strong> has signed the management agreement and started their onboarding.</p>
+         <p><strong>Property:</strong> ${ob.property_address}</p>
+         <p><strong>Started:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} PT</p>
+         <p><a href="${DASHBOARD_URL}">View Onboarding Dashboard</a></p>`
+      )
+    } catch (emailErr) {
+      await supabase.from('onboarding_flags').insert({
+        onboarding_id: ob.id,
+        flag_type:     'email_send_error',
+        message:       `Staff notification email failed at Step 1: ${emailErr.message}`,
+      }).catch(() => {})
+    }
 
     res.json({ success: true, nextStep: 2 })
   } catch (err) {

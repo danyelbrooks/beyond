@@ -1137,13 +1137,6 @@ export async function syncToAppFolio(onboarding, supabase) {
  * with minimal detail; syncAfterStep2 will enrich them once the questionnaire is done.
  */
 export async function syncAfterStep1(onboardingId, supabase) {
-  // Diagnostic trace — remove once auto-sync is confirmed working
-  await supabase.from('onboarding_flags').insert({
-    onboarding_id: onboardingId,
-    flag_type:     '_sync_trace',
-    message:       'syncAfterStep1 called at ' + new Date().toISOString(),
-  })
-
   const authHeader = buildAuthHeader()
   if (!authHeader) {
     console.warn('[AppFolio Step1 sync] Missing credentials — skipping')
