@@ -298,7 +298,7 @@
 </div>
 
 <script type="module">
-  import { requireAuth, renderHeader, renderSidebar } from './auth.js'
+  import { requireAuth, renderHeader, renderSidebar, supabase } from './auth.js'
 
   const API = window.location.hostname === 'localhost'
     ? 'http://localhost:3006'
@@ -306,6 +306,7 @@
   let allRows       = []
   let currentFilter = 'all'
   let noteOnboardingId = null
+  let accessToken = ''
 
   const STEP_NAMES = {
     1: 'Management Agreement',
@@ -322,23 +323,14 @@
     if (!auth) return
     renderHeader(auth.profile)
     renderSidebar('onboarding-dashboard', auth.profile.role, auth.user.email)
+    const { data: { session: sbSession } } = await supabase.auth.getSession()
+    accessToken = sbSession?.access_token || ''
     await loadData()
     setupListeners()
   }
 
-  function getToken() {
-    const keys = ['sb-kyekqaxuzpozuhyhibcn-auth-token']
-    for (const k of keys) {
-      const raw = sessionStorage.getItem(k) || localStorage.getItem(k)
-      if (raw) {
-        try { return JSON.parse(raw)?.access_token || '' } catch { return '' }
-      }
-    }
-    return ''
-  }
-
   function authHeaders() {
-    return { 'Authorization': `Bearer ${getToken()}` }
+    return { 'Authorization': `Bearer ${accessToken}` }
   }
 
   async function loadData() {

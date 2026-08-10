@@ -355,13 +355,14 @@
 </div>
 
 <script type="module">
-  import { requireAuth, renderHeader, renderSidebar } from './auth.js'
+  import { requireAuth, renderHeader, renderSidebar, supabase } from './auth.js'
 
   const API = window.location.hostname === 'localhost'
     ? 'http://localhost:3006'
     : 'https://bpm-onboarding-portal.onrender.com'
 
   let session = null
+  let accessToken = ''
 
   async function init() {
     const auth = await requireAuth()
@@ -369,6 +370,8 @@
     renderHeader(auth.profile)
     renderSidebar('onboarding-new', auth.profile.role, auth.user.email)
     session = auth
+    const { data: { session: sbSession } } = await supabase.auth.getSession()
+    accessToken = sbSession?.access_token || ''
     setupListeners()
   }
 
@@ -484,16 +487,7 @@
   }
 
   function authHeaders() {
-    return { 'Authorization': `Bearer ${session?.user?.aud ? getToken() : ''}` }
-  }
-
-  function getToken() {
-    // Retrieve current session token from the auth module's supabase instance
-    return sessionStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token')
-      ? JSON.parse(sessionStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token') || '{}')?.access_token
-      : localStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token')
-        ? JSON.parse(localStorage.getItem('sb-kyekqaxuzpozuhyhibcn-auth-token') || '{}')?.access_token
-        : ''
+    return { 'Authorization': `Bearer ${accessToken}` }
   }
 
   async function doCreate() {
