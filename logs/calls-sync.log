@@ -68,3 +68,155 @@ New signals detected: 5
 Scores written: 286
 
 [2026-08-07T13:07:19.223Z] DONE
+[2026-08-08T13:00:02.105Z] Talkroute Call Sync — START
+[TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo ENOTFOUND api.talkroute.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.talkroute.com'
+  }
+}
+[2026-08-08T13:00:02.229Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 29787
+Risk-since updates: 4
+
+--- Results ---
+Champion (90-100):  67
+Healthy  (75-89):   197
+Watch    (60-74):   22
+At Risk  (<60):      0
+
+New signals detected: 3
+Scores written: 286
+
+[2026-08-08T13:01:05.401Z] DONE
+[2026-08-09T13:00:11.747Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 812
+
+Owners flagged: 0
+[2026-08-09T13:00:15.950Z] DONE
+[2026-08-09T13:00:16.066Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 29864
+Risk-since updates: 5
+
+--- Results ---
+Champion (90-100):  62
+Healthy  (75-89):   203
+Watch    (60-74):   21
+At Risk  (<60):      0
+
+New signals detected: 0
+Scores written: 286
+
+[2026-08-09T13:00:43.479Z] DONE
+[2026-08-10T13:05:41.958Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 789
+
+Owners flagged: 0
+[2026-08-10T13:05:45.936Z] DONE
+[2026-08-10T13:05:46.035Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 29751
+Risk-since updates: 2
+
+--- Results ---
+Champion (90-100):  62
+Healthy  (75-89):   203
+Watch    (60-74):   21
+At Risk  (<60):      0
+
+New signals detected: 0
+Scores written: 286
+
+[2026-08-10T13:06:06.227Z] DONE
+[2026-08-11T13:00:01.133Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 828
+
+Owners flagged: 0
+[2026-08-11T13:00:05.356Z] DONE
+[2026-08-11T13:00:05.455Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 29901
+Risk-since updates: 2
+
+--- Results ---
+Champion (90-100):  66
+Healthy  (75-89):   199
+Watch    (60-74):   21
+At Risk  (<60):      0
+
+New signals detected: 2
+Scores written: 286
+
+[2026-08-11T13:00:37.702Z] DONE
+[2026-08-14T04:55:16.558Z] Talkroute Call Sync — START
+[TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted addresses: 104.18.21.42:443, 104.18.20.42:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:1991:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:1957:35)
+      at process.processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+[2026-08-14T04:55:27.395Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 29271
+Risk-since updates: 6
+
+--- Results ---
+Champion (90-100):  64
+Healthy  (75-89):   201
+Watch    (60-74):   21
+At Risk  (<60):      0
+
+New signals detected: 4
+Scores written: 286
+
+[2026-08-14T04:59:03.257Z] DONE
+[2026-08-14T18:23:23.092Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 895
+  FLAGGED: Jarman Lowell & Janis Living 2004 Trust — 3 calls in 30 days
+  FLAGGED: Trinh, Sophia & Frank — 3 calls in 30 days
+
+Owners flagged: 2
+Signals saved to owner_signals.
+[2026-08-14T18:23:29.472Z] DONE
+[2026-08-14T18:23:29.598Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 30494
+Risk-since updates: 7
+
+--- Results ---
+Champion (90-100):  66
+Healthy  (75-89):   196
+Watch    (60-74):   24
+At Risk  (<60):      0
+
+New signals detected: 6
+Scores written: 286
+
+[2026-08-14T18:24:05.534Z] DONE
+[2026-08-15T14:47:11.301Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 904
+
+Owners flagged: 0
+[2026-08-15T14:47:17.542Z] DONE
+[2026-08-15T14:47:17.653Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 30741
+Risk-since updates: 4
+
+--- Results ---
+Champion (90-100):  60
+Healthy  (75-89):   204
+Watch    (60-74):   22
+At Risk  (<60):      0
+
+New signals detected: 0
+Scores written: 286
+
+[2026-08-15T14:47:45.311Z] DONE

@@ -96,20 +96,19 @@
       color: var(--color-text-muted);
     }
 
-    .status-dot {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+    .kpi-card.card-green  { background: #16a34a; border-color: #15803d; box-shadow: 0 2px 8px rgba(22,163,74,0.25); }
+    .kpi-card.card-yellow { background: #d97706; border-color: #b45309; box-shadow: 0 2px 8px rgba(217,119,6,0.25); }
+    .kpi-card.card-red    { background: #dc2626; border-color: #b91c1c; box-shadow: 0 2px 8px rgba(220,38,38,0.25); }
 
-    .dot-green  { background: var(--color-success); }
-    .dot-yellow { background: var(--color-warning); }
-    .dot-red    { background: var(--color-danger); }
-    .dot-gray   { background: var(--color-border); }
+    .kpi-card.card-green .kpi-card-name,
+    .kpi-card.card-green .kpi-card-value,
+    .kpi-card.card-green .kpi-card-target,
+    .kpi-card.card-yellow .kpi-card-name,
+    .kpi-card.card-yellow .kpi-card-value,
+    .kpi-card.card-yellow .kpi-card-target,
+    .kpi-card.card-red .kpi-card-name,
+    .kpi-card.card-red .kpi-card-value,
+    .kpi-card.card-red .kpi-card-target { color: white; }
 
     /* Celebration tab */
     .celebration-grid {
@@ -278,7 +277,7 @@
             <div class="page-title" id="pageTitle">KPI Dashboard</div>
           </div>
           <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
-            <label class="field-label" for="monthSelect" style="white-space: nowrap;">Viewing Month</label>
+            <label class="field-label" for="monthSelect" style="white-space: nowrap;">Viewing Week</label>
             <select class="form-select" id="monthSelect" style="width: auto; min-width: 180px;"></select>
           </div>
         </div>
@@ -404,7 +403,7 @@
     renderHeader(profile)
     renderSidebar('kpi-tracker', profile.role, user.email)
 
-    buildMonthDropdown()
+    buildWeekDropdown()
     await loadAll()
 
     document.getElementById('monthSelect').addEventListener('change', loadAll)
@@ -420,19 +419,42 @@
     })
 
     // =========================================================================
-    // MONTH DROPDOWN — current month + previous 11
+    // WEEK DROPDOWN — weeks run Saturday→Friday, 52 weeks back from today
     // =========================================================================
-    function buildMonthDropdown() {
+    function weekLabel(sat, fri) {
+      const startStr = sat.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const endStr   = fri.getMonth() === sat.getMonth()
+        ? fri.getDate().toString()
+        : fri.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      return `${startStr}–${endStr}, ${fri.getFullYear()}`
+    }
+
+    function buildWeekDropdown() {
       const sel = document.getElementById('monthSelect')
+      sel.innerHTML = ''
+
       const now = new Date()
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-        const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      // Walk back to the most recent Saturday
+      const day = now.getDay() // 0=Sun … 6=Sat
+      const thisSat = new Date(now)
+      thisSat.setDate(now.getDate() - (day === 6 ? 0 : day + 1))
+      thisSat.setHours(0, 0, 0, 0)
+
+      const YEAR_START = new Date(2026, 0, 3) // Jan 3, 2026 is the first Saturday of 2026
+
+      let sat = new Date(thisSat)
+      for (let i = 0; i < 52; i++) {
+        if (sat < YEAR_START) break
+        const fri = new Date(sat)
+        fri.setDate(fri.getDate() + 6)
+
+        const value = `${sat.getFullYear()}-${String(sat.getMonth() + 1).padStart(2, '0')}-${String(sat.getDate()).padStart(2, '0')}`
         const opt = document.createElement('option')
         opt.value = value
-        opt.textContent = label
+        opt.textContent = weekLabel(sat, fri)
         sel.appendChild(opt)
+
+        sat.setDate(sat.getDate() - 7)
       }
     }
 
@@ -444,10 +466,12 @@
     async function loadAll() {
       const month = document.getElementById('monthSelect').value
 
-      // Update page title
-      const d = new Date(month + 'T00:00:00')
+      // Update page title — show week range matching the selected Saturday
+      const sat = new Date(month + 'T00:00:00')
+      const fri = new Date(sat)
+      fri.setDate(fri.getDate() + 6)
       document.getElementById('pageTitle').textContent =
-        'KPI Dashboard — ' + d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        'KPI Dashboard — Week of ' + weekLabel(sat, fri)
 
       // Fetch current month entries and targets in parallel
       const [entriesRes, targetsRes, historyRes] = await Promise.all([
@@ -575,7 +599,6 @@
         if (val == null) {
           return `
             <div class="kpi-card">
-              <div class="status-dot dot-gray"></div>
               <div class="kpi-card-name">${escHtml(t.display_name)}</div>
               <div class="kpi-card-value" style="color: var(--color-text-muted); font-size: 1.5rem;">—</div>
               <div class="kpi-card-target">${escHtml(t.target_label || '')}</div>
@@ -583,12 +606,11 @@
           `
         }
 
-        const dotClass = statusDot(val, t.target_value, t.target_direction)
+        const cardClass = statusClass(val, t.target_value, t.target_direction)
         const formatted = formatValue(val, t.metric_key)
 
         return `
-          <div class="kpi-card">
-            <div class="status-dot ${dotClass}"></div>
+          <div class="kpi-card ${cardClass}">
             <div class="kpi-card-name">${escHtml(t.display_name)}</div>
             <div class="kpi-card-value">${formatted}</div>
             <div class="kpi-card-target">${escHtml(t.target_label || '')}</div>
@@ -606,7 +628,7 @@
       const atRisk  = ownerHealthData.filter(r => r.tier === 'at_risk').length
       const total   = ownerHealthData.length
       const target  = 2
-      const dotClass = atRisk < target ? 'dot-green' : atRisk === target ? 'dot-yellow' : 'dot-red'
+      const dotClass = atRisk < target ? 'card-green' : atRisk === target ? 'card-yellow' : 'card-red'
 
       const tiers = ['champion','healthy','watch','at_risk']
       const tierLabels = { champion:'Champion', healthy:'Healthy', watch:'Watch', at_risk:'At Risk' }
@@ -615,8 +637,7 @@
       const tierCards = tiers.map(tier => {
         const count = ownerHealthData.filter(r => r.tier === tier).length
         return `
-          <div class="kpi-card">
-            <div class="status-dot" style="background:${tierColors[tier]};"></div>
+          <div class="kpi-card" style="border-top: 4px solid ${tierColors[tier]};">
             <div class="kpi-card-name">${tierLabels[tier]}</div>
             <div class="kpi-card-value" style="color:${tierColors[tier]};">${count}</div>
             <div class="kpi-card-target">of ${total} owners</div>
@@ -625,10 +646,9 @@
       }).join('')
 
       grid.innerHTML = `
-        <div class="kpi-card">
-          <div class="status-dot ${dotClass}"></div>
+        <div class="kpi-card ${dotClass}">
           <div class="kpi-card-name">Owner At Risk</div>
-          <div class="kpi-card-value" style="color:${atRisk < target ? 'var(--color-success)' : 'var(--color-danger)'};">${atRisk}</div>
+          <div class="kpi-card-value">${atRisk}</div>
           <div class="kpi-card-target">Target: less than ${target}</div>
         </div>
         ${tierCards}
@@ -875,19 +895,19 @@
     }
 
     // =========================================================================
-    // STATUS DOT
+    // CARD STATUS — returns CSS class for full card background
     // =========================================================================
-    function statusDot(value, target, direction) {
-      if (target == null) return 'dot-gray'
+    function statusClass(value, target, direction) {
+      if (target == null) return ''
       if (direction === 'above') {
-        if (value >= target)           return 'dot-green'
-        if (value >= target * 0.8)     return 'dot-yellow'
-        return 'dot-red'
+        if (value >= target)           return 'card-green'
+        if (value >= target * 0.8)     return 'card-yellow'
+        return 'card-red'
       }
       // 'below' — lower is better
-      if (value <= target)             return 'dot-green'
-      if (value <= target * 1.2)       return 'dot-yellow'
-      return 'dot-red'
+      if (value <= target)             return 'card-green'
+      if (value <= target * 1.2)       return 'card-yellow'
+      return 'card-red'
     }
 
     // =========================================================================

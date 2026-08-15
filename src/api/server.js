@@ -22,6 +22,7 @@ import Anthropic      from '@anthropic-ai/sdk'
 import fetch          from 'node-fetch'
 import { sendReply, getGmailClientForInbox } from '../email/gmail-service-client.js'
 import { createClient }                       from '@supabase/supabase-js'
+import { appendKpiRows }                      from '../kpi/proof-log.js'
 import { getBPMGrossRevenue, getPropertyPassiveIncome, isConfigured as appfolioConfigured } from '../cfo/appfolio-cfo.js'
 import { isConfigured as plaidConfigured, createLinkToken, exchangePublicToken, syncAllAccounts, syncTransactions, detectRecurringCharges } from '../cfo/plaid-cfo.js'
 
@@ -89,11 +90,12 @@ async function requireAuth(req, res, next) {
 }
 
 // Protect all staff routes before any route handlers are registered
-app.use('/api/reply',   requireAuth)
-app.use('/api/forward', requireAuth)
-app.use('/api/compose', requireAuth)
-app.use('/api/cfo',     requireAuth)
+app.use('/api/reply',     requireAuth)
+app.use('/api/forward',  requireAuth)
+app.use('/api/compose',  requireAuth)
+app.use('/api/cfo',      requireAuth)
 app.use('/api/insurance', requireAuth)
+app.use('/api/kpi',      requireAuth)
 
 // =============================================================================
 // POST /api/reply
@@ -1190,6 +1192,61 @@ app.patch('/api/insurance/projects/:id', async (req, res) => {
     res.json(data)
   } catch (err) {
     console.error(`PATCH /api/insurance/projects/${id} error:`, err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// =============================================================================
+// KPI PROOF LOG
+// =============================================================================
+
+// POST /api/kpi/log-proof
+// Body: { weekLabel, entries: [{ category, metric_key, display_name, metric_value,
+//         target_value, target_direction, target_label }] }
+//
+// Appends one row per metric to the "BPM KPI Proof Log" Google Sheet.
+// Creates the sheet automatically on first call.
+app.post('/api/kpi/log-proof', async (req, res) => {
+  const { weekLabel, week, entries } = req.body
+
+  if (!weekLabel || !week || !Array.isArray(entries) || entries.length === 0) {
+    return res.status(400).json({ error: 'weekLabel, week, and entries[] are required' })
+  }
+
+  // Enrich entries with target data from kpi_targets
+  let enriched = entries
+  try {
+    const keys = entries.map(e => `${e.category}::${e.metric_key}`)
+    const { data: targets } = await supabase
+      .from('kpi_targets')
+      .select('category, metric_key, display_name, target_value, target_direction, target_label')
+
+    if (targets) {
+      const targetMap = {}
+      for (const t of targets) targetMap[`${t.category}::${t.metric_key}`] = t
+
+      enriched = entries.map(e => {
+        const t = targetMap[`${e.category}::${e.metric_key}`] || {}
+        return {
+          category:        e.category,
+          metric_key:      e.metric_key,
+          display_name:    e.display_name || t.display_name || e.metric_key,
+          metric_value:    e.metric_value,
+          target_value:    e.target_value    ?? t.target_value,
+          target_direction: e.target_direction ?? t.target_direction,
+          target_label:    e.target_label    ?? t.target_label,
+        }
+      })
+    }
+  } catch (err) {
+    console.warn('[KPI Proof Log] Could not load targets:', err.message)
+  }
+
+  try {
+    const result = await appendKpiRows(weekLabel, enriched)
+    res.json({ ok: true, ...result })
+  } catch (err) {
+    console.error('POST /api/kpi/log-proof error:', err.message)
     res.status(500).json({ error: err.message })
   }
 })

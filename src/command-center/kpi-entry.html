@@ -280,7 +280,7 @@
 
         <!-- Month selector -->
         <div class="entry-month-bar">
-          <label class="field-label" for="monthSelect">Reporting Month</label>
+          <label class="field-label" for="monthSelect">Reporting Week</label>
           <select class="form-select" id="monthSelect" style="width:auto; min-width:180px;"></select>
           <span id="monthLoadStatus" class="text-muted" style="font-size:0.82rem;"></span>
         </div>
@@ -690,6 +690,9 @@
     import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
 
     const ENTRY_EMAIL = 'care@bpmsd.com'
+    const API = window.location.hostname === 'localhost'
+      ? 'http://localhost:3005'
+      : 'https://bpm-api-ul3v.onrender.com'
 
     // =========================================================================
     // BOOT
@@ -711,23 +714,45 @@
 
     document.getElementById('entryContent').style.display = ''
 
-    buildMonthDropdown()
+    buildWeekDropdown()
     await loadMonth()
 
     // =========================================================================
-    // MONTH DROPDOWN — current month + previous 11
+    // WEEK DROPDOWN — weeks run Saturday→Friday, 52 weeks back from today
     // =========================================================================
-    function buildMonthDropdown() {
+    function weekLabel(sat, fri) {
+      const startStr = sat.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const endStr   = fri.getMonth() === sat.getMonth()
+        ? fri.getDate().toString()
+        : fri.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      return `${startStr}–${endStr}, ${fri.getFullYear()}`
+    }
+
+    function buildWeekDropdown() {
       const sel = document.getElementById('monthSelect')
+      sel.innerHTML = ''
+
       const now = new Date()
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-        const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      const day = now.getDay()
+      const thisSat = new Date(now)
+      thisSat.setDate(now.getDate() - (day === 6 ? 0 : day + 1))
+      thisSat.setHours(0, 0, 0, 0)
+
+      const YEAR_START = new Date(2026, 0, 3)
+
+      let sat = new Date(thisSat)
+      for (let i = 0; i < 52; i++) {
+        if (sat < YEAR_START) break
+        const fri = new Date(sat)
+        fri.setDate(fri.getDate() + 6)
+
+        const value = `${sat.getFullYear()}-${String(sat.getMonth() + 1).padStart(2, '0')}-${String(sat.getDate()).padStart(2, '0')}`
         const opt = document.createElement('option')
         opt.value = value
-        opt.textContent = label
+        opt.textContent = weekLabel(sat, fri)
         sel.appendChild(opt)
+
+        sat.setDate(sat.getDate() - 7)
       }
       sel.addEventListener('change', loadMonth)
     }
@@ -919,9 +944,47 @@
       if (error) {
         status.textContent = 'Save failed.'
         showToast('Save failed: ' + error.message, 'error')
-      } else {
-        status.textContent = `${rows.length} values saved.`
-        showToast('Saved successfully.', 'success')
+        return
+      }
+
+      status.textContent = `${rows.length} values saved.`
+      showToast('Saved! Logging to KPI Proof Log…', 'success')
+
+      // ── Log to Google Sheet (fire-and-forget so it doesn't block the UI) ──
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+
+        // Compute week label from the Saturday date stored in month selector
+        const sat = new Date(month + 'T00:00:00')
+        const fri = new Date(sat)
+        fri.setDate(fri.getDate() + 6)
+        const wLabel = weekLabel(sat, fri)
+
+        const entries = rows
+          .filter(r => r.metric_value != null)
+          .map(r => ({
+            category:   r.category,
+            metric_key: r.metric_key,
+            metric_value: r.metric_value,
+          }))
+
+        if (entries.length > 0 && token) {
+          const proofRes = await fetch(`${API}/api/kpi/log-proof`, {
+            method: 'POST',
+            headers: {
+              'Content-Type':  'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ weekLabel: wLabel, week: month, entries }),
+          })
+          const proofData = await proofRes.json()
+          if (proofData.sheetUrl) {
+            status.innerHTML = `${rows.length} values saved. <a href="${proofData.sheetUrl}" target="_blank" style="color:var(--color-accent);">Open Proof Log →</a>`
+          }
+        }
+      } catch (proofErr) {
+        console.warn('Proof log error (non-fatal):', proofErr.message)
       }
     }
 

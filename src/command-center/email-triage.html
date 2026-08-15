@@ -380,6 +380,14 @@
       ? 'http://localhost:3005'
       : 'https://bpm-api-ul3v.onrender.com'
 
+    async function apiHeaders() {
+      const { data: { session } } = await supabase.auth.getSession()
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token ?? ''}`
+      }
+    }
+
     const PAGE_SIZE = 50
 
     // ── Auth ────────────────────────────────────────────────
@@ -825,7 +833,7 @@
       try {
         const res  = await fetch(`${API}/api/draft`, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await apiHeaders(),
           body: JSON.stringify({
             subject,
             body:        `New email to: ${to || 'recipient'}. Subject: ${subject}. Please draft a professional new email body (not a reply).`,
@@ -869,7 +877,7 @@
       try {
         const res  = await fetch(`${API}/api/compose`, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await apiHeaders(),
           body:    JSON.stringify({ to, subject, body, cc, bcc })
         })
         const data = await res.json()
