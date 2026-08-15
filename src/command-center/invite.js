@@ -21,16 +21,16 @@ import { supabase } from '../db/server-client.js'
 
 const [,, email, displayName, role] = process.argv
 
-const VALID_ROLES = ['staff', 'manager']
+const VALID_ROLES = ['staff', 'manager', 'onboarding']
 
 if (!email || !displayName || !role) {
   console.error(`
-Usage: node src/command-center/invite.js "email@domain.com" "Display Name" "staff|manager"
+Usage: node src/command-center/invite.js "email@domain.com" "Display Name" "staff|manager|onboarding"
 
 Arguments:
   email        The email address to send the invitation to
   displayName  The person's full name (shown in the Command Center)
-  role         One of: staff, manager
+  role         One of: staff, manager, onboarding
 
 Note: admin role cannot be granted through this script. Update the role
 directly in Supabase or via the admin panel after the account is created.
@@ -39,7 +39,7 @@ directly in Supabase or via the admin panel after the account is created.
 }
 
 if (!VALID_ROLES.includes(role)) {
-  console.error(`Error: role must be "staff" or "manager". Got: "${role}"`)
+  console.error(`Error: role must be "staff", "manager", or "onboarding". Got: "${role}"`)
   console.error('Admin role cannot be granted through the invite script.')
   process.exit(1)
 }

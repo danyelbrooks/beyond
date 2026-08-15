@@ -95,6 +95,7 @@
               <select class="form-select" id="inviteRole">
                 <option value="staff">Staff</option>
                 <option value="manager">Manager</option>
+                <option value="onboarding">Onboarding (onboarding tool only)</option>
               </select>
               <div class="form-hint">
                 Admin accounts cannot be created through the invite form.
@@ -221,14 +222,14 @@
     // CHANGE ROLE
     // =========================================================================
     window.changeRole = async function(profileId, currentRole) {
-      const roles   = ['staff', 'manager', 'admin']
+      const roles   = ['staff', 'manager', 'admin', 'onboarding']
       const newRole = prompt(
-        `Current role: ${currentRole}\nEnter new role (staff / manager / admin):`,
+        `Current role: ${currentRole}\nEnter new role (staff / manager / admin / onboarding):`,
         currentRole
       )
 
       if (!newRole || !roles.includes(newRole.trim())) {
-        alert('No change made. Role must be staff, manager, or admin.')
+        alert('No change made. Role must be staff, manager, admin, or onboarding.')
         return
       }
 
