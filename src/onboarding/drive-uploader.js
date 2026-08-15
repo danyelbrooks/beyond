@@ -84,6 +84,57 @@ export async function createSubfolder(folderName) {
 }
 
 /**
+ * Upload a .docx buffer to Drive, convert it to PDF via Google Docs export,
+ * save the PDF to folderId, and delete the intermediate Google Doc.
+ *
+ * @param {Buffer} docxBuffer  Filled .docx contents in memory
+ * @param {string} pdfFilename Filename for the saved PDF (e.g. "123 Main St Management Agreement.pdf")
+ * @param {string} folderId    Owner's Google Drive folder ID
+ * @returns {Promise<{ fileId: string, webViewLink: string }>}
+ */
+export async function uploadDocxAsPdf(docxBuffer, pdfFilename, folderId) {
+  const auth  = await getAuth()
+  const drive = google.drive({ version: 'v3', auth })
+
+  // Step 1: upload .docx → Google Docs (Drive converts automatically)
+  const uploadStream = new Readable()
+  uploadStream.push(docxBuffer)
+  uploadStream.push(null)
+
+  const uploaded = await drive.files.create({
+    supportsAllDrives: true,
+    requestBody: {
+      name:     pdfFilename.replace(/\.pdf$/, ''),
+      mimeType: 'application/vnd.google-apps.document',
+    },
+    media: {
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      body:     uploadStream,
+    },
+    fields: 'id',
+  })
+
+  const tempDocId = uploaded.data.id
+
+  try {
+    // Step 2: export as PDF
+    const exported = await drive.files.export(
+      { fileId: tempDocId, mimeType: 'application/pdf' },
+      { responseType: 'arraybuffer' }
+    )
+
+    const pdfBuffer = Buffer.from(exported.data)
+
+    // Step 3: upload the PDF to the owner's folder
+    const result = await uploadBuffer(pdfBuffer, pdfFilename, 'application/pdf', folderId)
+    return result
+  } finally {
+    // Step 4: always clean up the temp Google Doc
+    await drive.files.delete({ fileId: tempDocId, supportsAllDrives: true }).catch(() => {})
+  }
+}
+
+/**
  * Upload a buffer directly to Google Drive without writing to disk.
  *
  * @param {Buffer} buffer      File contents in memory

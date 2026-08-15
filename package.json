@@ -25,6 +25,7 @@
     "@anthropic-ai/sdk": "^0.112.4",
     "@notionhq/client": "^5.23.0",
     "@supabase/supabase-js": "^2.50.0",
+    "adm-zip": "^0.6.0",
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
     "express": "^4.22.2",
@@ -32,6 +33,9 @@
     "googleapis": "^144.0.0",
     "multer": "^2.2.0",
     "node-fetch": "^3.3.2",
+    "pdf-lib": "^1.17.1",
+    "pdf2json": "^4.0.3",
+    "pdfjs-dist": "^6.2.108",
     "pdfkit": "^0.19.1",
     "plaid": "^45.0.0"
   },

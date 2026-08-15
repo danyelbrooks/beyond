@@ -21,7 +21,7 @@ import { createReadStream, existsSync } from 'fs'
 
 import { generateToken }             from './token.js'
 import { lookupByAddress, lookupByApn, lookupPropertyDetails, lookupFloodZone } from './arcgis.js'
-import { createSubfolder, uploadBuffer } from './drive-uploader.js'
+import { createSubfolder, uploadBuffer, uploadDocxAsPdf } from './drive-uploader.js'
 import {
   generateSignatureCertificate,
   generateW9,
@@ -34,6 +34,7 @@ import {
 import Anthropic from '@anthropic-ai/sdk'
 import { sendEmail } from '../email/gmail-client.js'
 import { syncAfterStep1 as afSyncStep1, syncAfterStep2 as afSyncStep2 } from './appfolio-sync.js'
+import { generateFilledAgreement } from './agreement-filler.js'
 
 const STAFF_EMAILS  = ['help@bpmsd.com', 'care@bpmsd.com', 'danyel@bpmsd.com']
 const DASHBOARD_URL = 'http://localhost:3000/command-center/onboarding-dashboard.html'
@@ -747,6 +748,31 @@ app.post('/api/onboard/:token/step/1', requireToken, async (req, res) => {
     await markStepComplete(ob.id, 1)
     await touchActivity(ob.id)
     await supabase.from('onboardings').update({ status: 'in_progress' }).eq('id', ob.id).eq('status', 'pending')
+
+    // Generate and save the filled management agreement PDF to Drive
+    try {
+      const agreementLabel = ob.agreement_type === 'full_management'
+        ? 'Management Agreement'
+        : 'Lease Listing Agreement'
+      const docxBuffer      = await generateFilledAgreement(ob)
+      const agreementPdfName = `${ob.short_address} ${agreementLabel}.pdf`
+      const agreementFileId  = await uploadDocxAsPdf(docxBuffer, agreementPdfName, ob.google_drive_folder_id)
+      await supabase.from('onboarding_documents').insert({
+        onboarding_id:        ob.id,
+        step_number:          1,
+        document_type:        'management_agreement_filled',
+        filename:             agreementPdfName,
+        google_drive_file_id: agreementFileId?.fileId || agreementFileId,
+        uploaded_by_owner:    false,
+      }).catch(() => {})
+    } catch (agErr) {
+      console.error('[Step 1 agreement fill error]', agErr.message)
+      await supabase.from('onboarding_flags').insert({
+        onboarding_id: ob.id,
+        flag_type:     'agreement_fill_error',
+        message:       `Failed to generate filled agreement PDF at Step 1: ${agErr.message}`,
+      }).catch(() => {})
+    }
 
     // Sync AppFolio owner + property — runs before response so errors surface immediately
     try {
