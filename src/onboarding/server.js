@@ -426,6 +426,23 @@ app.post(
       // Non-fatal — onboarding still created, Drive folder can be created manually
     }
 
+    // 4. Generate filled agreement PDF (Draft) and save to Drive
+    if (folderId) {
+      try {
+        const agreementLabel   = agreementType === 'full_management' ? 'Management Agreement' : 'Lease Listing Agreement'
+        const draftName        = `${sa} ${agreementLabel} (Draft).pdf`
+        const draftDocxBuffer  = await generateFilledAgreement({
+          owner_name:       ownerName,
+          property_address: propertyAddress,
+          agreement_type:   agreementType,
+        })
+        await uploadDocxAsPdf(draftDocxBuffer, draftName, folderId)
+      } catch (draftErr) {
+        console.error('[Onboarding create] Draft agreement PDF error:', draftErr.message)
+        // Non-fatal — link still created
+      }
+    }
+
     // Lookup property details + flood zone using the APN (both free public APIs, no key needed)
     let propertyDetails = null
     let floodZoneData   = null
@@ -754,8 +771,8 @@ app.post('/api/onboard/:token/step/1', requireToken, async (req, res) => {
       const agreementLabel = ob.agreement_type === 'full_management'
         ? 'Management Agreement'
         : 'Lease Listing Agreement'
-      const docxBuffer      = await generateFilledAgreement(ob)
-      const agreementPdfName = `${ob.short_address} ${agreementLabel}.pdf`
+      const docxBuffer       = await generateFilledAgreement(ob)
+      const agreementPdfName = `${ob.short_address} ${agreementLabel} - Executed.pdf`
       const agreementFileId  = await uploadDocxAsPdf(docxBuffer, agreementPdfName, ob.google_drive_folder_id)
       await supabase.from('onboarding_documents').insert({
         onboarding_id:        ob.id,
