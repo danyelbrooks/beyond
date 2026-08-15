@@ -118,6 +118,15 @@ export function renderSidebar(activeItem, role, email) {
     <a href="${href}" class="nav-link${activeItem === key ? ' active' : ''}">${label}</a>
   `
 
+  // Onboarding-only role — sees nothing but the onboarding tool
+  if (role === 'onboarding') {
+    el.innerHTML = `
+      <div class="nav-section-label">Navigation</div>
+      ${link('onboarding-dashboard.html', 'Onboarding', 'onboarding-dashboard')}
+    `
+    return
+  }
+
   // KPI Entry — only visible to the data entry user
   const kpiEntryLink = email === 'care@bpmsd.com'
     ? link('kpi-entry.html', 'KPI Entry', 'kpi-entry')
