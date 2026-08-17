@@ -915,6 +915,7 @@
         window.location.href = '/email-triage.html'
       }
     }
+    window.goToNextEmail = goToNextEmail
 
     async function apiHeaders() {
       const { data: { session } } = await db.auth.getSession()

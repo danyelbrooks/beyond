@@ -72,10 +72,11 @@ const app = express()
 app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:3002', 'http://localhost:3006', 'https://portal.beyondpropertymanagement.com', 'https://app.bpmsd.com'] }))
 app.use(express.json({ limit: '10mb' }))
 
-// Rate limiters
-const publicLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false })
-const staffLimiter  = rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false })
+// Rate limiters — trustProxy required for Render's X-Forwarded-For headers
+const publicLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, validate: { trustProxy: false } })
+const staffLimiter  = rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false, validate: { trustProxy: false } })
 
+app.set('trust proxy', 1)
 app.use('/api/onboard/',    publicLimiter)
 app.use('/api/onboarding/', staffLimiter)
 
