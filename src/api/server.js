@@ -24,7 +24,8 @@ import { sendReply, getGmailClientForInbox } from '../email/gmail-service-client
 import { createClient }                       from '@supabase/supabase-js'
 import { appendKpiRows }                      from '../kpi/proof-log.js'
 import { getBPMGrossRevenue, getPropertyPassiveIncome, isConfigured as appfolioConfigured } from '../cfo/appfolio-cfo.js'
-import { isConfigured as plaidConfigured, createLinkToken, exchangePublicToken, syncAllAccounts, syncTransactions, detectRecurringCharges } from '../cfo/plaid-cfo.js'
+import { isConfigured as qboConfigured, isConnected as qboConnected, getAuthUrl as qboGetAuthUrl, exchangeCodeForToken as qboExchangeCode, getAccountBalances as qboGetAccountBalances, mapAccountsToBuckets as qboMapBuckets } from '../cfo/qbo-cfo.js'
+import { getCryptoTotal } from '../cfo/crypto-cfo.js'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -60,6 +61,25 @@ app.use(cors({
   ]
 }))
 app.use(express.json())
+
+// QBO OAuth callback — registered BEFORE auth middleware so Intuit's browser redirect works.
+// (The requireAuth middleware on /api/cfo would block Intuit's redirect, which has no Bearer token.)
+app.get('/api/cfo/qbo/callback', async (req, res) => {
+  const { code, error: oauthError } = req.query
+  if (oauthError) {
+    console.error('[QBO callback] OAuth error from Intuit:', oauthError)
+    return res.redirect('/cfo-dashboard?qbo=error')
+  }
+  if (!code) return res.status(400).send('Missing authorization code from Intuit')
+  try {
+    await qboExchangeCode(code)
+    console.log('[QBO] Authorization successful — tokens stored in qbo-token.json')
+    res.redirect('/cfo-dashboard?qbo=connected')
+  } catch (err) {
+    console.error('[QBO callback] token exchange error:', err.message)
+    res.redirect('/cfo-dashboard?qbo=error')
+  }
+})
 
 // Service-role Supabase client — only used to read email details
 const supabase = createClient(
@@ -735,112 +755,69 @@ app.get('/api/cfo/appfolio/sync', async (_req, res) => {
 })
 
 // =============================================================================
-// CFO DASHBOARD — Plaid Bank Integration
+// CFO DASHBOARD — QuickBooks Online Integration
 // =============================================================================
 
-// GET /api/cfo/plaid/status
-// Returns whether Plaid is configured, how many accounts are linked, and when
-// they were last synced. Safe to call on every page load — no Plaid API call.
-app.get('/api/cfo/plaid/status', async (_req, res) => {
+// GET /api/cfo/qbo/status
+// Returns whether QBO is configured, connected, and the last sync time.
+// Safe to call on every page load — no QBO API call is made here.
+app.get('/api/cfo/qbo/status', async (_req, res) => {
   try {
-    const configured = plaidConfigured()
+    const configured = qboConfigured()
+    const connected  = configured ? await qboConnected() : false
+
     if (!configured) {
-      return res.json({ configured: false, linked_accounts: 0, last_sync: null })
+      return res.json({ configured: false, connected: false, last_sync: null, cash_total: null, investment_total: null })
     }
 
-    const { data: items, error } = await supabase
-      .from('cfo_plaid_items')
-      .select('last_synced_at')
-      .eq('is_active', true)
+    if (!connected) {
+      return res.json({ configured: true, connected: false, last_sync: null, cash_total: null, investment_total: null })
+    }
+
+    // Find the most recent QBO-sourced rows across cash and investment buckets.
+    const { data: lines, error } = await supabase
+      .from('cfo_asset_lines')
+      .select('value, pulled_at, bucket')
+      .eq('data_source', 'qbo')
+      .order('pulled_at', { ascending: false })
+      .limit(50)
 
     if (error) throw error
 
-    const linkedAccounts = (items || []).length
+    const lastSync    = (lines || []).map(l => l.pulled_at).filter(Boolean).sort().pop() || null
+    const cashTotal   = (lines || []).filter(l => l.bucket === 'cash').reduce((sum, l) => sum + Number(l.value), 0)
+    const investTotal = (lines || []).filter(l => l.bucket === 'investments').reduce((sum, l) => sum + Number(l.value), 0)
 
-    // Most recent sync time across all items.
-    const lastSync = (items || [])
-      .map(i => i.last_synced_at)
-      .filter(Boolean)
-      .sort()
-      .pop() || null
-
-    res.json({ configured: true, linked_accounts: linkedAccounts, last_sync: lastSync })
+    res.json({ configured: true, connected: true, last_sync: lastSync, cash_total: cashTotal, investment_total: investTotal })
   } catch (err) {
-    console.error('GET /api/cfo/plaid/status error:', err.message)
-    res.json({ configured: false, linked_accounts: 0, last_sync: null })
+    console.error('GET /api/cfo/qbo/status error:', err.message)
+    res.json({ configured: false, connected: false, last_sync: null, cash_total: null, investment_total: null })
   }
 })
 
-// POST /api/cfo/plaid/link-token
-// Creates a short-lived Plaid Link token. The browser uses this to open the
-// Plaid Link modal. The token expires in 30 minutes — never stored server-side.
-app.post('/api/cfo/plaid/link-token', async (_req, res) => {
-  try {
-    if (!plaidConfigured()) {
-      return res.status(503).json({ error: 'Plaid not configured — add PLAID_CLIENT_ID and PLAID_SECRET to .env' })
-    }
-    const link_token = await createLinkToken()
-    res.json({ link_token })
-  } catch (err) {
-    console.error('POST /api/cfo/plaid/link-token error:', err.message)
-    res.status(500).json({ error: err.message })
+// GET /api/cfo/qbo/auth
+// Redirects the browser to the QuickBooks OAuth 2.0 login page.
+// After Danyel authorizes, Intuit redirects to /api/cfo/qbo/callback.
+app.get('/api/cfo/qbo/auth', (_req, res) => {
+  if (!qboConfigured()) {
+    return res.status(503).send('QBO not configured — add QBO_CLIENT_ID, QBO_CLIENT_SECRET, QBO_REALM_ID to .env')
   }
+  res.redirect(qboGetAuthUrl())
 })
 
-// POST /api/cfo/plaid/exchange-token
-// Body: { public_token: string, institution_name: string }
-// Exchanges a one-time public_token from Plaid Link for a permanent access_token.
-// Stores the access_token in cfo_plaid_items (server-side only — never returned here).
-app.post('/api/cfo/plaid/exchange-token', async (req, res) => {
-  const { public_token, institution_name } = req.body
-  if (!public_token) {
-    return res.status(400).json({ error: 'public_token is required' })
-  }
+// GET /api/cfo/qbo/sync
+// Fetches all active accounts from QBO, maps them to dashboard buckets, and
+// upserts rows into cfo_asset_lines (cash + investments) and cfo_liability_lines (credit cards).
+app.get('/api/cfo/qbo/sync', async (_req, res) => {
   try {
-    const { access_token, item_id } = await exchangePublicToken(public_token)
-
-    const { error } = await supabase
-      .from('cfo_plaid_items')
-      .insert({
-        institution_name: institution_name || 'Unknown Bank',
-        access_token,
-        item_id,
-        linked_at: new Date().toISOString(),
-      })
-
-    if (error) throw error
-
-    console.log(`[Plaid] Linked new institution: ${institution_name || 'Unknown Bank'} (item ${item_id})`)
-    res.json({ success: true, institution_name: institution_name || 'Unknown Bank' })
-  } catch (err) {
-    console.error('POST /api/cfo/plaid/exchange-token error:', err.message)
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// GET /api/cfo/plaid/sync
-// Fetches live balances and transactions from all linked Plaid accounts.
-// Upserts accounts into cfo_asset_lines (cash/investments) or cfo_liability_lines (credit).
-// Runs detectRecurringCharges and upserts new findings into cfo_recurring_charges.
-// Returns a summary of what was synced.
-app.get('/api/cfo/plaid/sync', async (_req, res) => {
-  try {
-    if (!plaidConfigured()) {
-      return res.status(503).json({ error: 'Plaid not configured' })
+    if (!qboConfigured()) {
+      return res.status(503).json({ error: 'QBO not configured — add QBO_CLIENT_ID, QBO_CLIENT_SECRET, QBO_REALM_ID to .env' })
     }
 
-    // Fetch accounts and transactions in parallel.
-    const [accounts, transactions] = await Promise.all([
-      syncAllAccounts(),
-      syncTransactions(90),
-    ])
-
-    if (accounts.length === 0) {
-      return res.json({ accounts_synced: 0, cash_total: 0, credit_total: 0, recurring_charges_found: 0 })
-    }
+    const accounts = await qboGetAccountBalances()
+    const buckets  = qboMapBuckets(accounts)
 
     // ── Find or create the current-month snapshot ─────────────────────────────
-    // Asset/liability lines require a snapshot_id FK — same pattern as AppFolio sync.
     const today        = new Date()
     const snapshotDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
     const now          = new Date().toISOString()
@@ -866,126 +843,155 @@ app.get('/api/cfo/plaid/sync', async (_req, res) => {
       snapshotId = newSnap[0].id
     }
 
-    // ── Upsert asset lines and credit lines ───────────────────────────────────
+    // ── Upsert cash + investment asset lines ──────────────────────────────────
     let cashTotal   = 0
-    let creditTotal = 0
+    let investTotal = 0
 
-    for (const account of accounts) {
-      const lineName = `${account.institution_name} — ${account.account_name}`
-      const balance  = Number(account.balance_current) || 0
-
-      if (account.account_type === 'credit') {
-        // Credit cards → liability lines
-        creditTotal += balance
-
-        const { data: existing, error: selErr } = await supabase
-          .from('cfo_liability_lines')
-          .select('id')
-          .eq('snapshot_id', snapshotId)
-          .eq('external_id', account.account_id)
-          .limit(1)
-
-        if (selErr) throw selErr
-
-        if (existing && existing.length > 0) {
-          await supabase
-            .from('cfo_liability_lines')
-            .update({ balance, data_source: 'plaid' })
-            .eq('id', existing[0].id)
-        } else {
-          await supabase
-            .from('cfo_liability_lines')
-            .insert({
-              snapshot_id:    snapshotId,
-              liability_type: 'credit_card',
-              line_name:      lineName,
-              balance,
-              data_source:    'plaid',
-              external_id:    account.account_id,
-            })
-        }
-
-      } else {
-        // Depository/savings → cash; investment → investments; others → cash
-        const bucket = account.account_type === 'investment' ? 'investments' : 'cash'
-        if (bucket === 'cash') cashTotal += balance
+    for (const [bucketKey, lines] of [['cash', buckets.cash], ['investments', buckets.investments]]) {
+      for (const { name: lineName, balance } of lines) {
+        if (bucketKey === 'cash') cashTotal += balance
+        else investTotal += balance
 
         const { data: existing, error: selErr } = await supabase
           .from('cfo_asset_lines')
           .select('id')
           .eq('snapshot_id', snapshotId)
-          .eq('external_id', account.account_id)
+          .eq('bucket', bucketKey)
+          .eq('line_name', lineName)
+          .eq('data_source', 'qbo')
           .limit(1)
 
         if (selErr) throw selErr
 
         if (existing && existing.length > 0) {
-          await supabase
-            .from('cfo_asset_lines')
-            .update({ value: balance, data_source: 'plaid', pulled_at: now })
+          await supabase.from('cfo_asset_lines')
+            .update({ value: balance, pulled_at: now })
             .eq('id', existing[0].id)
         } else {
-          await supabase
-            .from('cfo_asset_lines')
-            .insert({
-              snapshot_id: snapshotId,
-              bucket,
-              line_name:   lineName,
-              value:       balance,
-              debt:        0,
-              data_source: 'plaid',
-              external_id: account.account_id,
-              pulled_at:   now,
-            })
+          await supabase.from('cfo_asset_lines')
+            .insert({ snapshot_id: snapshotId, bucket: bucketKey, line_name: lineName, value: balance, debt: 0, data_source: 'qbo', pulled_at: now })
         }
       }
     }
 
-    // ── Detect and store recurring charges ────────────────────────────────────
-    const recurring = detectRecurringCharges(transactions)
-    let newChargesFound = 0
+    // ── Upsert credit card liability lines ────────────────────────────────────
+    let creditTotal = 0
 
-    for (const charge of recurring) {
-      // Only insert if this merchant isn't already tracked.
-      const { data: existing, error: rcSelErr } = await supabase
-        .from('cfo_recurring_charges')
+    for (const { name: lineName, balance } of buckets.credit) {
+      creditTotal += balance
+
+      const { data: existing, error: selErr } = await supabase
+        .from('cfo_liability_lines')
         .select('id')
-        .ilike('merchant_name', charge.merchant_name)
+        .eq('snapshot_id', snapshotId)
+        .eq('line_name', lineName)
+        .eq('data_source', 'qbo')
         .limit(1)
 
-      if (rcSelErr) throw rcSelErr
+      if (selErr) throw selErr
 
-      if (!existing || existing.length === 0) {
-        await supabase
-          .from('cfo_recurring_charges')
-          .insert({
-            merchant_name:      charge.merchant_name,
-            amount:             charge.amount,
-            frequency:          charge.frequency,
-            last_charged_date:  charge.last_charged_date,
-            first_detected_date: today.toISOString().split('T')[0],
-            status:             'unreviewed',
-          })
-        newChargesFound++
-      } else {
-        // Update last_charged_date if we have a more recent one.
-        await supabase
-          .from('cfo_recurring_charges')
-          .update({ last_charged_date: charge.last_charged_date })
+      if (existing && existing.length > 0) {
+        await supabase.from('cfo_liability_lines')
+          .update({ balance, data_source: 'qbo' })
           .eq('id', existing[0].id)
-          .lt('last_charged_date', charge.last_charged_date)
+      } else {
+        await supabase.from('cfo_liability_lines')
+          .insert({ snapshot_id: snapshotId, liability_type: 'credit_card', line_name: lineName, balance, data_source: 'qbo' })
       }
     }
 
     res.json({
-      accounts_synced:        accounts.length,
-      cash_total:             cashTotal,
-      credit_total:           creditTotal,
-      recurring_charges_found: newChargesFound,
+      ok:               true,
+      accounts_found:   accounts.length,
+      cash_total:       cashTotal,
+      investment_total: investTotal,
+      credit_total:     creditTotal,
+      synced_at:        now,
     })
 
   } catch (err) {
-    console.error('GET /api/cfo/plaid/sync error:', err.message)
+    console.error('GET /api/cfo/qbo/sync error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// =============================================================================
+// CFO DASHBOARD — Crypto (Coinbase + Kraken) Integration
+// =============================================================================
+
+// GET /api/cfo/crypto/sync
+// Fetches live balances from Coinbase and Kraken, upserts both into the
+// investments bucket of cfo_asset_lines, and returns the totals.
+// Returns zeros (not an error) if the credentials are not configured.
+app.get('/api/cfo/crypto/sync', async (_req, res) => {
+  try {
+    const cryptoTotals = await getCryptoTotal()
+
+    // ── Find or create the current-month snapshot ─────────────────────────────
+    const today        = new Date()
+    const snapshotDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+    const now          = new Date().toISOString()
+
+    let snapshotId
+
+    const { data: existingSnap, error: snapSelectErr } = await supabase
+      .from('cfo_snapshots')
+      .select('id')
+      .eq('snapshot_date', snapshotDate)
+      .limit(1)
+
+    if (snapSelectErr) throw snapSelectErr
+
+    if (existingSnap && existingSnap.length > 0) {
+      snapshotId = existingSnap[0].id
+    } else {
+      const { data: newSnap, error: snapInsertErr } = await supabase
+        .from('cfo_snapshots')
+        .insert({ snapshot_date: snapshotDate })
+        .select('id')
+      if (snapInsertErr) throw snapInsertErr
+      snapshotId = newSnap[0].id
+    }
+
+    // ── Upsert Coinbase and Kraken investment lines ───────────────────────────
+    for (const [lineName, balance] of [
+      ['Coinbase', cryptoTotals.coinbase],
+      ['Kraken',   cryptoTotals.kraken],
+    ]) {
+      if (balance === 0) continue  // skip unconfigured or zero-balance exchanges
+
+      const { data: existing, error: selErr } = await supabase
+        .from('cfo_asset_lines')
+        .select('id')
+        .eq('snapshot_id', snapshotId)
+        .eq('bucket', 'investments')
+        .eq('line_name', lineName)
+        .limit(1)
+
+      if (selErr) throw selErr
+
+      if (existing && existing.length > 0) {
+        await supabase.from('cfo_asset_lines')
+          .update({ value: balance, data_source: 'manual', pulled_at: now })
+          .eq('id', existing[0].id)
+      } else {
+        await supabase.from('cfo_asset_lines')
+          .insert({ snapshot_id: snapshotId, bucket: 'investments', line_name: lineName, value: balance, debt: 0, data_source: 'manual', pulled_at: now })
+      }
+    }
+
+    res.json({
+      ok:                  true,
+      coinbase:            cryptoTotals.coinbase,
+      kraken:              cryptoTotals.kraken,
+      total:               cryptoTotals.total,
+      coinbase_configured: cryptoTotals.coinbase_configured,
+      kraken_configured:   cryptoTotals.kraken_configured,
+      synced_at:           now,
+    })
+
+  } catch (err) {
+    console.error('GET /api/cfo/crypto/sync error:', err.message)
     res.status(500).json({ error: err.message })
   }
 })

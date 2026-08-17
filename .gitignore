@@ -10,3 +10,6 @@ bpm-service-account.json
 
 # Google service account credentials — never commit
 bpm-drive-account.json
+
+# QBO OAuth tokens — stored locally, never committed
+qbo-token.json

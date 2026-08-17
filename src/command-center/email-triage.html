@@ -533,7 +533,7 @@
         const s = currentSearch.trim()
         query = query.or(`subject.ilike.%${s}%,from_name.ilike.%${s}%,from_address.ilike.%${s}%`)
       } else if (currentStatus === 'inbox') {
-        query = query.eq('in_inbox', true).in('status', ['new', 'assigned'])
+        query = query.in('status', ['new', 'assigned'])
           .or(`snoozed_until.is.null,snoozed_until.lte.${new Date().toISOString()}`)
       } else if (currentStatus === 'assigned') {
         query = query.eq('assigned_to', user.id)
@@ -672,8 +672,7 @@
       const { count } = await supabase
         .from('email_cache')
         .select('id', { count: 'exact', head: true })
-        .eq('in_inbox', true)
-        .neq('status', 'handled')
+        .in('status', ['new', 'assigned'])
       const el = document.getElementById('count-new')
       el.textContent = count > 0 ? (count > 999 ? '999+' : count) : '0'
     }

@@ -48,9 +48,6 @@
   // Step 9 passive income bar chart when it is built.
   let passiveIncomeHistory = []
 
-  // Last-loaded Plaid status — used by the cash bucket detail panel renderer.
-  let plaidStatus = null
-
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   // Formats a number as US dollars: $1,234,567
@@ -247,135 +244,97 @@
     }
   }
 
-  // ── Load: Plaid status ───────────────────────────────────────────────────────
-  // Checks whether Plaid is configured and how many accounts are linked.
-  // Updates the Cash bucket card subtitle so Danyel can see at a glance whether
-  // his bank is connected. Never blocks page load — errors are swallowed silently.
+  // ── Load: QBO status ─────────────────────────────────────────────────────────
+  // Checks whether QuickBooks Online is connected and, if so, shows live account
+  // totals in the Cash and Investments bucket cards.
+  // If configured but not yet connected, wires the Cash bucket detail panel to
+  // show a "Connect QuickBooks" button when clicked.
+  // Never blocks page load — errors are swallowed silently.
 
-  async function loadPlaidStatus() {
+  async function loadQBOStatus() {
     try {
-      const res = await fetch(`${API}/api/cfo/plaid/status`)
+      const res = await fetch(`${API}/api/cfo/qbo/status`)
       if (!res.ok) return
 
-      plaidStatus = await res.json()
+      const status = await res.json()
 
-      if (plaidStatus.linked_accounts > 0) {
-        // Show account count in the Cash bucket card subtitle.
-        const valueEl = document.getElementById('bucket-value-cash')
-        if (valueEl) {
-          const n   = plaidStatus.linked_accounts
-          valueEl.textContent = `${n} account${n > 1 ? 's' : ''} linked`
+      if (status.connected) {
+        // Populate Cash bucket card with QBO bank account total.
+        if (status.cash_total != null && status.cash_total > 0) {
+          const equityEl = document.getElementById('bucket-equity-cash')
+          const valueEl  = document.getElementById('bucket-value-cash')
+          if (equityEl) equityEl.textContent = formatDollars(status.cash_total)
+          if (valueEl)  valueEl.textContent  = `Value: ${formatDollars(status.cash_total)}`
+        }
+
+        // Populate Investments bucket card with QBO investment account total.
+        if (status.investment_total != null && status.investment_total > 0) {
+          const equityEl = document.getElementById('bucket-equity-investments')
+          const valueEl  = document.getElementById('bucket-value-investments')
+          if (equityEl) equityEl.textContent = formatDollars(status.investment_total)
+          if (valueEl)  valueEl.textContent  = `Value: ${formatDollars(status.investment_total)}`
+        }
+      }
+
+      // If QBO is configured but the user hasn't authorized yet, wire the
+      // Cash bucket detail panel to show a Connect button.
+      if (status.configured && !status.connected) {
+        const detailPanel = document.getElementById('bucket-detail-panel')
+        if (detailPanel) {
+          detailPanel.addEventListener('bucket-changed', (e) => {
+            if (e.detail.bucket === 'cash') {
+              renderQBOConnectPanel()
+            }
+          })
         }
       }
     } catch (err) {
-      console.debug('CFO: loadPlaidStatus failed (non-fatal):', err.message)
+      console.debug('CFO: loadQBOStatus failed (non-fatal):', err.message)
     }
   }
 
-  // ── Plaid Link flow ───────────────────────────────────────────────────────────
-  // Opens the Plaid Link modal. On success, exchanges the public_token for an
-  // access_token, triggers a sync, and refreshes the dashboard numbers.
-
-  async function initPlaidLink() {
-    const btn = document.getElementById('plaid-link-btn')
-    if (btn) { btn.disabled = true; btn.textContent = 'Opening...' }
-
-    try {
-      // Step 1: fetch a short-lived link token from the server.
-      const tokenRes = await fetch(`${API}/api/cfo/plaid/link-token`, { method: 'POST' })
-      if (!tokenRes.ok) {
-        const err = await tokenRes.json().catch(() => ({}))
-        throw new Error(err.error || 'Could not get link token')
-      }
-      const { link_token } = await tokenRes.json()
-
-      // Step 2: open the Plaid Link modal using the token.
-      // Plaid.create is injected by the Plaid CDN script in <head>.
-      const handler = Plaid.create({
-        token: link_token,
-
-        onSuccess: async (public_token, metadata) => {
-          const institution_name = metadata.institution?.name || 'Unknown Bank'
-
-          try {
-            // Step 3: exchange public_token for a permanent access_token (server stores it).
-            const exchRes = await fetch(`${API}/api/cfo/plaid/exchange-token`, {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({ public_token, institution_name }),
-            })
-            if (!exchRes.ok) throw new Error('Token exchange failed')
-
-            // Step 4: sync accounts and transactions right away.
-            await fetch(`${API}/api/cfo/plaid/sync`)
-
-            // Step 5: refresh the dashboard so hero numbers and Cash bucket reflect live data.
-            await loadPlaidStatus()
-            await loadSnapshot()
-
-            // Re-render the cash bucket detail panel if it's still open.
-            const panel = document.getElementById('bucket-detail-panel')
-            if (panel && panel.getAttribute('data-active-bucket') === 'cash') {
-              renderCashBucketDetail()
-            }
-          } catch (err) {
-            console.error('CFO: Plaid exchange/sync failed:', err.message)
-            if (btn) { btn.disabled = false; btn.textContent = 'Connect Bank Accounts' }
-          }
-        },
-
-        onExit: (err, metadata) => {
-          // User closed the modal or Plaid returned an error.
-          console.log('CFO: Plaid Link exited', err?.error_message || '', metadata?.status || '')
-          if (btn) { btn.disabled = false; btn.textContent = 'Connect Bank Accounts' }
-        },
-      })
-
-      handler.open()
-
-    } catch (err) {
-      console.error('CFO: initPlaidLink failed:', err.message)
-      if (btn) { btn.disabled = false; btn.textContent = 'Connect Bank Accounts' }
-    }
-  }
-
-  // ── Cash bucket detail panel ──────────────────────────────────────────────────
-  // Renders the expandable detail panel content when Danyel clicks the Cash card.
-  // Shows linked account count + last sync time, plus the Connect/Add button.
-
-  function renderCashBucketDetail() {
+  // Renders a "Connect QuickBooks" button in the Cash bucket detail panel.
+  function renderQBOConnectPanel() {
     const content = document.getElementById('bucket-detail-content')
     if (!content) return
 
-    const linked   = plaidStatus ? plaidStatus.linked_accounts : 0
-    const lastSync = plaidStatus && plaidStatus.last_sync
-      ? new Date(plaidStatus.last_sync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : null
-
-    let statusHtml
-    if (linked > 0) {
-      statusHtml = `<p style="margin:0 0 14px;font-size:0.875rem;color:var(--color-text-muted);">
-        ${linked} bank account${linked > 1 ? 's' : ''} connected${lastSync ? ` &middot; Last synced ${lastSync}` : ''}.
-        You can add another institution below.
-      </p>`
-    } else {
-      statusHtml = `<p style="margin:0 0 14px;font-size:0.875rem;color:var(--color-text-muted);">
-        No bank accounts connected yet. Link your checking and savings accounts to see live cash balances here.
-      </p>`
-    }
-
     content.innerHTML = `
-      ${statusHtml}
-      <button id="plaid-link-btn"
-        style="background:var(--color-primary);color:#fff;border:none;border-radius:6px;
-               padding:9px 18px;font-size:0.875rem;font-weight:600;cursor:pointer;
-               transition:opacity .15s;">
-        Connect Bank Accounts
-      </button>
+      <p style="margin:0 0 14px;font-size:0.875rem;color:var(--color-text-muted);">
+        Connect your QuickBooks Online account to see live bank balances, credit card balances,
+        and investment account totals directly on this dashboard.
+      </p>
+      <a href="${API}/api/cfo/qbo/auth"
+         style="display:inline-block;background:var(--color-primary);color:#fff;
+                border-radius:6px;padding:9px 18px;font-size:0.875rem;font-weight:600;
+                text-decoration:none;transition:opacity .15s;">
+        Connect QuickBooks
+      </a>
     `
+  }
 
-    // Wire the button each time the panel is rendered (innerHTML replaces the old node).
-    document.getElementById('plaid-link-btn').addEventListener('click', initPlaidLink)
+  // ── Crypto sync ───────────────────────────────────────────────────────────────
+  // Calls the crypto sync endpoint on page load and adds Coinbase + Kraken
+  // balances to the Investments bucket card. Non-blocking — errors are silent.
+
+  function triggerCryptoSync() {
+    fetch(`${API}/api/cfo/crypto/sync`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || !data.total || data.total === 0) return
+
+        // Add crypto to whatever is already showing in the Investments card.
+        const equityEl = document.getElementById('bucket-equity-investments')
+        const valueEl  = document.getElementById('bucket-value-investments')
+
+        const existing = equityEl ? parseNum(equityEl.textContent) : 0
+        const combined = existing + data.total
+
+        if (equityEl) equityEl.textContent = formatDollars(combined)
+        if (valueEl)  valueEl.textContent  = `Value: ${formatDollars(combined)}`
+      })
+      .catch(err => {
+        console.debug('CFO: triggerCryptoSync failed (non-fatal):', err.message)
+      })
   }
 
   // ── Load: AppFolio status ─────────────────────────────────────────────────────
@@ -543,24 +502,56 @@
   // Load data on page load, listen for save events from the HTML.
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // Load manual inputs, MF rows, AppFolio status, and Plaid status in parallel, then snapshot.
+    // Load manual inputs, MF rows, AppFolio status, and QBO status in parallel, then snapshot.
     await Promise.all([
       loadManualInputs(),
       loadMultifamilyValuations(),
       loadAppfolioStatus(),
-      loadPlaidStatus(),
+      loadQBOStatus(),
     ])
     await loadSnapshot()
 
-    // Wire the bucket detail panel — when the Cash card is clicked, render the
-    // Plaid connection UI. Other buckets can be wired here in future steps.
-    const detailPanel = document.getElementById('bucket-detail-panel')
-    if (detailPanel) {
-      detailPanel.addEventListener('bucket-changed', (e) => {
-        if (e.detail.bucket === 'cash') {
-          renderCashBucketDetail()
+    // Sync crypto balances in the background — does not block page render.
+    triggerCryptoSync()
+
+    // If Intuit just redirected back with ?qbo=connected, run a QBO sync immediately
+    // and show a success banner so Danyel knows the connection worked.
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('qbo') === 'connected') {
+      try {
+        const syncRes = await fetch(`${API}/api/cfo/qbo/sync`)
+        if (syncRes.ok) {
+          const syncData = await syncRes.json()
+
+          if (syncData.cash_total > 0) {
+            const equityEl = document.getElementById('bucket-equity-cash')
+            const valueEl  = document.getElementById('bucket-value-cash')
+            if (equityEl) equityEl.textContent = formatDollars(syncData.cash_total)
+            if (valueEl)  valueEl.textContent  = `Value: ${formatDollars(syncData.cash_total)}`
+          }
+
+          if (syncData.investment_total > 0) {
+            const equityEl = document.getElementById('bucket-equity-investments')
+            const valueEl  = document.getElementById('bucket-value-investments')
+            if (equityEl) equityEl.textContent = formatDollars(syncData.investment_total)
+            if (valueEl)  valueEl.textContent  = `Value: ${formatDollars(syncData.investment_total)}`
+          }
+
+          // Show a brief success banner using the existing attention banner element.
+          const banner = document.getElementById('cfoAttentionBanner')
+          const msg    = document.getElementById('cfoAttentionMsg')
+          if (banner && msg) {
+            msg.textContent          = 'QuickBooks connected — account balances synced'
+            banner.style.background  = '#dcfce7'
+            banner.style.borderColor = '#86efac'
+            banner.style.color       = '#15803d'
+            banner.classList.add('visible')
+            setTimeout(() => banner.classList.remove('visible'), 6000)
+          }
         }
-      })
+      } catch (err) {
+        console.error('CFO: QBO post-auth sync failed:', err.message)
+      }
     }
   })
 
