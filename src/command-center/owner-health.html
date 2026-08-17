@@ -508,10 +508,10 @@
               <tr>
                 <th>Owner</th>
                 <th>Score</th>
-                <th>Tier</th>
                 <th>Last Contact</th>
                 <th>Top Signal</th>
                 <th></th>
+                <th>Note</th>
               </tr>
             </thead>
             <tbody id="ownerTableBody">
@@ -794,6 +794,10 @@
         ? `<a href="https://app.leadsimple.com/contacts/${o.leadsimple_contact_id}" target="_blank" class="btn btn-secondary btn-sm" title="Open in LeadSimple" style="text-decoration:none;padding:3px 7px;font-size:0.75rem;">LS</a>`
         : ''
 
+      const noteHtml = o.notes
+        ? `<span style="font-size:0.78rem;color:var(--color-text-muted);">${escHtml(truncate(o.notes, 60))}</span>`
+        : '<span class="text-muted">—</span>'
+
       return `
         <tr class="${nullScore ? 'row-null-score' : ''}">
           <td>
@@ -801,7 +805,6 @@
             ${o.owner_email ? `<div style="font-size:0.78rem;color:var(--color-text-muted);">${escHtml(o.owner_email)}</div>` : ''}
           </td>
           <td>${scoreHtml}</td>
-          <td>${tierBadge}</td>
           <td>${lastContactHtml}</td>
           <td>${signalHtml}</td>
           <td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
@@ -809,6 +812,7 @@
             <a href="${triageHref}" class="btn btn-secondary btn-sm" title="Email Triage" style="text-decoration:none;padding:3px 7px;font-size:0.75rem;">✉</a>
             <button class="btn btn-secondary btn-sm btn-view-owner" data-idx="${idx}" style="padding:3px 7px;font-size:0.75rem;">View &rarr;</button>
           </td>
+          <td style="max-width:200px;">${noteHtml}</td>
         </tr>
       `
     }
