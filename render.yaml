@@ -69,6 +69,9 @@ services:
       - key: BPM_MAILING_ADDRESS
         value: "Beyond Property Management, 1220 N Coast Hwy 101 #120, Encinitas CA 92024"
 
+      - key: ONBOARDING_API_KEY
+        value: "bpm-staff-2026"
+
       # Secrets — Render will prompt you to enter these during setup.
       # Never put the actual values in this file.
 
