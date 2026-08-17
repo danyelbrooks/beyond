@@ -32,7 +32,6 @@ const INBOXES = [
   'beyond@bpmsd.com',
   'info@bpmsd.com',
   'accounts@bpmsd.com',
-  'manager@bpmsd.com',
   'success@bpmsd.com',
   'home@bpmsd.com',
   'admin@bpmsd.com',

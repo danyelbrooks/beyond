@@ -210,7 +210,7 @@ app.post('/api/forward', async (req, res) => {
   // Validate toInbox is a BPM address
   const BPM_INBOXES = [
     'danyel@bpmsd.com', 'help@bpmsd.com', 'beyond@bpmsd.com', 'info@bpmsd.com',
-    'accounts@bpmsd.com', 'manager@bpmsd.com', 'success@bpmsd.com', 'home@bpmsd.com',
+    'accounts@bpmsd.com', 'success@bpmsd.com', 'home@bpmsd.com',
     'admin@bpmsd.com', 'hello@bpmsd.com', 'care@bpmsd.com', 'results@bpmsd.com'
   ]
   if (!BPM_INBOXES.includes(toInbox)) {
