@@ -21,9 +21,11 @@ import cors           from 'cors'
 import Anthropic      from '@anthropic-ai/sdk'
 import fetch          from 'node-fetch'
 import { sendReply, getGmailClientForInbox } from '../email/gmail-service-client.js'
+import { forwardEmail, isBpmInbox }          from '../email/forward.js'
 import { createClient }                       from '@supabase/supabase-js'
 import { appendKpiRows }                      from '../kpi/proof-log.js'
-import { syncEmails }                         from '../email/sync.js'
+import { syncEmails, checkGmailArchives }      from '../email/sync.js'
+import { classifyHelloEmails }                 from '../email/classify.js'
 import { getBPMGrossRevenue, getPropertyPassiveIncome, isConfigured as appfolioConfigured } from '../cfo/appfolio-cfo.js'
 import { isConfigured as qboConfigured, isConnected as qboConnected, getAuthUrl as qboGetAuthUrl, exchangeCodeForToken as qboExchangeCode, getAccountBalances as qboGetAccountBalances, mapAccountsToBuckets as qboMapBuckets } from '../cfo/qbo-cfo.js'
 import { getCryptoTotal } from '../cfo/crypto-cfo.js'
@@ -208,19 +210,14 @@ app.post('/api/forward', async (req, res) => {
   }
 
   // Validate toInbox is a BPM address
-  const BPM_INBOXES = [
-    'danyel@bpmsd.com', 'help@bpmsd.com', 'beyond@bpmsd.com', 'info@bpmsd.com',
-    'accounts@bpmsd.com', 'success@bpmsd.com', 'home@bpmsd.com',
-    'admin@bpmsd.com', 'hello@bpmsd.com', 'care@bpmsd.com', 'results@bpmsd.com'
-  ]
-  if (!BPM_INBOXES.includes(toInbox)) {
+  if (!isBpmInbox(toInbox)) {
     return res.status(400).json({ error: 'Invalid inbox address' })
   }
 
   // Pull email details from Supabase
   const { data: email, error } = await supabase
     .from('email_cache')
-    .select('to_address, subject, from_address, from_name, received_at, body_preview, body_html')
+    .select('to_address, m365_message_id, subject, from_address, from_name, received_at, body_preview, body_html')
     .eq('id', emailId)
     .single()
 
@@ -229,52 +226,9 @@ app.post('/api/forward', async (req, res) => {
   }
 
   try {
-    const gmail = await getGmailClientForInbox(email.to_address)
-
-    const fwdSubject = email.subject?.startsWith('Fwd:')
-      ? email.subject
-      : `Fwd: ${email.subject || '(no subject)'}`
-
-    const dateStr = new Date(email.received_at).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: 'numeric', minute: '2-digit', hour12: true
-    })
-
-    const fromLine = email.from_name
-      ? `${email.from_name} <${email.from_address}>`
-      : email.from_address
-
-    // Plain-text forward block
-    const fwdBody = [
-      `---------- Forwarded message ---------`,
-      `From: ${fromLine}`,
-      `Date: ${dateStr}`,
-      `Subject: ${email.subject || '(no subject)'}`,
-      `To: ${email.to_address}`,
-      ``,
-      email.body_preview || '(no preview available)'
-    ].join('\r\n')
-
-    const rawLines = [
-      `From: ${email.to_address}`,
-      `To: ${toInbox}`,
-      `Subject: ${fwdSubject}`,
-      `Content-Type: text/plain; charset=utf-8`,
-      ``,
-      fwdBody
-    ]
-
-    const encodedRaw = Buffer.from(rawLines.join('\r\n'))
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '')
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedRaw }
-    })
-
+    // fullBody stays false here so the manual Forward button keeps behaving
+    // exactly as it always has — a short plain-text forward with the preview.
+    await forwardEmail(email, toInbox, { fullBody: false })
     res.json({ ok: true })
   } catch (err) {
     console.error('Forward error:', err.message)
@@ -1313,10 +1267,32 @@ app.listen(PORT, () => {
   console.log(`BPM Email API running on http://localhost:${PORT}`)
   console.log('Endpoints: POST /api/reply  |  POST /api/forward')
 
-  // Run email sync immediately on startup, then every 60 seconds
-  syncEmails().catch(err => console.error('[sync] startup error:', err.message))
-  setInterval(() => {
-    syncEmails().catch(err => console.error('[sync] interval error:', err.message))
-  }, 60 * 1000)
-  console.log('[sync] Email sync scheduled — running every 60 seconds')
+  // Fetch new emails every 60 seconds (lightweight), then route the ones that
+  // landed in hello@. Classification runs after the sync so it always sees the
+  // mail that just arrived. A failure in either step never stops the other.
+  const syncThenClassify = async () => {
+    try {
+      await syncEmails()
+    } catch (err) {
+      console.error('[sync] error:', err.message)
+    }
+    try {
+      await classifyHelloEmails()
+    } catch (err) {
+      console.error('[routing] error:', err.message)
+    }
+  }
+
+  syncThenClassify()
+  setInterval(syncThenClassify, 60 * 1000)
+
+  // Check Gmail archives every 5 minutes (heavier — avoids OOM on free tier)
+  setTimeout(() => {
+    checkGmailArchives().catch(err => console.error('[archive] startup error:', err.message))
+    setInterval(() => {
+      checkGmailArchives().catch(err => console.error('[archive] interval error:', err.message))
+    }, 5 * 60 * 1000)
+  }, 30 * 1000)  // first archive check 30s after startup
+
+  console.log('[sync] Email sync + hello@ routing every 60s | Archive check every 5 min')
 })

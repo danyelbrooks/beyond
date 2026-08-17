@@ -57,7 +57,6 @@ async function run() {
       const count = await syncInbox(inbox)
       totalNew += count
     } catch (err) {
-      // One inbox failing should not stop the others
       console.error(`  ERROR syncing ${inbox}: ${err.message || String(err)}`)
     }
   }
@@ -65,6 +64,53 @@ async function run() {
   console.log('')
   console.log(`Sync complete: ${totalNew} new email(s) saved across all inboxes.`)
   console.log('Finished:', new Date().toLocaleString())
+}
+
+// Lightweight archive check — only checks Gmail labels, no new email fetching.
+// Run less frequently (every 5 min) to avoid OOM on free Render tier.
+async function checkGmailArchives() {
+  console.log('[archive] Checking Gmail archives...')
+  let totalResolved = 0
+
+  for (const inbox of INBOXES) {
+    try {
+      const gmail = await getGmailClientForInbox(inbox)
+
+      const { data: activeEmails } = await supabase
+        .from('email_cache')
+        .select('id, m365_message_id')
+        .in('status', ['new', 'assigned'])
+        .eq('to_address', inbox)
+        .order('received_at', { ascending: false })
+        .limit(50)
+
+      if (!activeEmails || activeEmails.length === 0) continue
+
+      const results = await Promise.all(
+        activeEmails.map(async (em) => {
+          try {
+            const msg = await gmail.users.messages.get({ userId: 'me', id: em.m365_message_id, format: 'minimal' })
+            const hasInbox = (msg.data.labelIds || []).includes('INBOX')
+            return hasInbox ? null : em.id
+          } catch (e) {
+            if (e?.response?.status === 404 || e?.code === 404) return em.id
+            return null
+          }
+        })
+      )
+
+      const archivedIds = results.filter(Boolean)
+      if (archivedIds.length > 0) {
+        await supabase.from('email_cache').update({ status: 'handled' }).in('id', archivedIds)
+        console.log(`[archive] ${inbox}: resolved ${archivedIds.length}`)
+        totalResolved += archivedIds.length
+      }
+    } catch (err) {
+      console.warn(`[archive] Error for ${inbox}: ${err.message}`)
+    }
+  }
+
+  console.log(`[archive] Done — ${totalResolved} resolved`)
 }
 
 // =============================================================================
@@ -122,59 +168,10 @@ async function syncInbox(inbox) {
 
   console.log(`${savedCount} new email(s)`)
 
-  // Step 4 — Detect emails archived in Gmail and auto-resolve them in Supabase
-  try {
-    const gmail = await getGmailClientForInbox(inbox)
-
-    // Fetch up to 100 most recent active emails — these are the ones users are working
-    const { data: activeEmails } = await supabase
-      .from('email_cache')
-      .select('id, m365_message_id')
-      .in('status', ['new', 'assigned'])
-      .eq('to_address', inbox)
-      .order('received_at', { ascending: false })
-      .limit(100)
-
-    if (activeEmails && activeEmails.length > 0) {
-      // Check all messages in parallel — minimal format to keep it fast
-      const results = await Promise.all(
-        activeEmails.map(async (em) => {
-          try {
-            const msg = await gmail.users.messages.get({
-              userId: 'me',
-              id:     em.m365_message_id,
-              format: 'minimal'
-            })
-            const hasInbox = (msg.data.labelIds || []).includes('INBOX')
-            return hasInbox ? null : em.id
-          } catch (e) {
-            // 404 = deleted or trashed — resolve it in the dashboard
-            if (e?.response?.status === 404 || e?.code === 404) return em.id
-            return null  // other errors — skip
-          }
-        })
-      )
-
-      const archivedIds = results.filter(Boolean)
-
-      if (archivedIds.length > 0) {
-        await supabase
-          .from('email_cache')
-          .update({ status: 'handled' })
-          .in('id', archivedIds)
-
-        console.log(`  Auto-resolved ${archivedIds.length} email(s) archived in Gmail`)
-      }
-    }
-  } catch (err) {
-    // Archive check is non-fatal — log and continue
-    console.warn(`  [archive check] Error for ${inbox}: ${err.message}`)
-  }
-
   return savedCount
 }
 
-export { run as syncEmails }
+export { run as syncEmails, checkGmailArchives }
 
 // =============================================================================
 // FETCH EMAILS FOR ONE INBOX
