@@ -211,7 +211,7 @@ app.post('/api/forward', async (req, res) => {
   const BPM_INBOXES = [
     'danyel@bpmsd.com', 'help@bpmsd.com', 'beyond@bpmsd.com', 'info@bpmsd.com',
     'accounts@bpmsd.com', 'manager@bpmsd.com', 'success@bpmsd.com', 'home@bpmsd.com',
-    'admin@bpmsd.com', 'hello@bpmsd.com', 'care@bpmsd.com'
+    'admin@bpmsd.com', 'hello@bpmsd.com', 'care@bpmsd.com', 'results@bpmsd.com'
   ]
   if (!BPM_INBOXES.includes(toInbox)) {
     return res.status(400).json({ error: 'Invalid inbox address' })
@@ -634,7 +634,7 @@ app.get('/api/cfo/snapshot/current', async (_req, res) => {
         five_year:  project(5),
         retirement: project(yearsToRetire),
       },
-      last_pulled_at: null,  // will be set once Plaid/AppFolio connects
+      last_pulled_at: null,  // will be set once QBO/AppFolio connects
       is_complete:    false,
       missing_fields: missingFields,
     })
