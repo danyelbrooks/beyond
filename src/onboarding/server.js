@@ -648,6 +648,20 @@ app.delete('/api/onboarding/:id/revoke', requireAuth, async (req, res) => {
   res.json({ ok: true })
 })
 
+// DELETE /api/onboarding/:id — hard delete (test records only)
+app.delete('/api/onboarding/:id', requireAuth, async (req, res) => {
+  const { id } = req.params
+
+  // Delete child records first to avoid FK constraint errors
+  await supabase.from('onboarding_flags').delete().eq('onboarding_id', id)
+  await supabase.from('onboarding_documents').delete().eq('onboarding_id', id)
+  await supabase.from('onboarding_steps').delete().eq('onboarding_id', id)
+
+  const { error } = await supabase.from('onboardings').delete().eq('id', id)
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ ok: true })
+})
+
 // =============================================================================
 // OWNER ROUTES — public, token-gated (no Supabase auth)
 // =============================================================================

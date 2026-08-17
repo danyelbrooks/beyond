@@ -418,6 +418,7 @@
                 ? `<button class="action-btn" onclick="markComplete('${escHtml(r.id)}', '${escHtml(r.ownerName)}')">Mark Complete</button>
                    <button class="action-btn danger" onclick="revokeOnboarding('${escHtml(r.id)}', '${escHtml(r.ownerName)}')">Revoke</button>`
                 : ''}
+              <button class="action-btn danger" onclick="deleteOnboarding('${escHtml(r.id)}', '${escHtml(r.ownerName)}')">Delete</button>
             </div>
           </td>
         </tr>
@@ -539,6 +540,18 @@
       if (!res.ok) throw new Error('Failed')
       await loadData()
     } catch { alert('Failed to revoke — try again.') }
+  }
+
+  window.deleteOnboarding = async function(id, name) {
+    if (!confirm(`Permanently delete onboarding for ${name}?\n\nThis removes ALL data including steps, documents, and flags. This cannot be undone.`)) return
+    try {
+      const res = await fetch(`${API}/api/onboarding/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
+      if (!res.ok) throw new Error('Failed')
+      await loadData()
+    } catch { alert('Failed to delete — try again.') }
   }
 
   function closeNoteModal() {
