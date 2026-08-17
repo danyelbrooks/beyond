@@ -112,6 +112,7 @@ async function requireAuth(req, res, next) {
 // Protect all staff routes before any route handlers are registered
 app.use('/api/reply',     requireAuth)
 app.use('/api/forward',  requireAuth)
+app.use('/api/archive',  requireAuth)
 app.use('/api/compose',  requireAuth)
 app.use('/api/cfo',      requireAuth)
 app.use('/api/insurance', requireAuth)
@@ -147,6 +148,45 @@ app.post('/api/reply', async (req, res) => {
     res.json({ ok: true })
   } catch (err) {
     console.error('Reply error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// =============================================================================
+// POST /api/archive
+// Body: { emailId: string }
+//
+// Removes the INBOX label from the Gmail message so it leaves the inbox.
+// Called fire-and-forget after marking an email as handled.
+// =============================================================================
+
+app.post('/api/archive', async (req, res) => {
+  const { emailId } = req.body
+
+  if (!emailId) {
+    return res.status(400).json({ error: 'emailId is required' })
+  }
+
+  const { data: email, error } = await supabase
+    .from('email_cache')
+    .select('to_address, m365_message_id')
+    .eq('id', emailId)
+    .single()
+
+  if (error || !email) {
+    return res.status(404).json({ error: 'Email not found' })
+  }
+
+  try {
+    const gmail = await getGmailClientForInbox(email.to_address)
+    await gmail.users.messages.modify({
+      userId: 'me',
+      id:     email.m365_message_id,
+      requestBody: { removeLabelIds: ['INBOX'] }
+    })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('Archive error:', err.message)
     res.status(500).json({ error: err.message })
   }
 })

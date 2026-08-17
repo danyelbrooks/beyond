@@ -1563,6 +1563,14 @@
 
       if (newStatus === 'handled') {
         showMsg(msg, 'success', 'Resolved. Loading next email…')
+        // Fire-and-forget: remove INBOX label in Gmail so it stays out of the inbox
+        apiHeaders().then(headers =>
+          fetch(`${API}/api/archive`, {
+            method:  'POST',
+            headers,
+            body:    JSON.stringify({ emailId })
+          })
+        ).catch(err => console.warn('Archive (non-fatal):', err.message))
         setTimeout(goToNextEmail, 800)
       } else {
         showMsg(msg, 'success', 'Reopened.')

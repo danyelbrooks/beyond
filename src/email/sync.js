@@ -99,30 +99,76 @@ async function syncInbox(inbox) {
   // Step 2 — Fetch from Gmail API
   const emails = await fetchEmailsForInbox(inbox, since)
 
-  if (emails.length === 0) {
-    console.log('0 new emails')
-    return 0
-  }
-
   // Step 3 — Upsert in batches of 100 to avoid timeouts
-  const rows = emails.map(e => ({ ...e, to_address: inbox }))
-  const BATCH = 100
   let savedCount = 0
 
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const chunk = rows.slice(i, i + BATCH)
-    const { data: upserted, error: upsertErr } = await supabase
-      .from('email_cache')
-      .upsert(chunk, { onConflict: 'm365_message_id', ignoreDuplicates: true })
-      .select('id')
+  if (emails.length > 0) {
+    const rows = emails.map(e => ({ ...e, to_address: inbox }))
+    const BATCH = 100
 
-    if (upsertErr) {
-      throw new Error('Could not save emails to Supabase: ' + upsertErr.message)
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const chunk = rows.slice(i, i + BATCH)
+      const { data: upserted, error: upsertErr } = await supabase
+        .from('email_cache')
+        .upsert(chunk, { onConflict: 'm365_message_id', ignoreDuplicates: true })
+        .select('id')
+
+      if (upsertErr) {
+        throw new Error('Could not save emails to Supabase: ' + upsertErr.message)
+      }
+      savedCount += upserted?.length ?? 0
     }
-    savedCount += upserted?.length ?? 0
   }
 
   console.log(`${savedCount} new email(s)`)
+
+  // Step 4 — Detect emails archived in Gmail and auto-resolve them in Supabase
+  try {
+    const gmail = await getGmailClientForInbox(inbox)
+
+    // Fetch up to 50 oldest active emails for this inbox (oldest most likely archived)
+    const { data: activeEmails } = await supabase
+      .from('email_cache')
+      .select('id, m365_message_id')
+      .in('status', ['new', 'assigned'])
+      .eq('to_address', inbox)
+      .order('received_at', { ascending: true })
+      .limit(50)
+
+    if (activeEmails && activeEmails.length > 0) {
+      // Check all messages in parallel — minimal format to keep it fast
+      const results = await Promise.all(
+        activeEmails.map(async (em) => {
+          try {
+            const msg = await gmail.users.messages.get({
+              userId: 'me',
+              id:     em.m365_message_id,
+              format: 'minimal'
+            })
+            const hasInbox = (msg.data.labelIds || []).includes('INBOX')
+            return hasInbox ? null : em.id
+          } catch {
+            return null  // skip messages that can't be fetched (deleted, etc.)
+          }
+        })
+      )
+
+      const archivedIds = results.filter(Boolean)
+
+      if (archivedIds.length > 0) {
+        await supabase
+          .from('email_cache')
+          .update({ status: 'handled' })
+          .in('id', archivedIds)
+
+        console.log(`  Auto-resolved ${archivedIds.length} email(s) archived in Gmail`)
+      }
+    }
+  } catch (err) {
+    // Archive check is non-fatal — log and continue
+    console.warn(`  [archive check] Error for ${inbox}: ${err.message}`)
+  }
+
   return savedCount
 }
 
