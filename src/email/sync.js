@@ -126,14 +126,14 @@ async function syncInbox(inbox) {
   try {
     const gmail = await getGmailClientForInbox(inbox)
 
-    // Fetch up to 50 oldest active emails for this inbox (oldest most likely archived)
+    // Fetch up to 100 most recent active emails — these are the ones users are working
     const { data: activeEmails } = await supabase
       .from('email_cache')
       .select('id, m365_message_id')
       .in('status', ['new', 'assigned'])
       .eq('to_address', inbox)
-      .order('received_at', { ascending: true })
-      .limit(50)
+      .order('received_at', { ascending: false })
+      .limit(100)
 
     if (activeEmails && activeEmails.length > 0) {
       // Check all messages in parallel — minimal format to keep it fast
@@ -365,4 +365,3 @@ function sanitize(str) {
   return String(str).replace(/ /g, '').replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
 }
 
-run()
