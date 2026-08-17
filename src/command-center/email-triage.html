@@ -631,7 +631,11 @@
       e.preventDefault()
       const id = row.dataset.id
       if (id) {
+        const allIds = [...document.querySelectorAll('[data-id]')].map(r => r.dataset.id).filter(Boolean)
+        const idx    = allIds.indexOf(id)
         sessionStorage.setItem('bpm_email_id', id)
+        sessionStorage.setItem('bpm_email_queue', JSON.stringify(allIds))
+        sessionStorage.setItem('bpm_email_index', idx)
         window.location.href = '/email-detail.html'
       }
     })

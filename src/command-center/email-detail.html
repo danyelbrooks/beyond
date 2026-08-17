@@ -901,6 +901,21 @@
       ? 'http://localhost:3005'
       : 'https://bpm-api-ul3v.onrender.com'
 
+    // Queue navigation — populated by email-triage when clicking into an email
+    const emailQueue = JSON.parse(sessionStorage.getItem('bpm_email_queue') || '[]')
+    let   emailIndex = parseInt(sessionStorage.getItem('bpm_email_index') || '0', 10)
+
+    function goToNextEmail() {
+      const nextIndex = emailIndex + 1
+      if (nextIndex < emailQueue.length) {
+        sessionStorage.setItem('bpm_email_id',    emailQueue[nextIndex])
+        sessionStorage.setItem('bpm_email_index', nextIndex)
+        window.location.href = '/email-detail.html'
+      } else {
+        window.location.href = '/email-triage.html'
+      }
+    }
+
     async function apiHeaders() {
       const { data: { session } } = await db.auth.getSession()
       return {
@@ -1138,6 +1153,7 @@
               </div>
             </div>
             <div id="status-btn-wrap">${statusBtnHeader}</div>
+            <button class="btn-header btn-header-neutral" id="btn-next-email" onclick="goToNextEmail()" style="margin-left:8px">Next &rarr;</button>
             <div class="action-msg" id="msg-status" style="margin:0"></div>
           </div>
         </div>
@@ -1541,9 +1557,15 @@
       currentStatus = newStatus
       refreshStatusBadges()
       updateStatusButton()
-      showMsg(msg, 'success', newStatus === 'handled' ? 'Marked as handled.' : 'Reopened.')
       btn.disabled = false
       await refreshHistory()
+
+      if (newStatus === 'handled') {
+        showMsg(msg, 'success', 'Resolved. Loading next email…')
+        setTimeout(goToNextEmail, 800)
+      } else {
+        showMsg(msg, 'success', 'Reopened.')
+      }
     })
 
     /* ---- SNOOZE ---- */
