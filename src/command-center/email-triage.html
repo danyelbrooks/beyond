@@ -533,7 +533,7 @@
         const s = currentSearch.trim()
         query = query.or(`subject.ilike.%${s}%,from_name.ilike.%${s}%,from_address.ilike.%${s}%`)
       } else if (currentStatus === 'inbox') {
-        query = query.eq('in_inbox', true).neq('status', 'handled')
+        query = query.eq('in_inbox', true).in('status', ['new', 'assigned'])
           .or(`snoozed_until.is.null,snoozed_until.lte.${new Date().toISOString()}`)
       } else if (currentStatus === 'assigned') {
         query = query.eq('assigned_to', user.id)
