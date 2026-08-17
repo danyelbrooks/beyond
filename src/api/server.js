@@ -23,6 +23,7 @@ import fetch          from 'node-fetch'
 import { sendReply, getGmailClientForInbox } from '../email/gmail-service-client.js'
 import { createClient }                       from '@supabase/supabase-js'
 import { appendKpiRows }                      from '../kpi/proof-log.js'
+import { syncEmails }                         from '../email/sync.js'
 import { getBPMGrossRevenue, getPropertyPassiveIncome, isConfigured as appfolioConfigured } from '../cfo/appfolio-cfo.js'
 import { isConfigured as qboConfigured, isConnected as qboConnected, getAuthUrl as qboGetAuthUrl, exchangeCodeForToken as qboExchangeCode, getAccountBalances as qboGetAccountBalances, mapAccountsToBuckets as qboMapBuckets } from '../cfo/qbo-cfo.js'
 import { getCryptoTotal } from '../cfo/crypto-cfo.js'
@@ -1311,4 +1312,11 @@ const PORT = process.env.PORT || process.env.API_PORT || 3005
 app.listen(PORT, () => {
   console.log(`BPM Email API running on http://localhost:${PORT}`)
   console.log('Endpoints: POST /api/reply  |  POST /api/forward')
+
+  // Run email sync immediately on startup, then every 60 seconds
+  syncEmails().catch(err => console.error('[sync] startup error:', err.message))
+  setInterval(() => {
+    syncEmails().catch(err => console.error('[sync] interval error:', err.message))
+  }, 60 * 1000)
+  console.log('[sync] Email sync scheduled — running every 60 seconds')
 })

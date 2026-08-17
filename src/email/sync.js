@@ -172,6 +172,8 @@ async function syncInbox(inbox) {
   return savedCount
 }
 
+export { run as syncEmails }
+
 // =============================================================================
 // FETCH EMAILS FOR ONE INBOX
 // =============================================================================
