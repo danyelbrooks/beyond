@@ -148,8 +148,10 @@ async function syncInbox(inbox) {
             })
             const hasInbox = (msg.data.labelIds || []).includes('INBOX')
             return hasInbox ? null : em.id
-          } catch {
-            return null  // skip messages that can't be fetched (deleted, etc.)
+          } catch (e) {
+            // 404 = deleted or trashed — resolve it in the dashboard
+            if (e?.response?.status === 404 || e?.code === 404) return em.id
+            return null  // other errors — skip
           }
         })
       )
