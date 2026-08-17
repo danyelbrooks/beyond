@@ -220,3 +220,23 @@ New signals detected: 0
 Scores written: 286
 
 [2026-08-15T14:47:45.311Z] DONE
+[2026-08-17T07:28:34.065Z] Talkroute Call Sync — START
+Inbound calls (last 30d): 872
+
+Owners flagged: 0
+[2026-08-17T07:28:48.389Z] DONE
+[2026-08-17T07:28:48.497Z] Owner Health Scoring — START
+Owners loaded: 286
+Emails scanned (last 90d): 30510
+Risk-since updates: 4
+
+--- Results ---
+Champion (90-100):  65
+Healthy  (75-89):   195
+Watch    (60-74):   26
+At Risk  (<60):      0
+
+New signals detected: 0
+Scores written: 286
+
+[2026-08-17T07:29:08.577Z] DONE
