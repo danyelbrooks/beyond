@@ -132,6 +132,12 @@ export function renderSidebar(activeItem, role, email) {
     ? link('kpi-entry.html', 'KPI Entry', 'kpi-entry')
     : ''
 
+  // Hello@ Forwarding — the routing rules are a configuration page,
+  // so only admin and manager see it
+  const routingLink = (role === 'admin' || role === 'manager')
+    ? link('routing-rules.html', 'Hello@ Forwarding', 'routing-rules')
+    : ''
+
   // Analytics section — admin and manager only; KPI tracker visible to all
   let analyticsLinks = `
     <div class="nav-divider"></div>
@@ -182,9 +188,10 @@ export function renderSidebar(activeItem, role, email) {
     <div class="nav-section-label">Navigation</div>
     ${link('dashboard.html',           'Dashboard',        'dashboard')}
     ${link('email-triage.html',        'Email Triage',     'email-triage')}
+    ${routingLink}
     ${link('onboarding-dashboard.html','Onboarding',       'onboarding-dashboard')}
     ${link('sop-library.html',         'Best Practices',   'sop-library')}
-    ${link('insurance-board.html',     'Insurance Board',  'insurance-board')}
+    ${link('insurance-board.html',     'Project Mgmt',     'insurance-board')}
     ${analyticsLinks}
     ${toolsSection}
     ${adminSection}

@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello@ Forwarding — BPM Command Center</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Supabase CDN — must load before auth.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <style>
+    /* Big status banner across the top — shadow mode vs live */
+    .mode-banner {
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .mode-shadow { background: #fffbeb; border: 1px solid #fcd34d; }
+    .mode-live   { background: #f0fff4; border: 1px solid #9ae6b4; }
+    .mode-off    { background: #fef2f2; border: 1px solid #fecaca; }
+    .mode-title  { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+    .mode-desc   { font-size: 0.88rem; color: var(--color-text-muted); max-width: 640px; }
+
+    /* One decision in the review list */
+    .decision {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      background: #fff;
+    }
+    .decision-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .decision-subject { font-weight: 600; font-size: 0.94rem; }
+    .decision-from    { font-size: 0.82rem; color: var(--color-text-muted); }
+    .decision-reason  { font-size: 0.86rem; color: #475569; margin-top: 6px; }
+    .decision-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    .decision-held    { border-left: 3px solid var(--color-warning); }
+    .decision-error   { border-left: 3px solid var(--color-danger); }
+
+    .arrow { color: var(--color-text-muted); margin: 0 6px; }
+
+    .rule-row-inactive { opacity: 0.5; }
+
+    .prompt-box {
+      width: 100%;
+      min-height: 420px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      padding: 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      resize: vertical;
+    }
+
+    .empty-note {
+      text-align: center;
+      padding: 28px;
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .count-chip {
+      display: inline-block;
+      min-width: 22px;
+      padding: 1px 7px;
+      border-radius: 11px;
+      background: var(--color-text-muted);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-align: center;
+      margin-left: 8px;
+    }
+    .count-chip-warn { background: var(--color-warning); }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" id="app-header"></header>
+  <nav class="app-sidebar" id="app-sidebar"></nav>
+
+  <main class="app-main">
+    <div class="app-content">
+
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <span>Loading Hello@ Forwarding...</span>
+      </div>
+
+      <div id="pageContent" style="display:none;">
+
+        <div class="page-header">
+          <div class="page-title">Hello@ Forwarding</div>
+          <div class="page-subtitle">
+            Reads everything arriving at hello@bpmsd.com and sends it to the right inbox
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             STATUS BANNER
+        =================================================================== -->
+        <div id="modeBanner"></div>
+
+        <!-- ==================================================================
+             HOW IT WORKS
+        =================================================================== -->
+        <div class="card mb-24">
+          <div class="section-heading">How it decides</div>
+          <div style="font-size:0.9rem; line-height:1.65; color:#334155;">
+            <strong>1. Your rules run first.</strong> Every rule below is checked in order,
+            top to bottom. The first one that matches wins and nothing else is looked at.
+            Rules are instant, free, and do the same thing every single time.<br><br>
+
+            <strong>2. Anything no rule matched goes to the AI</strong>, which follows the
+            instructions at the bottom of this page and picks an inbox.<br><br>
+
+            <strong>3. What happens next depends on how sure it is.</strong>
+            Confident answers get forwarded automatically. Anything less sits in
+            <em>Needs a Human</em> below, where you read it and add a rule so it never
+            has to guess about that again.<br><br>
+
+            <strong>Nothing is ever sent outside the company.</strong> The only addresses
+            it can forward to are your own BPM inboxes. Newsletters and marketing are set
+            aside on the unsubscribe list rather than unsubscribed automatically, so a
+            person sees each link before clicking it.
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             NEEDS A HUMAN
+        =================================================================== -->
+        <div class="card mb-24">
+          <div class="flex justify-between items-center mb-16">
+            <div class="section-heading" style="margin:0;">
+              Needs a Human <span class="count-chip count-chip-warn" id="heldCount">0</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnRefresh">Refresh</button>
+          </div>
+          <div class="form-hint mb-16">
+            It was not confident enough to send these on its own. Read one, send it where it
+            belongs, then add a rule so the next one like it routes itself.
+          </div>
+          <div id="heldList"></div>
+        </div>
+
+        <!-- ==================================================================
+             RECENT DECISIONS
+        =================================================================== -->
+        <div class="card mb-24">
+          <div class="section-heading">
+            Recent Decisions <span class="count-chip" id="recentCount">0</span>
+          </div>
+          <div class="form-hint mb-16">
+            The last 40 emails it handled and where each one went. This is the list to read
+            during the trial — if these look right, it is ready to go live.
+          </div>
+          <div id="recentList"></div>
+        </div>
+
+        <!-- ==================================================================
+             UNSUBSCRIBE LIST
+        =================================================================== -->
+        <div class="card mb-24">
+          <div class="section-heading">
+            Unsubscribe List <span class="count-chip" id="unsubCount">0</span>
+          </div>
+          <div class="form-hint mb-16">
+            Newsletters and marketing it set aside. Open one, click its unsubscribe link
+            yourself, then mark it done. Doing this by hand is deliberate — clicking
+            unsubscribe links automatically tells junk senders the address is live.
+          </div>
+          <div id="unsubList"></div>
+        </div>
+
+        <!-- ==================================================================
+             RULES
+        =================================================================== -->
+        <div class="card mb-24">
+          <div class="section-heading">
+            Your Rules <span class="count-chip" id="ruleCount">0</span>
+          </div>
+          <div class="form-hint mb-16">
+            Checked in order, lowest number first. The first match wins.
+          </div>
+
+          <div class="table-wrapper mb-24">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:60px;">Order</th>
+                  <th>Rule</th>
+                  <th>When</th>
+                  <th>Send to</th>
+                  <th style="width:70px;">Used</th>
+                  <th style="width:190px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="rulesTableBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Add a rule -->
+          <div id="addRuleBox"
+               style="background:#f8f9fa; border:1px solid var(--color-border); border-radius:8px; padding:16px;">
+            <div class="section-heading" style="font-size:0.95rem;">Add a Rule</div>
+
+            <div class="form-group">
+              <label class="form-label">What is this rule for?</label>
+              <input class="form-input" type="text" id="ruleLabel"
+                     placeholder="e.g. Pest control invoices">
+              <div class="form-hint">Just a note to yourself so the list stays readable.</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">When</label>
+              <select class="form-select" id="ruleField">
+                <option value="subject_or_body">The subject or the body contains...</option>
+                <option value="subject">The subject line contains...</option>
+                <option value="body">The email body contains...</option>
+                <option value="from_address">The sender's address contains...</option>
+                <option value="from_domain">The sender's company (after the @) is...</option>
+                <option value="greeting_name">The email opens by addressing this person...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">This text</label>
+              <input class="form-input" type="text" id="ruleText"
+                     placeholder="e.g. notice to vacate">
+              <div class="form-hint">
+                Not case sensitive. Keep it specific — a word as common as "rent" will
+                catch emails you did not mean to catch.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Send it to</label>
+              <select class="form-select" id="ruleDest"></select>
+            </div>
+
+            <div class="form-group mb-16">
+              <label class="form-label">Order</label>
+              <input class="form-input" type="number" id="rulePriority" value="50" min="1" max="999"
+                     style="max-width:120px;">
+              <div class="form-hint">
+                Lower runs first. 10 is used for emails addressed to someone by name,
+                30 for Notice to Vacate. 50 is a sensible default for a new rule.
+              </div>
+            </div>
+
+            <div class="alert alert-danger" id="ruleError" style="display:none;"></div>
+
+            <button class="btn btn-primary" id="btnAddRule">Add Rule</button>
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             AI INSTRUCTIONS
+        =================================================================== -->
+        <div class="card mb-24">
+          <div class="section-heading">AI Instructions</div>
+          <div class="form-hint mb-16">
+            What the AI is told when no rule matches. Edit it the way you would explain the
+            job to a new hire. Changes take effect on the next run, about a minute later.
+          </div>
+          <textarea class="prompt-box" id="promptBox" spellcheck="false"></textarea>
+          <div class="flex items-center gap-12 mt-12">
+            <button class="btn btn-primary" id="btnSavePrompt">Save Instructions</button>
+            <span id="promptSaved" class="text-muted" style="font-size:0.85rem;"></span>
+          </div>
+        </div>
+
+      </div>
+      <!-- /pageContent -->
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
+
+    const API = window.location.hostname === 'localhost'
+      ? 'http://localhost:3005'
+      : 'https://bpm-api-ul3v.onrender.com'
+
+    // The inboxes an email can be sent to, with who owns each one.
+    const INBOXES = [
+      ['none',                'Nobody — junk, do not assign'],
+      ['results@bpmsd.com',   'results@ — Laura, residents & applicants'],
+      ['help@bpmsd.com',      'help@ — Rubin, owner relations'],
+      ['success@bpmsd.com',   'success@ — Mark, maintenance'],
+      ['home@bpmsd.com',      'home@ — Gael, move-outs & make ready'],
+      ['beyond@bpmsd.com',    'beyond@ — Ana, leasing operations'],
+      ['admin@bpmsd.com',     'admin@ — Ella, accounting'],
+      ['care@bpmsd.com',      'care@ — Claudette, HOA'],
+      ['accounts@bpmsd.com',  'accounts@ — Moira'],
+      ['danyel@bpmsd.com',    'danyel@ — Danyel']
+    ]
+
+    const FIELD_LABELS = {
+      greeting_name:   'Opens by addressing',
+      from_address:    'Sender address contains',
+      from_domain:     'Sender company is',
+      subject:         'Subject contains',
+      body:            'Body contains',
+      subject_or_body: 'Subject or body contains'
+    }
+
+    // =========================================================================
+    // BOOT
+    // =========================================================================
+    const auth = await requireAuth()
+    if (!auth) throw new Error('Not authenticated')
+
+    const { user, profile } = auth
+    const canEdit = profile.role === 'admin' || profile.role === 'manager'
+
+    renderHeader(profile)
+    renderSidebar('routing-rules', profile.role, user.email)
+
+    fillInboxSelect(document.getElementById('ruleDest'))
+
+    let settings = null
+
+    await loadEverything()
+
+    document.getElementById('loadingState').style.display = 'none'
+    document.getElementById('pageContent').style.display  = ''
+
+    document.getElementById('btnRefresh').addEventListener('click', loadEverything)
+    document.getElementById('btnAddRule').addEventListener('click', addRule)
+    document.getElementById('btnSavePrompt').addEventListener('click', savePrompt)
+
+    if (!canEdit) {
+      document.getElementById('addRuleBox').style.display = 'none'
+      document.getElementById('btnSavePrompt').style.display = 'none'
+      document.getElementById('promptBox').readOnly = true
+    }
+
+    // =========================================================================
+    // LOAD
+    // =========================================================================
+    async function loadEverything() {
+      await loadSettings()
+      await Promise.all([loadRules(), loadHeld(), loadRecent(), loadUnsub()])
+    }
+
+    async function loadSettings() {
+      const { data, error } = await supabase
+        .from('routing_settings')
+        .select('shadow_mode, enabled, source_inbox, ai_prompt')
+        .eq('id', 1)
+        .single()
+
+      if (error) {
+        document.getElementById('modeBanner').innerHTML = `
+          <div class="alert alert-danger">
+            Could not load the settings: ${escHtml(error.message)}.
+            Has migration 036 been run in Supabase?
+          </div>`
+        return
+      }
+
+      settings = data
+      document.getElementById('promptBox').value = data.ai_prompt || ''
+      renderBanner()
+    }
+
+    function renderBanner() {
+      const el = document.getElementById('modeBanner')
+
+      if (!settings.enabled) {
+        el.innerHTML = `
+          <div class="mode-banner mode-off">
+            <div>
+              <div class="mode-title">Switched off</div>
+              <div class="mode-desc">
+                Nothing is being read or routed. Mail arriving at ${escHtml(settings.source_inbox)}
+                sits in the inbox untouched.
+              </div>
+            </div>
+            ${canEdit ? '<button class="btn btn-primary" id="btnEnable">Turn On</button>' : ''}
+          </div>`
+        if (canEdit) document.getElementById('btnEnable').addEventListener('click', () => setSetting({ enabled: true }))
+        return
+      }
+
+      if (settings.shadow_mode) {
+        el.innerHTML = `
+          <div class="mode-banner mode-shadow">
+            <div>
+              <div class="mode-title">Trial mode — deciding, but not sending</div>
+              <div class="mode-desc">
+                It is reading every email and recording where it would send it, but nothing
+                is actually being forwarded. Read the decisions below. Once they look right,
+                go live.
+              </div>
+            </div>
+            <div class="flex gap-8">
+              ${canEdit ? '<button class="btn btn-primary" id="btnGoLive">Go Live</button>' : ''}
+              ${canEdit ? '<button class="btn btn-secondary" id="btnDisable">Switch Off</button>' : ''}
+            </div>
+          </div>`
+        if (canEdit) {
+          document.getElementById('btnGoLive').addEventListener('click', goLive)
+          document.getElementById('btnDisable').addEventListener('click', () => setSetting({ enabled: false }))
+        }
+        return
+      }
+
+      el.innerHTML = `
+        <div class="mode-banner mode-live">
+          <div>
+            <div class="mode-title">Live — forwarding automatically</div>
+            <div class="mode-desc">
+              Confident emails are being forwarded to the right inbox on their own.
+              Anything it is unsure about waits below.
+            </div>
+          </div>
+          <div class="flex gap-8">
+            ${canEdit ? '<button class="btn btn-secondary" id="btnShadow">Back to Trial Mode</button>' : ''}
+            ${canEdit ? '<button class="btn btn-danger" id="btnDisable">Emergency Stop</button>' : ''}
+          </div>
+        </div>`
+      if (canEdit) {
+        document.getElementById('btnShadow').addEventListener('click', () => setSetting({ shadow_mode: true }))
+        document.getElementById('btnDisable').addEventListener('click', () => setSetting({ enabled: false }))
+      }
+    }
+
+    async function goLive() {
+      const ok = confirm(
+        'Go live?\n\n' +
+        'From now on, emails it is confident about will be forwarded automatically ' +
+        'without anyone checking first.\n\n' +
+        'Anything it is unsure about will still wait for a person.'
+      )
+      if (!ok) return
+      await setSetting({ shadow_mode: false })
+    }
+
+    async function setSetting(patch) {
+      const { error } = await supabase.from('routing_settings').update(patch).eq('id', 1)
+      if (error) return alert('Could not save that: ' + error.message)
+      await loadSettings()
+    }
+
+    // =========================================================================
+    // RULES
+    // =========================================================================
+    async function loadRules() {
+      const { data, error } = await supabase
+        .from('routing_rules')
+        .select('id, label, match_field, match_text, destination, priority, active, hit_count')
+        .order('priority', { ascending: true })
+        .order('created_at', { ascending: true })
+
+      const tbody = document.getElementById('rulesTableBody')
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-note">Could not load rules: ${escHtml(error.message)}</td></tr>`
+        return
+      }
+
+      document.getElementById('ruleCount').textContent = (data || []).length
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-note">No rules yet. Everything goes to the AI.</td></tr>`
+        return
+      }
+
+      tbody.innerHTML = data.map(r => `
+        <tr class="${r.active ? '' : 'rule-row-inactive'}">
+          <td>${r.priority}</td>
+          <td><strong>${escHtml(r.label)}</strong></td>
+          <td style="font-size:0.85rem;">
+            ${escHtml(FIELD_LABELS[r.match_field] || r.match_field)}
+            <em>"${escHtml(r.match_text)}"</em>
+          </td>
+          <td style="font-size:0.85rem;">${escHtml(destLabel(r.destination))}</td>
+          <td>${r.hit_count}</td>
+          <td>${canEdit ? `
+            <div class="flex gap-8">
+              <button class="btn btn-secondary btn-sm" data-toggle="${r.id}" data-active="${r.active}">
+                ${r.active ? 'Turn Off' : 'Turn On'}
+              </button>
+              <button class="btn btn-danger btn-sm" data-delete="${r.id}">Delete</button>
+            </div>` : '<span class="text-muted" style="font-size:0.8rem;">View only</span>'}
+          </td>
+        </tr>
+      `).join('')
+
+      tbody.querySelectorAll('[data-toggle]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const isActive = btn.dataset.active === 'true'
+          const { error } = await supabase
+            .from('routing_rules')
+            .update({ active: !isActive })
+            .eq('id', btn.dataset.toggle)
+          if (error) return alert('Could not update that rule: ' + error.message)
+          await loadRules()
+        })
+      })
+
+      tbody.querySelectorAll('[data-delete]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this rule? Emails it used to catch will go to the AI instead.')) return
+          const { error } = await supabase.from('routing_rules').delete().eq('id', btn.dataset.delete)
+          if (error) return alert('Could not delete that rule: ' + error.message)
+          await loadRules()
+        })
+      })
+    }
+
+    async function addRule() {
+      const label    = document.getElementById('ruleLabel').value.trim()
+      const field    = document.getElementById('ruleField').value
+      const text     = document.getElementById('ruleText').value.trim()
+      const dest     = document.getElementById('ruleDest').value
+      const priority = parseInt(document.getElementById('rulePriority').value, 10)
+
+      const errBox = document.getElementById('ruleError')
+      const fail = (msg) => {
+        errBox.textContent = msg
+        errBox.style.display = ''
+      }
+      errBox.style.display = 'none'
+
+      if (!label)  return fail('Give the rule a name so you can recognise it later.')
+      if (!text)   return fail('Fill in the text to look for.')
+      if (!priority || priority < 1) return fail('Order must be a number of 1 or more.')
+
+      const { error } = await supabase.from('routing_rules').insert({
+        label,
+        match_field: field,
+        match_text:  text,
+        destination: dest,
+        priority,
+        created_by:  user.id
+      })
+
+      if (error) return fail('Could not save the rule: ' + error.message)
+
+      document.getElementById('ruleLabel').value = ''
+      document.getElementById('ruleText').value  = ''
+      document.getElementById('rulePriority').value = 50
+      await loadRules()
+    }
+
+    // =========================================================================
+    // NEEDS A HUMAN
+    // =========================================================================
+    async function loadHeld() {
+      const { data, error } = await supabase
+        .from('email_cache')
+        .select('id, subject, from_name, from_address, received_at, routed_to, routing_reason, routing_confidence, routing_source')
+        .eq('to_address', settings?.source_inbox || 'hello@bpmsd.com')
+        .not('routed_at', 'is', null)
+        .eq('forward_sent', false)
+        .in('routing_confidence', ['medium', 'low'])
+        .neq('status', 'handled')
+        .order('received_at', { ascending: false })
+        .limit(40)
+
+      const el = document.getElementById('heldList')
+      if (error) {
+        el.innerHTML = `<div class="empty-note">Could not load: ${escHtml(error.message)}</div>`
+        return
+      }
+
+      document.getElementById('heldCount').textContent = (data || []).length
+
+      if (!data || data.length === 0) {
+        el.innerHTML = `<div class="empty-note">Nothing waiting. Everything has been routed.</div>`
+        return
+      }
+
+      el.innerHTML = data.map(e => {
+        const isError = e.routing_source === 'error'
+        const suggestion = e.routed_to
+          ? `Wanted to send it to <strong>${escHtml(e.routed_to)}</strong>`
+          : `Could not decide`
+
+        return `
+          <div class="decision ${isError ? 'decision-error' : 'decision-held'}">
+            <div class="decision-top">
+              <div>
+                <div class="decision-subject">${escHtml(e.subject || '(no subject)')}</div>
+                <div class="decision-from">${escHtml(e.from_name || e.from_address)} — ${fmtDate(e.received_at)}</div>
+              </div>
+              ${confidenceBadge(e.routing_confidence)}
+            </div>
+            <div class="decision-reason">${suggestion} — ${escHtml(e.routing_reason || '')}</div>
+            <div class="decision-actions">
+              <a class="btn btn-secondary btn-sm" href="email-detail.html?id=${e.id}">Open</a>
+              ${canEdit ? `
+                <select class="form-select" data-send-select="${e.id}" style="max-width:290px; padding:6px 10px; font-size:0.85rem;"></select>
+                <button class="btn btn-primary btn-sm" data-send="${e.id}">Send</button>
+              ` : ''}
+            </div>
+          </div>`
+      }).join('')
+
+      el.querySelectorAll('[data-send-select]').forEach(sel => {
+        fillInboxSelect(sel, { includeNone: false })
+        const row = data.find(d => d.id === sel.dataset.sendSelect)
+        if (row?.routed_to && row.routed_to !== 'none') sel.value = row.routed_to
+      })
+
+      el.querySelectorAll('[data-send]').forEach(btn => {
+        btn.addEventListener('click', () => sendManually(btn.dataset.send, btn))
+      })
+    }
+
+    /**
+     * Forward one held email by hand. Uses the same API endpoint the Email
+     * Triage board uses, so the record of it looks the same either way.
+     */
+    async function sendManually(emailId, btn) {
+      const select = document.querySelector(`[data-send-select="${emailId}"]`)
+      const toInbox = select?.value
+      if (!toInbox) return
+
+      if (!confirm(`Forward this email to ${toInbox}?`)) return
+
+      btn.disabled = true
+      btn.textContent = 'Sending...'
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+
+        const res = await fetch(`${API}/api/forward`, {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ emailId, toInbox })
+        })
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || `Server returned ${res.status}`)
+        }
+
+        await supabase
+          .from('email_cache')
+          .update({
+            forward_sent: true,
+            forwarded_to: toInbox,
+            routed_to:    toInbox,
+            status:       'assigned'
+          })
+          .eq('id', emailId)
+
+        await supabase.from('email_actions').insert({
+          email_id:     emailId,
+          action_type:  'forwarded',
+          actor:        'human',
+          performed_by: user.id,
+          forwarded_to: toInbox
+        })
+
+        await loadHeld()
+        await loadRecent()
+
+      } catch (err) {
+        alert('Could not forward that email: ' + (err.message || String(err)))
+        btn.disabled = false
+        btn.textContent = 'Send'
+      }
+    }
+
+    // =========================================================================
+    // RECENT DECISIONS
+    // =========================================================================
+    async function loadRecent() {
+      const { data, error } = await supabase
+        .from('email_cache')
+        .select('id, subject, from_name, from_address, received_at, routed_to, routing_reason, routing_confidence, routing_source, forward_sent')
+        .eq('to_address', settings?.source_inbox || 'hello@bpmsd.com')
+        .not('routed_at', 'is', null)
+        .order('routed_at', { ascending: false })
+        .limit(40)
+
+      const el = document.getElementById('recentList')
+      if (error) {
+        el.innerHTML = `<div class="empty-note">Could not load: ${escHtml(error.message)}</div>`
+        return
+      }
+
+      document.getElementById('recentCount').textContent = (data || []).length
+
+      if (!data || data.length === 0) {
+        el.innerHTML = `<div class="empty-note">Nothing has been classified yet. New mail shows up here within a minute of arriving.</div>`
+        return
+      }
+
+      el.innerHTML = data.map(e => {
+        const dest = e.routed_to === 'none'
+          ? '<span class="badge badge-gray">Junk — not assigned</span>'
+          : `<strong>${escHtml(e.routed_to || 'undecided')}</strong>`
+
+        const sent = e.forward_sent
+          ? '<span class="badge badge-green">Sent</span>'
+          : (settings?.shadow_mode ? '<span class="badge badge-yellow">Trial — not sent</span>' : '')
+
+        const how = e.routing_source === 'rule'
+          ? '<span class="badge badge-blue">Your rule</span>'
+          : e.routing_source === 'error'
+            ? '<span class="badge badge-red">Failed</span>'
+            : '<span class="badge badge-purple">AI</span>'
+
+        return `
+          <div class="decision">
+            <div class="decision-top">
+              <div>
+                <div class="decision-subject">${escHtml(e.subject || '(no subject)')}</div>
+                <div class="decision-from">${escHtml(e.from_name || e.from_address)} — ${fmtDate(e.received_at)}</div>
+              </div>
+              <div class="flex gap-8 items-center flex-wrap">
+                ${how} ${confidenceBadge(e.routing_confidence)} ${sent}
+              </div>
+            </div>
+            <div class="decision-reason">
+              <span class="arrow">&rarr;</span>${dest} — ${escHtml(e.routing_reason || '')}
+            </div>
+            <div class="decision-actions">
+              <a class="btn btn-secondary btn-sm" href="email-detail.html?id=${e.id}">Open</a>
+            </div>
+          </div>`
+      }).join('')
+    }
+
+    // =========================================================================
+    // UNSUBSCRIBE LIST
+    // =========================================================================
+    async function loadUnsub() {
+      const { data, error } = await supabase
+        .from('email_cache')
+        .select('id, subject, from_name, from_address, received_at')
+        .eq('needs_unsubscribe', true)
+        .neq('status', 'handled')
+        .order('received_at', { ascending: false })
+        .limit(40)
+
+      const el = document.getElementById('unsubList')
+      if (error) {
+        el.innerHTML = `<div class="empty-note">Could not load: ${escHtml(error.message)}</div>`
+        return
+      }
+
+      document.getElementById('unsubCount').textContent = (data || []).length
+
+      if (!data || data.length === 0) {
+        el.innerHTML = `<div class="empty-note">Nothing to unsubscribe from right now.</div>`
+        return
+      }
+
+      el.innerHTML = data.map(e => `
+        <div class="decision">
+          <div class="decision-top">
+            <div>
+              <div class="decision-subject">${escHtml(e.subject || '(no subject)')}</div>
+              <div class="decision-from">${escHtml(e.from_name || e.from_address)} — ${fmtDate(e.received_at)}</div>
+            </div>
+          </div>
+          <div class="decision-actions">
+            <a class="btn btn-secondary btn-sm" href="email-detail.html?id=${e.id}">Open &amp; Unsubscribe</a>
+            <button class="btn btn-primary btn-sm" data-unsub-done="${e.id}">Mark Done</button>
+          </div>
+        </div>
+      `).join('')
+
+      el.querySelectorAll('[data-unsub-done]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const { error } = await supabase
+            .from('email_cache')
+            .update({ needs_unsubscribe: false, status: 'handled' })
+            .eq('id', btn.dataset.unsubDone)
+          if (error) return alert('Could not update that: ' + error.message)
+          await loadUnsub()
+        })
+      })
+    }
+
+    // =========================================================================
+    // AI INSTRUCTIONS
+    // =========================================================================
+    async function savePrompt() {
+      const value = document.getElementById('promptBox').value.trim()
+      if (!value) return alert('The instructions cannot be empty.')
+
+      const { error } = await supabase
+        .from('routing_settings')
+        .update({ ai_prompt: value })
+        .eq('id', 1)
+
+      const note = document.getElementById('promptSaved')
+      if (error) {
+        note.textContent = 'Could not save: ' + error.message
+        return
+      }
+      note.textContent = 'Saved. It takes effect on the next run.'
+      setTimeout(() => { note.textContent = '' }, 5000)
+    }
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+    function fillInboxSelect(el, { includeNone = true } = {}) {
+      if (!el) return
+      el.innerHTML = INBOXES
+        .filter(([value]) => includeNone || value !== 'none')
+        .map(([value, label]) => `<option value="${value}">${escHtml(label)}</option>`)
+        .join('')
+    }
+
+    function destLabel(value) {
+      const found = INBOXES.find(([v]) => v === value)
+      return found ? found[1] : value
+    }
+
+    function confidenceBadge(level) {
+      if (level === 'high')   return '<span class="badge badge-green">Confident</span>'
+      if (level === 'medium') return '<span class="badge badge-yellow">Fairly sure</span>'
+      if (level === 'low')    return '<span class="badge badge-red">Unsure</span>'
+      return ''
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return ''
+      return new Date(iso).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+      })
+    }
+
+    function escHtml(str) {
+      if (str == null) return ''
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+  </script>
+
+</body>
+</html>

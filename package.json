@@ -13,6 +13,7 @@
     "import:rent-roll": "node src/portfolio/import-rent-roll.js",
     "auth:gmail": "node src/email/gmail-auth.js",
     "sync:email": "node src/email/sync.js",
+    "route:hello": "node src/email/classify.js",
     "import:notion": "node src/import/notion-import.js",
     "import:owners-csv": "node src/portfolio/import-owners-csv.js",
     "score:owners": "node src/owners/score-owners.js",
