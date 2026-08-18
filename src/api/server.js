@@ -65,8 +65,15 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// QBO OAuth callback — registered BEFORE auth middleware so Intuit's browser redirect works.
-// (The requireAuth middleware on /api/cfo would block Intuit's redirect, which has no Bearer token.)
+// QBO OAuth routes — registered BEFORE auth middleware so the browser can reach them directly.
+// (The requireAuth middleware on /api/cfo would block both the auth redirect and Intuit's callback.)
+app.get('/api/cfo/qbo/auth', (_req, res) => {
+  if (!qboConfigured()) {
+    return res.status(503).send('QBO not configured — add QBO_CLIENT_ID and QBO_CLIENT_SECRET to Render environment variables')
+  }
+  res.redirect(qboGetAuthUrl())
+})
+
 app.get('/api/cfo/qbo/callback', async (req, res) => {
   const { code, realmId, error: oauthError } = req.query
   if (oauthError) {
@@ -788,16 +795,6 @@ app.get('/api/cfo/qbo/status', async (_req, res) => {
     console.error('GET /api/cfo/qbo/status error:', err.message)
     res.json({ configured: false, connected: false, last_sync: null, cash_total: null, investment_total: null })
   }
-})
-
-// GET /api/cfo/qbo/auth
-// Redirects the browser to the QuickBooks OAuth 2.0 login page.
-// After Danyel authorizes, Intuit redirects to /api/cfo/qbo/callback.
-app.get('/api/cfo/qbo/auth', (_req, res) => {
-  if (!qboConfigured()) {
-    return res.status(503).send('QBO not configured — add QBO_CLIENT_ID and QBO_CLIENT_SECRET to .env')
-  }
-  res.redirect(qboGetAuthUrl())
 })
 
 // GET /api/cfo/qbo/sync
