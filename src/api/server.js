@@ -68,15 +68,15 @@ app.use(express.json())
 // QBO OAuth callback — registered BEFORE auth middleware so Intuit's browser redirect works.
 // (The requireAuth middleware on /api/cfo would block Intuit's redirect, which has no Bearer token.)
 app.get('/api/cfo/qbo/callback', async (req, res) => {
-  const { code, error: oauthError } = req.query
+  const { code, realmId, error: oauthError } = req.query
   if (oauthError) {
     console.error('[QBO callback] OAuth error from Intuit:', oauthError)
     return res.redirect('/cfo-dashboard?qbo=error')
   }
   if (!code) return res.status(400).send('Missing authorization code from Intuit')
   try {
-    await qboExchangeCode(code)
-    console.log('[QBO] Authorization successful — tokens stored in qbo-token.json')
+    await qboExchangeCode(code, realmId)
+    console.log(`[QBO] Authorization successful — realm ${realmId} stored in qbo-token.json`)
     res.redirect('/cfo-dashboard?qbo=connected')
   } catch (err) {
     console.error('[QBO callback] token exchange error:', err.message)
@@ -795,7 +795,7 @@ app.get('/api/cfo/qbo/status', async (_req, res) => {
 // After Danyel authorizes, Intuit redirects to /api/cfo/qbo/callback.
 app.get('/api/cfo/qbo/auth', (_req, res) => {
   if (!qboConfigured()) {
-    return res.status(503).send('QBO not configured — add QBO_CLIENT_ID, QBO_CLIENT_SECRET, QBO_REALM_ID to .env')
+    return res.status(503).send('QBO not configured — add QBO_CLIENT_ID and QBO_CLIENT_SECRET to .env')
   }
   res.redirect(qboGetAuthUrl())
 })

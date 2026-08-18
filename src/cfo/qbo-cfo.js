@@ -27,12 +27,12 @@ const QBO_API_BASE = process.env.QBO_SANDBOX === 'true'
   ? 'https://sandbox-quickbooks.api.intuit.com'
   : 'https://quickbooks.api.intuit.com'
 
-// Returns true if the three required env vars are set.
+// Returns true if the two required env vars are set.
+// QBO_REALM_ID is captured automatically from the OAuth callback — not required upfront.
 export function isConfigured() {
   return !!(
     process.env.QBO_CLIENT_ID &&
-    process.env.QBO_CLIENT_SECRET &&
-    process.env.QBO_REALM_ID
+    process.env.QBO_CLIENT_SECRET
   )
 }
 
@@ -62,8 +62,9 @@ export function getAuthUrl() {
 }
 
 // Exchanges the one-time authorization code for access + refresh tokens.
+// realmId comes from Intuit's OAuth callback query string — saved to qbo-token.json.
 // Stores tokens in qbo-token.json. Returns { access_token, refresh_token, expires_in }.
-export async function exchangeCodeForToken(code) {
+export async function exchangeCodeForToken(code, realmId) {
   const credentials = Buffer.from(
     `${process.env.QBO_CLIENT_ID}:${process.env.QBO_CLIENT_SECRET}`
   ).toString('base64')
@@ -96,6 +97,7 @@ export async function exchangeCodeForToken(code) {
     refresh_token: data.refresh_token,
     expires_in:    data.expires_in,
     fetched_at:    Date.now(),
+    realm_id:      realmId,
   }, null, 2))
 
   return {
@@ -142,11 +144,13 @@ export async function refreshAccessToken() {
   const data = await res.json()
 
   // Intuit may return a new refresh_token; fall back to the stored one if not.
+  // Preserve realm_id so it survives token refreshes.
   await writeFile(TOKEN_FILE, JSON.stringify({
     access_token:  data.access_token,
     refresh_token: data.refresh_token || stored.refresh_token,
     expires_in:    data.expires_in,
     fetched_at:    Date.now(),
+    realm_id:      stored.realm_id,
   }, null, 2))
 
   return data.access_token
@@ -156,7 +160,12 @@ export async function refreshAccessToken() {
 // Returns array of { name, accountType, accountSubType, currentBalance }.
 export async function getAccountBalances() {
   const accessToken = await refreshAccessToken()
-  const realmId     = process.env.QBO_REALM_ID
+
+  // realm_id is captured during OAuth and stored in the token file.
+  const raw     = await readFile(TOKEN_FILE, 'utf-8')
+  const stored  = JSON.parse(raw)
+  const realmId = stored.realm_id || process.env.QBO_REALM_ID
+  if (!realmId) throw new Error('QBO realm_id not found — reconnect QBO via the dashboard')
 
   const query = 'SELECT * FROM Account WHERE Active = true'
   const url   = `${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=65`
