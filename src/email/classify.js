@@ -45,6 +45,11 @@ const MODEL = 'claude-haiku-4-5-20251001'
 // large batch arrives at once — the leftovers are picked up a minute later.
 const BATCH_SIZE = 25
 
+// If more than this many emails get forwarded in an hour, something is looping.
+// Routing switches itself off rather than carry on sending. hello@ receives a
+// few dozen emails on a busy day, so this is far above anything legitimate.
+const MAX_FORWARDS_PER_HOUR = 60
+
 // =============================================================================
 // MAIN
 // =============================================================================
@@ -65,6 +70,10 @@ async function run() {
   console.log(settings.shadow_mode
     ? 'Mode:  SHADOW — decisions are recorded, nothing is sent'
     : 'Mode:  LIVE — high-confidence emails will be forwarded')
+
+  // Check for a runaway before doing anything else. If this fires it has
+  // already switched routing off, so there is nothing more to do this run.
+  if (!settings.shadow_mode && await runawayCheck()) return
 
   const rules  = await loadRules()
   const emails = await loadUnroutedEmails(settings)
@@ -385,15 +394,30 @@ async function loadRules() {
 /**
  * New mail waiting on a decision.
  *
- * classify_from is the guard that matters here: it is set to the moment the
- * migration ran, so the years of existing hello@ history already sitting in
- * email_cache are never picked up and never forwarded.
+ * Three filters here, and every one of them matters:
+ *
+ *   in_inbox = true
+ *     The email sync pulls a mailbox's SENT messages as well as its received
+ *     ones. Without this filter, every email this script forwards comes back
+ *     round as "new mail in hello@" on the next sync and gets forwarded again,
+ *     which loops forever and grows each pass. That is exactly what happened on
+ *     2026-08-18: one HOA email became 2,061 copies in Claudette's inbox.
+ *
+ *   from_address is not the inbox itself
+ *     A second, independent guard against the same loop, in case in_inbox is
+ *     ever missing or wrong on a row.
+ *
+ *   received_at >= classify_from
+ *     Set to the moment the migration ran, so the years of hello@ history
+ *     already in email_cache are never picked up.
  */
 async function loadUnroutedEmails(settings) {
   const { data, error } = await supabase
     .from('email_cache')
     .select('id, subject, from_address, from_name, to_address, m365_message_id, body_preview, body_html, received_at')
     .eq('to_address', settings.source_inbox)
+    .eq('in_inbox', true)
+    .neq('from_address', settings.source_inbox)
     .is('routed_at', null)
     .gte('received_at', settings.classify_from)
     .order('received_at', { ascending: true })
@@ -401,6 +425,35 @@ async function loadUnroutedEmails(settings) {
 
   if (error) throw new Error('Could not load emails: ' + error.message)
   return data || []
+}
+
+/**
+ * The runaway brake.
+ *
+ * Counts how many emails were actually forwarded in the last hour. If that
+ * number is unreasonable for a single inbox, something is looping — switch the
+ * whole system off and stop, rather than keep sending.
+ *
+ * A real hello@ never produces this much traffic. If this ever fires, it is a
+ * bug, not a busy morning.
+ */
+async function runawayCheck() {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+
+  const { count } = await supabase
+    .from('email_actions')
+    .select('*', { count: 'exact', head: true })
+    .eq('action_type', 'auto_forwarded')
+    .gte('performed_at', oneHourAgo)
+
+  if ((count ?? 0) < MAX_FORWARDS_PER_HOUR) return false
+
+  console.error('')
+  console.error(`STOPPING: ${count} emails forwarded in the last hour, which is far past the limit of ${MAX_FORWARDS_PER_HOUR}.`)
+  console.error('That means something is looping. Switching routing off.')
+
+  await supabase.from('routing_settings').update({ enabled: false }).eq('id', 1)
+  return true
 }
 
 // =============================================================================

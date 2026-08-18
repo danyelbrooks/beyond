@@ -568,6 +568,10 @@
         .from('email_cache')
         .select('id, subject, from_name, from_address, received_at, routed_to, routing_reason, routing_confidence, routing_source')
         .eq('to_address', settings?.source_inbox || 'hello@bpmsd.com')
+        // Only real received mail. The sync also stores the inbox's own sent
+        // messages, which are not emails anyone needs to triage.
+        .eq('in_inbox', true)
+        .neq('from_address', settings?.source_inbox || 'hello@bpmsd.com')
         .not('routed_at', 'is', null)
         .eq('forward_sent', false)
         .in('routing_confidence', ['medium', 'low'])
@@ -692,6 +696,9 @@
         .from('email_cache')
         .select('id, subject, from_name, from_address, received_at, routed_to, routing_reason, routing_confidence, routing_source, forward_sent')
         .eq('to_address', settings?.source_inbox || 'hello@bpmsd.com')
+        // Same filter as above — sent messages are not decisions worth reading.
+        .eq('in_inbox', true)
+        .neq('from_address', settings?.source_inbox || 'hello@bpmsd.com')
         .not('routed_at', 'is', null)
         .order('routed_at', { ascending: false })
         .limit(40)
