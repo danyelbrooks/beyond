@@ -20,7 +20,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TOKEN_FILE = path.resolve(__dirname, '../../qbo-token.json')
 
 const QBO_TOKEN_URL  = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
-const QBO_REDIRECT   = 'http://localhost:3005/api/cfo/qbo/callback'
+const QBO_REDIRECT   = process.env.QBO_REDIRECT_URI || 'http://localhost:3005/api/cfo/qbo/callback'
 const QBO_SCOPE      = 'com.intuit.quickbooks.accounting'
 
 const QBO_API_BASE = process.env.QBO_SANDBOX === 'true'
