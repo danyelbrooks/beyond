@@ -1195,6 +1195,54 @@ app.patch('/api/insurance/projects/:id', async (req, res) => {
 })
 
 // =============================================================================
+// KPI — GOOGLE REVIEWS AUTO-FETCH
+// =============================================================================
+
+// GET /api/kpi/google-reviews
+// Returns current Google rating + review count for BPM SD and BPM Encinitas.
+// Uses Places Text Search to find each location, then Details for rating.
+app.get('/api/kpi/google-reviews', async (_req, res) => {
+  const key = process.env.GOOGLE_PLACES_API_KEY
+  if (!key) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not set' })
+
+  const locations = [
+    { label: 'San Diego',  query: 'Beyond Property Management San Diego CA' },
+    { label: 'Encinitas',  query: 'Beyond Property Management Encinitas CA' },
+  ]
+
+  async function fetchPlace(query) {
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${key}`
+    const searchRes = await fetch(searchUrl)
+    const searchData = await searchRes.json()
+    const place = searchData.results?.[0]
+    if (!place) return null
+
+    const detailUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=rating,user_ratings_total,name&key=${key}`
+    const detailRes = await fetch(detailUrl)
+    const detailData = await detailRes.json()
+    return detailData.result || null
+  }
+
+  try {
+    const [sd, enc] = await Promise.all(locations.map(l => fetchPlace(l.query)))
+
+    const ratings = [sd, enc].filter(Boolean).map(p => p.rating).filter(Boolean)
+    const avgRating = ratings.length ? +(ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null
+    const totalReviews = [sd, enc].filter(Boolean).reduce((sum, p) => sum + (p.user_ratings_total || 0), 0)
+
+    res.json({
+      san_diego:    sd  ? { rating: sd.rating,  reviews: sd.user_ratings_total,  name: sd.name  } : null,
+      encinitas:    enc ? { rating: enc.rating, reviews: enc.user_ratings_total, name: enc.name } : null,
+      avg_rating:   avgRating,
+      total_reviews: totalReviews,
+    })
+  } catch (err) {
+    console.error('GET /api/kpi/google-reviews error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// =============================================================================
 // KPI PROOF LOG
 // =============================================================================
 

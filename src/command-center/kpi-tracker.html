@@ -392,6 +392,10 @@
   <script type="module">
     import { supabase, requireAuth, renderHeader, renderSidebar } from './auth.js'
 
+    const API = window.location.hostname === 'localhost'
+      ? 'http://localhost:3005'
+      : 'https://bpm-api-ul3v.onrender.com'
+
     // =========================================================================
     // BOOT
     // =========================================================================
@@ -404,7 +408,7 @@
     renderSidebar('kpi-tracker', profile.role, user.email)
 
     buildWeekDropdown()
-    await loadAll()
+    await Promise.all([loadAll(), fetchGoogleReviews()])
 
     document.getElementById('monthSelect').addEventListener('change', loadAll)
 
@@ -895,6 +899,45 @@
     }
 
     // =========================================================================
+    // =========================================================================
+    // GOOGLE REVIEWS AUTO-FETCH
+    // =========================================================================
+    async function fetchGoogleReviews() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) return
+
+        const res = await fetch(`${API}/api/kpi/google-reviews`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (!data.avg_rating) return
+
+        // Auto-insert into kpi_entries for current week so cards render colored
+        const week = document.getElementById('monthSelect').value
+        const rows = []
+
+        if (data.avg_rating != null) {
+          rows.push({
+            reporting_month: week, category: 'business_dev',
+            metric_key: 'google_rating', metric_value: data.avg_rating,
+            entered_by: 'auto'
+          })
+        }
+
+        if (rows.length > 0) {
+          await supabase.from('kpi_entries')
+            .upsert(rows, { onConflict: 'reporting_month,category,metric_key' })
+          // Reload the business_dev tab to show the new value
+          await loadAll()
+        }
+      } catch (err) {
+        console.warn('Google reviews fetch failed (non-fatal):', err.message)
+      }
+    }
+
     // CARD STATUS — returns CSS class for full card background
     // =========================================================================
     function statusClass(value, target, direction) {
