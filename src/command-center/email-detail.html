@@ -373,6 +373,7 @@
 
     .action-msg.success { background: #d1fae5; color: #065f46; display: block; }
     .action-msg.error   { background: #fee2e2; color: #991b1b; display: block; }
+    .action-msg.warning { background: #fef3c7; color: #92400e; display: block; }
 
     .reply-note {
       font-size: 0.75rem;
@@ -1562,16 +1563,25 @@
       await refreshHistory()
 
       if (newStatus === 'handled') {
-        showMsg(msg, 'success', 'Resolved. Loading next email…')
-        // Fire-and-forget: remove INBOX label in Gmail so it stays out of the inbox
-        apiHeaders().then(headers =>
-          fetch(`${API}/api/archive`, {
+        showMsg(msg, 'success', 'Resolved. Archiving in Gmail…')
+        // Remove INBOX label in Gmail — wait for it and show a warning if it fails
+        try {
+          const headers = await apiHeaders()
+          const archiveRes = await fetch(`${API}/api/archive`, {
             method:  'POST',
             headers,
             body:    JSON.stringify({ emailId })
           })
-        ).catch(err => console.warn('Archive (non-fatal):', err.message))
-        setTimeout(goToNextEmail, 800)
+          if (archiveRes.ok) {
+            showMsg(msg, 'success', 'Resolved. Loading next email…')
+          } else {
+            const errBody = await archiveRes.json().catch(() => ({}))
+            showMsg(msg, 'warning', `Resolved in dashboard, but Gmail archive failed: ${errBody.error || archiveRes.status}`)
+          }
+        } catch (err) {
+          showMsg(msg, 'warning', `Resolved in dashboard, but could not reach API server: ${err.message}`)
+        }
+        setTimeout(goToNextEmail, 1500)
       } else {
         showMsg(msg, 'success', 'Reopened.')
       }
