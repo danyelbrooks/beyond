@@ -348,7 +348,7 @@ app.post(
   async (req, res) => {
     const {
       propertyAddress, shortAddress, ownerName, ownerEmail, ownerPhone,
-      agreementType, units = 1, ownerFirstName, ownerMailingAddress,
+      agreementType, agreementExisting = false, units = 1, ownerFirstName, ownerMailingAddress,
       entityType = 'individual', apn, appfolioOwnerId,
       managementStartDate, agreementTerminationDate,
     } = req.body
@@ -395,7 +395,7 @@ app.post(
     // 2. Insert 7 step rows
     // Step 4 (entity docs) is skipped for individuals
     const stepDefs = [
-      { step_number: 1, step_name: 'Management Agreement',    status: 'not_started' },
+      { step_number: 1, step_name: 'Management Agreement',    status: agreementExisting ? 'complete' : 'not_started' },
       { step_number: 2, step_name: 'Property Questionnaire',  status: 'not_started' },
       { step_number: 3, step_name: 'Tax Forms (W-9 & CA)',    status: 'not_started' },
       { step_number: 4, step_name: 'Entity Documents',        status: entityType === 'individual' ? 'skipped' : 'not_started' },
@@ -427,8 +427,8 @@ app.post(
       // Non-fatal — onboarding still created, Drive folder can be created manually
     }
 
-    // 4. Generate filled agreement PDF (Draft) and save to Drive
-    if (folderId) {
+    // 4. Generate filled agreement PDF (Draft) and save to Drive — skip if owner already has a signed agreement
+    if (folderId && !agreementExisting) {
       try {
         const agreementLabel   = agreementType === 'full_management' ? 'Management Agreement' : 'Lease Listing Agreement'
         const draftName        = `${sa} ${agreementLabel} (Draft).pdf`

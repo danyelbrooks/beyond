@@ -306,14 +306,22 @@
 
       <!-- Agreement Type -->
       <div class="onb-section-title">Agreement Type</div>
-      <div class="radio-group">
+      <div class="radio-group" style="flex-direction:column;align-items:flex-start;gap:10px">
         <label>
           <input type="radio" name="agreement-type" value="full_management" checked />
-          Full Management Agreement
+          Generate Management Agreement (owner signs online)
         </label>
         <label>
           <input type="radio" name="agreement-type" value="tenant_placement" />
-          Tenant Placement Only (Lease Listing)
+          Generate Tenant Placement Agreement (owner signs online)
+        </label>
+        <label>
+          <input type="radio" name="agreement-type" value="full_management_existing" />
+          Already have signed Management Agreement (skip to Questionnaire)
+        </label>
+        <label>
+          <input type="radio" name="agreement-type" value="tenant_placement_existing" />
+          Already have signed Tenant Placement Agreement (skip to Questionnaire)
         </label>
       </div>
 
@@ -502,7 +510,9 @@
     const appfolioOwnerId  = existingOwner ? document.getElementById('appfolio-owner-id').value.trim() : null
     const units            = parseInt(document.getElementById('units').value) || 1
     const entityType      = document.getElementById('entity-type').value
-    const agreementType   = document.querySelector('input[name="agreement-type"]:checked').value
+    const rawAgreementType  = document.querySelector('input[name="agreement-type"]:checked').value
+    const agreementExisting = rawAgreementType.endsWith('_existing')
+    const agreementType     = rawAgreementType.replace('_existing', '')
     const startDate       = document.getElementById('start-date').value || null
     const endDate         = document.getElementById('end-date').value   || null
     const shortAddress    = generateShortAddress(propertyAddress, ownerFirstName || ownerName, units)
@@ -527,6 +537,7 @@
           ownerFirstName:      ownerFirstName || ownerName.split(' ')[0],
           ownerMailingAddress: mailingAddress,
           agreementType,
+          agreementExisting,
           units,
           entityType,
           apn,
