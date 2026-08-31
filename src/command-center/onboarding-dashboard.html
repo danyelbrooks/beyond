@@ -332,15 +332,24 @@
   }
 
   async function loadData() {
+    const controller = new AbortController()
+    const wakeTimer  = setTimeout(() => {
+      document.getElementById('onb-tbody').innerHTML =
+        `<tr><td colspan="7"><div class="empty-state"><h3>Server is warming up</h3><p>This takes up to 60 seconds after a period of inactivity.</p><p style="margin-top:12px"><button class="btn btn-primary" onclick="location.reload()">Refresh</button></p></div></td></tr>`
+    }, 15000)
+
     try {
-      const res  = await fetch(`${API}/api/onboarding/list`, { headers: authHeaders() })
+      const res  = await fetch(`${API}/api/onboarding/list`, { headers: authHeaders(), signal: controller.signal })
+      clearTimeout(wakeTimer)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       allRows = data
       renderTable()
     } catch (err) {
+      clearTimeout(wakeTimer)
+      if (err.name === 'AbortError') return
       document.getElementById('onb-tbody').innerHTML =
-        `<tr><td colspan="7"><div class="empty-state"><h3>Failed to load</h3><p>${err.message}</p><p style="margin-top:8px;font-size:0.8rem">Is the onboarding server running on port 3006?</p></div></td></tr>`
+        `<tr><td colspan="7"><div class="empty-state"><h3>Failed to load</h3><p>${err.message}</p></div></td></tr>`
     }
   }
 
