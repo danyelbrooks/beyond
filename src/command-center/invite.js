@@ -64,7 +64,8 @@ try {
   const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
     email,
     {
-      data: { display_name: displayName }
+      data: { display_name: displayName },
+      redirectTo: 'https://app.bpmsd.com',
     }
   )
 
