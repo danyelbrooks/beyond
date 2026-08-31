@@ -127,6 +127,19 @@ export function renderSidebar(activeItem, role, email) {
     return
   }
 
+  // info@ — restricted to Onboarding, Email Triage, and KPI Dashboard only
+  if (email === 'info@bpmsd.com') {
+    el.innerHTML = `
+      <div class="nav-section-label">Navigation</div>
+      ${link('email-triage.html',         'Email Triage', 'email-triage')}
+      ${link('onboarding-dashboard.html', 'Onboarding',   'onboarding-dashboard')}
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Analytics</div>
+      ${link('team-scorecard.html', 'KPI Dashboard', 'team-scorecard')}
+    `
+    return
+  }
+
   // KPI Entry — only visible to the data entry user
   const kpiEntryLink = email === 'care@bpmsd.com'
     ? link('kpi-entry.html', 'KPI Entry', 'kpi-entry')
