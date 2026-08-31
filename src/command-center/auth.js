@@ -127,10 +127,11 @@ export function renderSidebar(activeItem, role, email) {
     return
   }
 
-  // info@ — restricted to Onboarding, Email Triage, and KPI Dashboard only
+  // info@ — restricted to Dashboard, Onboarding, Email Triage, and KPI Dashboard only
   if (email === 'info@bpmsd.com') {
     el.innerHTML = `
       <div class="nav-section-label">Navigation</div>
+      ${link('dashboard.html',            'Dashboard',    'dashboard')}
       ${link('email-triage.html',         'Email Triage', 'email-triage')}
       ${link('onboarding-dashboard.html', 'Onboarding',   'onboarding-dashboard')}
       <div class="nav-divider"></div>
