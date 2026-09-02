@@ -796,13 +796,13 @@ function renderStep1() {
 
       <div id="agreement-content" style="border:1px solid var(--bpm-border);border-radius:6px;overflow:hidden;margin-bottom:20px;">
         <iframe
-          src="/api/onboard/templates/agreement/${state.agreementType}"
+          src="${API}/api/onboard/${getToken()}/agreement.pdf"
           style="width:100%;height:600px;border:none;display:block;"
           title="${escHtml(agreementLabel)}"
         >
           <p style="padding:20px;color:var(--bpm-muted);">
             Your browser cannot display PDFs inline.
-            <a href="/api/onboard/templates/agreement/${state.agreementType}" target="_blank">Click here to open the agreement</a>.
+            <a href="${API}/api/onboard/${getToken()}/agreement.pdf" target="_blank">Click here to open the agreement</a>.
           </p>
         </iframe>
       </div>

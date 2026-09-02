@@ -92,6 +92,40 @@ export async function createSubfolder(folderName) {
  * @param {string} folderId    Owner's Google Drive folder ID
  * @returns {Promise<{ fileId: string, webViewLink: string }>}
  */
+/**
+ * Convert a DOCX buffer to PDF via Google Drive without saving to any folder.
+ * Uploads as a temporary Google Doc, exports as PDF, deletes the temp doc.
+ */
+export async function docxBufferToPdf(docxBuffer) {
+  const auth  = await getAuth()
+  const drive = google.drive({ version: 'v3', auth })
+
+  const uploadStream = new Readable()
+  uploadStream.push(docxBuffer)
+  uploadStream.push(null)
+
+  const uploaded = await drive.files.create({
+    supportsAllDrives: true,
+    requestBody: { name: 'tmp-agreement', mimeType: 'application/vnd.google-apps.document' },
+    media: {
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      body:     uploadStream,
+    },
+    fields: 'id',
+  })
+
+  const tempDocId = uploaded.data.id
+  try {
+    const exported = await drive.files.export(
+      { fileId: tempDocId, mimeType: 'application/pdf' },
+      { responseType: 'arraybuffer' }
+    )
+    return Buffer.from(exported.data)
+  } finally {
+    await drive.files.delete({ fileId: tempDocId, supportsAllDrives: true }).catch(() => {})
+  }
+}
+
 export async function uploadDocxAsPdf(docxBuffer, pdfFilename, folderId) {
   const auth  = await getAuth()
   const drive = google.drive({ version: 'v3', auth })

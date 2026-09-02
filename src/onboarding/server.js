@@ -21,7 +21,7 @@ import { createReadStream, existsSync } from 'fs'
 
 import { generateToken }             from './token.js'
 import { lookupByAddress, lookupByApn, lookupPropertyDetails, lookupFloodZone } from './arcgis.js'
-import { createSubfolder, uploadBuffer, uploadDocxAsPdf } from './drive-uploader.js'
+import { createSubfolder, uploadBuffer, uploadDocxAsPdf, docxBufferToPdf } from './drive-uploader.js'
 import {
   generateSignatureCertificate,
   generateW9,
@@ -1542,6 +1542,23 @@ app.post('/api/onboard/:token/upload-document', requireToken, upload.single('fil
 
 // =============================================================================
 // AGREEMENT TEMPLATE SERVING
+// GET /api/onboard/:token/agreement.pdf — filled agreement for owner preview
+// Generates the filled DOCX on-demand and converts to PDF via Google Drive.
+// =============================================================================
+app.get('/api/onboard/:token/agreement.pdf', requireToken, async (req, res) => {
+  try {
+    const ob = req.onboarding
+    const docxBuffer = await generateFilledAgreement(ob)
+    const pdfBuffer  = await docxBufferToPdf(docxBuffer)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', 'inline; filename="agreement.pdf"')
+    res.send(pdfBuffer)
+  } catch (err) {
+    console.error('[agreement.pdf]', err.message)
+    res.status(500).json({ error: 'Failed to generate agreement preview' })
+  }
+})
+
 // Serve placeholder PDFs from src/onboarding/templates/
 // Place pma.pdf and lease-listing.pdf here when ready.
 // =============================================================================
