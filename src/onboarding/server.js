@@ -126,7 +126,7 @@ async function requireAuth(req, res, next) {
   // Accept static API key for staff command center
   const apiKey = process.env.ONBOARDING_API_KEY
   if (apiKey && token === apiKey) {
-    req.user = { id: 'staff', email: 'staff@bpmsd.com' }
+    req.user = { id: null, email: 'staff@bpmsd.com' }
     return next()
   }
 
