@@ -867,6 +867,20 @@ async function submitStep1() {
 }
 
 // =============================================================================
+// TENANT PLACEMENT MODE — hides fields not needed for placement-only agreements
+// =============================================================================
+
+function applyTenantPlacementMode() {
+  if (state.agreementType !== 'tenant_placement') return
+  const ids = ['tp-bank-o1','tp-bank-o2','tp-bank-o3','tp-bank-o4','tp-vendors']
+  ids.forEach(id => {
+    const el = document.getElementById(id)
+    if (el) el.style.display = 'none'
+  })
+  document.querySelectorAll('.tp-ca-tax').forEach(el => { el.style.display = 'none' })
+}
+
+// =============================================================================
 // STEP 2 — Property Questionnaire
 // =============================================================================
 
@@ -1751,6 +1765,7 @@ function renderStep2() {
         <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner1-state" value="${escHtml((state.ownerMailingAddress || '').split(',')[2]?.trim() || '')}" maxlength="2" /></div>
         <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner1-zip" value="${escHtml((state.ownerMailingAddress || '').split(',')[3]?.trim() || '')}" maxlength="10" /></div>
       </div>
+      <div id="tp-bank-o1">
       <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #1 Draw Information</div>
       <div class="info-box blue" style="margin-bottom:12px">This information is used to set up your owner distribution in AppFolio. It is transmitted securely and is not stored on our servers.</div>
       <div class="field-group">
@@ -1770,6 +1785,7 @@ function renderStep2() {
           <input type="text" id="owner-account" autocomplete="off" placeholder="Account number" />
         </div>
       </div>
+      </div>
       <div class="conditional" id="owner2-section">
         <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #2</div>
         <div class="field-row">
@@ -1786,6 +1802,7 @@ function renderStep2() {
           <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner2-state" maxlength="2" /></div>
           <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner2-zip" maxlength="10" /></div>
         </div>
+        <div id="tp-bank-o2">
         <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #2 Draw Information</div>
         <div class="field-group">
           <label>Account Type</label>
@@ -1804,6 +1821,7 @@ function renderStep2() {
             <input type="text" id="owner2-account" autocomplete="off" placeholder="Account number" />
           </div>
         </div>
+        </div>
       </div>
       <div class="conditional" id="owner3-section">
         <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #3</div>
@@ -1821,6 +1839,7 @@ function renderStep2() {
           <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner3-state" maxlength="2" /></div>
           <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner3-zip" maxlength="10" /></div>
         </div>
+        <div id="tp-bank-o3">
         <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #3 Draw Information</div>
         <div class="field-group">
           <label>Account Type</label>
@@ -1839,6 +1858,7 @@ function renderStep2() {
             <input type="text" id="owner3-account" autocomplete="off" placeholder="Account number" />
           </div>
         </div>
+        </div>
       </div>
       <div class="conditional" id="owner4-section">
         <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #4</div>
@@ -1856,6 +1876,7 @@ function renderStep2() {
           <div class="field-group" style="max-width:80px"><label>State</label><input type="text" id="owner4-state" maxlength="2" /></div>
           <div class="field-group" style="max-width:120px"><label>ZIP</label><input type="text" id="owner4-zip" maxlength="10" /></div>
         </div>
+        <div id="tp-bank-o4">
         <div style="font-size:0.78rem;font-weight:700;color:var(--bpm-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px">Owner #4 Draw Information</div>
         <div class="field-group">
           <label>Account Type</label>
@@ -1873,6 +1894,7 @@ function renderStep2() {
             <label>Account Number <span style="font-weight:400;color:var(--bpm-muted)">— For AppFolio setup only — not stored on our servers</span></label>
             <input type="text" id="owner4-account" autocomplete="off" placeholder="Account number" />
           </div>
+        </div>
         </div>
       </div>
       <div class="field-group">
@@ -1897,7 +1919,7 @@ function renderStep2() {
 
       <!-- SECTION 12: ADDITIONAL INFORMATION -->
       <div class="form-section-title">Additional Information</div>
-      <div class="field-group">
+      <div class="field-group" id="tp-vendors">
         <label>Preferred Vendors &amp; Contact Information</label>
         <div id="vendor-blocks-container">
           <div class="vendor-block" data-index="1" style="margin-bottom:10px">
@@ -2169,6 +2191,7 @@ function renderStep2() {
     container.appendChild(block)
   })
 
+  applyTenantPlacementMode()
   document.getElementById('btn-save-q').addEventListener('click', submitStep2)
   document.getElementById('btn-skip-2').addEventListener('click', () => skipStep(2))
 }
@@ -2670,6 +2693,7 @@ function renderStep3() {
         <input type="text" id="${prefix}exempt" placeholder="Leave blank if unsure" style="max-width:200px" />
       </div>
 
+      <div class="tp-ca-tax">
       <div class="form-section-title" style="margin-top:24px">California Tax Withholding</div>
       <div class="field-group">
         <label class="required">Are you a California resident for income tax purposes?</label>
@@ -2692,6 +2716,7 @@ function renderStep3() {
       </div>
       <div class="info-box" id="${prefix}ca-no-notice" style="display:none">
         As a non-CA resident, we are required to withhold a portion of owner distributions until the Franchise Tax Board approves a waiver. We will fax Form 588 to the FTB and notify you when your waiver is approved. This typically takes 21 business days.
+      </div>
       </div>
     `
   }
@@ -2774,6 +2799,7 @@ function renderStep3() {
     </div>
   `
 
+  applyTenantPlacementMode()
   buildSignatureWidget('sig-widget-3')
 
   // CA notice toggle — one per W-9 block
