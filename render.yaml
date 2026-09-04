@@ -101,3 +101,32 @@ services:
 
       - key: APPFOLIO_TRUST_ACCOUNT_ID
         value: "e6bec046-8097-11eb-8ad9-06457bb955b6"
+
+  # ============================================================
+  # Scorecard Sync — runs every Friday at 6am Pacific (1pm UTC)
+  # ============================================================
+  - type: cron
+    name: scorecard-sync-friday
+    runtime: node
+    schedule: "0 13 * * 5"
+    buildCommand: npm install
+    startCommand: node src/scorecard/sync-scorecard.js
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: APPFOLIO_DEVELOPER_ID
+        value: "ba023937-8784-11f1-8ce1-0a9c478fe029"
+
+      # Secrets — enter these manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: LEADSIMPLE_API_KEY
+        sync: false
+      - key: APPFOLIO_STACK_CLIENT_ID
+        sync: false
+      - key: APPFOLIO_STACK_CLIENT_SECRET
+        sync: false
