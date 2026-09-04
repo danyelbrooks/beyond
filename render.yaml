@@ -108,7 +108,7 @@ services:
   - type: cron
     name: scorecard-sync-friday
     runtime: node
-    schedule: "0 13 * * 5"
+    schedule: "0 1 * * 6"
     buildCommand: npm install
     startCommand: node src/scorecard/sync-scorecard.js
 
