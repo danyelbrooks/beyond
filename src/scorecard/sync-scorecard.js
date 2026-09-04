@@ -203,6 +203,8 @@ async function syncEmailCounts(weekStart) {
     nayelie:  'info@bpmsd.com',
   }
 
+  let teamTotal = 0
+
   for (const [personKey, email] of Object.entries(inboxMap)) {
     try {
       const { count, error } = await supabase
@@ -215,10 +217,14 @@ async function syncEmailCounts(weekStart) {
       if (error) throw error
       console.log(`  ${personKey} (${email}): ${count} emails`)
       await upsertEntry(weekStart, personKey, 'emails', count)
+      teamTotal += count || 0
     } catch (err) {
       console.warn(`  Warning — could not count emails for ${personKey}:`, err.message)
     }
   }
+
+  console.log(`  Team total emails: ${teamTotal}`)
+  await upsertEntry(weekStart, 'moira', 'team_total_emails', teamTotal)
   logSource('email_count', 'ok')
 }
 
