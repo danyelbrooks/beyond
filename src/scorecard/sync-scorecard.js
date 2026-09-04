@@ -539,6 +539,112 @@ async function syncCallAnswerRate(weekStart) {
   }
 }
 
+// ── SOURCE: resident_satisfaction ────────────────────────────────────────────
+// Pull active tenant deals from LeadSimple (AppFolio Tenants pipeline,
+// stages: Signed Lease + Notice). Map each resident's email to a team via
+// deal.assignee.email. Join to v_resident_health scores. Average per team
+// and convert the 0–100 health score to a 1–5 satisfaction scale.
+
+const LS_APPFOLIO_TENANTS_PIPELINE = '71ad644f-6562-4995-8fe1-b817ff94a685'
+const ACTIVE_STAGES = new Set(['Signed Lease', 'Notice'])
+
+async function fetchLSDealsAllPages(pipelineId) {
+  const rows = []
+  let page = 1
+  while (true) {
+    const res = await fetch(
+      `${LS_BASE}/deals?per_page=100&pipeline_id=${pipelineId}&page=${page}`,
+      { headers: { Authorization: `Bearer ${LS_KEY}` } }
+    )
+    const data  = await res.json()
+    const items = data.data || []
+    rows.push(...items)
+    if (!data.meta?.total_pages || page >= data.meta.total_pages) break
+    page++
+  }
+  return rows
+}
+
+async function syncResidentSatisfaction(weekStart) {
+  console.log('\n[resident_satisfaction] Scoring residents by team from LeadSimple…')
+  if (!LS_KEY) {
+    console.log('  No LEADSIMPLE_API_KEY — skipping.')
+    logSource('resident_satisfaction', 'skipped — no LEADSIMPLE_API_KEY')
+    return
+  }
+
+  const emailToTeam = {
+    'beyond@bpmsd.com':  'green_team',
+    'help@bpmsd.com':    'yellow_team',
+    'success@bpmsd.com': 'blue_team',
+  }
+  const teamToPersonKey = {
+    green_team:  'beyond',
+    yellow_team: 'rubin',
+    blue_team:   'mark',
+  }
+
+  try {
+    // Step 1: build resident email → team map from active LS deals
+    const deals = await fetchLSDealsAllPages(LS_APPFOLIO_TENANTS_PIPELINE)
+    const activeDeals = deals.filter(d => ACTIVE_STAGES.has(d.stage?.name))
+    console.log(`  Active deals (Signed Lease + Notice): ${activeDeals.length}`)
+
+    const emailTeamMap = {}
+    for (const deal of activeDeals) {
+      const team = emailToTeam[deal.assignee?.email?.toLowerCase()]
+      if (!team) continue
+      for (const contact of deal.contacts || []) {
+        for (const email of contact.emails || []) {
+          if (email) emailTeamMap[email.toLowerCase()] = team
+        }
+      }
+    }
+    console.log(`  Resident emails mapped to teams: ${Object.keys(emailTeamMap).length}`)
+
+    // Step 2: pull all resident health scores
+    const { data: healthRows, error } = await supabase
+      .from('v_resident_health')
+      .select('resident_email, score')
+      .not('resident_email', 'is', null)
+      .not('score', 'is', null)
+
+    if (error) throw error
+    console.log(`  Residents with health scores: ${healthRows.length}`)
+
+    // Step 3: group scores by team
+    const teamScores = { green_team: [], yellow_team: [], blue_team: [] }
+    let matched = 0
+
+    for (const row of healthRows) {
+      const email = row.resident_email?.toLowerCase()
+      const team  = email ? emailTeamMap[email] : null
+      if (!team) continue
+      teamScores[team].push(row.score)
+      matched++
+    }
+    console.log(`  Matched ${matched} residents to teams`)
+
+    // Step 4: average and convert 0–100 → 1–5 (one decimal)
+    for (const [team, scores] of Object.entries(teamScores)) {
+      const pk = teamToPersonKey[team]
+      if (scores.length === 0) {
+        console.log(`  ${pk} (${team}): no matched residents — skipping`)
+        continue
+      }
+      const avg100 = scores.reduce((a, b) => a + b, 0) / scores.length
+      const avg5   = parseFloat((avg100 / 20).toFixed(1))
+      console.log(`  ${pk} (${team}): ${scores.length} residents | avg score ${avg100.toFixed(0)}/100 = ${avg5}/5`)
+      await upsertEntry(weekStart, pk, 'resident_satisfaction', avg5)
+    }
+
+    logSource('resident_satisfaction', 'ok')
+  } catch (err) {
+    console.warn('  resident_satisfaction failed:', err.message)
+    logSource('resident_satisfaction', `error: ${err.message}`)
+  }
+}
+
 // ── Helper: group items by team ──────────────────────────────────────────────
 
 function groupByTeam(items, propGroupMap, propIdField) {
@@ -577,6 +683,7 @@ async function main() {
   await syncWorkOrdersPerProperty(weekStart)
   await syncDaysOnMarket(weekStart)
   await syncResidentHealth(weekStart)
+  await syncResidentSatisfaction(weekStart)
   await syncOwnerHealth(weekStart)
   await syncCallAnswerRate(weekStart)
 
