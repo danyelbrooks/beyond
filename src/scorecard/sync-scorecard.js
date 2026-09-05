@@ -684,21 +684,59 @@ async function syncResidentHealth(weekStart) {
 }
 
 // ── SOURCE: owner_health ──────────────────────────────────────────────────────
-// Count at-risk owners from v_owner_health view.
+// Count at-risk owners from v_owner_health, broken down by team.
+// Team assignment: match owner email to LeadSimple Owner Contracts deal assignee.
+
+const LS_OWNER_CONTRACTS_PIPELINE = '107b373d-bca5-4b45-b95a-1cc3200a7d32'
 
 async function syncOwnerHealth(weekStart) {
-  console.log('\n[owner_health] Counting at-risk owners…')
+  console.log('\n[owner_health] Counting at-risk owners by team…')
+  if (!LS_KEY) {
+    console.log('  No LEADSIMPLE_API_KEY — skipping.')
+    logSource('owner_health', 'skipped — no LEADSIMPLE_API_KEY')
+    return
+  }
   try {
-    const { count, error } = await supabase
+    // Fetch at-risk owners with their emails
+    const { data: atRisk, error } = await supabase
       .from('v_owner_health')
-      .select('owner_id', { count: 'exact', head: true })
+      .select('owner_id, owner_email')
       .eq('tier', 'at_risk')
 
     if (error) throw error
-    console.log(`  At-risk owners: ${count}`)
-    await upsertEntry(weekStart, 'beyond', 'owner_health_at_risk', count)
-    await upsertEntry(weekStart, 'rubin',  'owner_health_at_risk', count)
-    await upsertEntry(weekStart, 'mark',   'owner_health_at_risk', count)
+    console.log(`  At-risk owners total: ${atRisk.length}`)
+
+    // Build owner email → team map from LeadSimple Owner Contracts
+    const ownerDeals = await fetchLSDealsAllPages(LS_OWNER_CONTRACTS_PIPELINE)
+    const emailToTeam = {
+      'beyond@bpmsd.com':  'green_team',
+      'help@bpmsd.com':    'yellow_team',
+      'success@bpmsd.com': 'blue_team',
+    }
+    const ownerEmailTeam = {}
+    for (const deal of ownerDeals) {
+      const team = emailToTeam[deal.assignee?.email?.toLowerCase()]
+      if (!team) continue
+      for (const contact of deal.contacts || []) {
+        for (const email of contact.emails || []) {
+          if (email) ownerEmailTeam[email.toLowerCase()] = team
+        }
+      }
+    }
+    console.log(`  Owner emails mapped to teams: ${Object.keys(ownerEmailTeam).length}`)
+
+    // Count at-risk owners per team
+    const counts = { green_team: 0, yellow_team: 0, blue_team: 0, unknown: 0 }
+    for (const owner of atRisk) {
+      const email = (owner.owner_email || '').toLowerCase()
+      const team  = ownerEmailTeam[email] || 'unknown'
+      counts[team]++
+    }
+    console.log(`  At-risk by team: green=${counts.green_team} | yellow=${counts.yellow_team} | blue=${counts.blue_team} | unknown=${counts.unknown}`)
+
+    await upsertEntry(weekStart, 'beyond', 'owner_health_at_risk', counts.green_team)
+    await upsertEntry(weekStart, 'rubin',  'owner_health_at_risk', counts.yellow_team)
+    await upsertEntry(weekStart, 'mark',   'owner_health_at_risk', counts.blue_team)
     logSource('owner_health', 'ok')
   } catch (err) {
     console.warn('  owner_health failed:', err.message)
