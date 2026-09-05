@@ -661,21 +661,58 @@ async function syncDaysOnMarket(weekStart) {
 }
 
 // ── SOURCE: resident_health ───────────────────────────────────────────────────
-// Count at-risk residents from v_resident_health view.
+// Count at-risk residents from v_resident_health, broken down by team.
+// Team assignment: match resident email to LeadSimple tenant deal assignee.
 
 async function syncResidentHealth(weekStart) {
-  console.log('\n[resident_health] Counting at-risk residents…')
+  console.log('\n[resident_health] Counting at-risk residents by team…')
+  if (!LS_KEY) {
+    console.log('  No LEADSIMPLE_API_KEY — skipping.')
+    logSource('resident_health', 'skipped — no LEADSIMPLE_API_KEY')
+    return
+  }
   try {
-    const { count, error } = await supabase
+    // Fetch at-risk residents with their emails
+    const { data: atRisk, error } = await supabase
       .from('v_resident_health')
-      .select('resident_id', { count: 'exact', head: true })
+      .select('resident_id, resident_email')
       .eq('tier', 'at_risk')
 
     if (error) throw error
-    console.log(`  At-risk residents: ${count}`)
-    await upsertEntry(weekStart, 'beyond', 'resident_health_at_risk', count)
-    await upsertEntry(weekStart, 'rubin',  'resident_health_at_risk', count)
-    await upsertEntry(weekStart, 'mark',   'resident_health_at_risk', count)
+    console.log(`  At-risk residents total: ${atRisk.length}`)
+
+    // Build resident email → team map from LeadSimple active tenant deals
+    const deals = await fetchLSDealsAllPages(LS_APPFOLIO_TENANTS_PIPELINE)
+    const activeDeals = deals.filter(d => ACTIVE_STAGES.has(d.stage?.name))
+    const lsEmailToTeam = {
+      'beyond@bpmsd.com':  'green_team',
+      'help@bpmsd.com':    'yellow_team',
+      'success@bpmsd.com': 'blue_team',
+    }
+    const emailTeamMap = {}
+    for (const deal of activeDeals) {
+      const team = lsEmailToTeam[deal.assignee?.email?.toLowerCase()]
+      if (!team) continue
+      for (const contact of deal.contacts || []) {
+        for (const email of contact.emails || []) {
+          if (email) emailTeamMap[email.toLowerCase()] = team
+        }
+      }
+    }
+    console.log(`  Resident emails mapped to teams: ${Object.keys(emailTeamMap).length}`)
+
+    // Count at-risk residents per team
+    const counts = { green_team: 0, yellow_team: 0, blue_team: 0, unknown: 0 }
+    for (const r of atRisk) {
+      const email = (r.resident_email || '').toLowerCase()
+      const team  = emailTeamMap[email] || 'unknown'
+      counts[team]++
+    }
+    console.log(`  At-risk by team: green=${counts.green_team} | yellow=${counts.yellow_team} | blue=${counts.blue_team} | unknown=${counts.unknown}`)
+
+    await upsertEntry(weekStart, 'beyond', 'resident_health_at_risk', counts.green_team)
+    await upsertEntry(weekStart, 'rubin',  'resident_health_at_risk', counts.yellow_team)
+    await upsertEntry(weekStart, 'mark',   'resident_health_at_risk', counts.blue_team)
     logSource('resident_health', 'ok')
   } catch (err) {
     console.warn('  resident_health failed:', err.message)
