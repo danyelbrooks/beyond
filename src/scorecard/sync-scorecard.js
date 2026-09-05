@@ -781,6 +781,73 @@ async function syncOwnerHealth(weekStart) {
   }
 }
 
+// ── SOURCE: lease_renewals ────────────────────────────────────────────────────
+// Count leases needing attention per team. Three categories:
+//   1. Overdue: fixed-term lease expired, tenant still Current, not converted to M2M
+//   2. Expiring: fixed-term lease ends within 60 days (send renewal notice now)
+//   3. M2M stale: month-to-month tenant, LastLeaseRenewal > 12 months ago
+//      (team manually updates LastLeaseRenewal when rent increase/change of terms is sent)
+
+async function syncLeaseRenewals(weekStart) {
+  console.log('\n[lease_renewals] Counting leases needing attention by team…')
+  try {
+    const [allTenants, propGroupMap] = await Promise.all([
+      fetchAll('tenants', { 'filters[LastUpdatedAtFrom]': '1970-01-01T00:00:00Z' }),
+      getPropertyGroupMap(),
+    ])
+
+    const current = allTenants.filter(t => t.Status === 'Current')
+    const today   = new Date()
+    today.setHours(0, 0, 0, 0)
+    const in60    = new Date(today)
+    in60.setDate(in60.getDate() + 60)
+    const ago12mo = new Date(today)
+    ago12mo.setFullYear(ago12mo.getFullYear() - 1)
+
+    const countsByTeam = { green_team: 0, yellow_team: 0, blue_team: 0 }
+    const detailByTeam = { green_team: [], yellow_team: [], blue_team: [] }
+
+    for (const t of current) {
+      const team = propGroupMap[t.PropertyId]
+      if (!team || countsByTeam[team] === undefined) continue
+
+      const leaseEnd    = t.LeaseEndDate ? new Date(t.LeaseEndDate) : null
+      const lastRenewal = t.LastLeaseRenewal ? new Date(t.LastLeaseRenewal) : null
+
+      let reason = null
+      if (!t.IsMonthlyLease && leaseEnd && leaseEnd < today) {
+        reason = `overdue (expired ${t.LeaseEndDate})`
+      } else if (!t.IsMonthlyLease && leaseEnd && leaseEnd >= today && leaseEnd <= in60) {
+        reason = `expiring ${t.LeaseEndDate}`
+      } else if (t.IsMonthlyLease && (!lastRenewal || lastRenewal < ago12mo)) {
+        reason = `M2M, last action ${t.LastLeaseRenewal || 'never'}`
+      }
+
+      if (reason) {
+        countsByTeam[team]++
+        detailByTeam[team].push(`${t.FirstName} ${t.LastName} — ${reason}`)
+      }
+    }
+
+    const green  = countsByTeam.green_team
+    const yellow = countsByTeam.yellow_team
+    const blue   = countsByTeam.blue_team
+    console.log(`  Leases needing attention: green=${green} | yellow=${yellow} | blue=${blue}`)
+    for (const [team, items] of Object.entries(detailByTeam)) {
+      if (items.length) items.forEach(i => console.log(`    [${team}] ${i}`))
+    }
+
+    await upsertEntry(weekStart, 'beyond', 'lease_renewals_overdue', green)
+    await upsertEntry(weekStart, 'rubin',  'lease_renewals_overdue', yellow)
+    await upsertEntry(weekStart, 'mark',   'lease_renewals_overdue', blue)
+
+    logSource('lease_renewals', 'ok')
+  } catch (err) {
+    console.warn('  lease_renewals failed:', err.message)
+    logSource('lease_renewals', `error: ${err.message}`)
+  }
+}
+
 // ── SOURCE: vacancy_pct ───────────────────────────────────────────────────────
 // Vacancy % per team = Vacant units ÷ total units for that team.
 // "Vacant" = Status === 'Vacant' (empty, no lease signed).
@@ -1031,6 +1098,7 @@ async function main() {
   await syncSecurityDeposits(weekStart)
   await syncWorkOrdersPerUnit(weekStart)
   await syncDaysOnMarket(weekStart)
+  await syncLeaseRenewals(weekStart)
   await syncVacancyPct(weekStart)
   await syncResidentHealth(weekStart)
   await syncResidentSatisfaction(weekStart)
