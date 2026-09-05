@@ -781,6 +781,54 @@ async function syncOwnerHealth(weekStart) {
   }
 }
 
+// ── SOURCE: vacancy_pct ───────────────────────────────────────────────────────
+// Vacancy % per team = Vacant units ÷ total units for that team.
+// "Vacant" = Status === 'Vacant' (empty, no lease signed).
+// "Vacant Rented" units are excluded — they already have a signed lease.
+
+async function syncVacancyPct(weekStart) {
+  console.log('\n[vacancy_pct] Calculating vacancy % by team…')
+  try {
+    const [allUnits, propGroupMap] = await Promise.all([
+      fetchAll('units', { 'filters[LastUpdatedAtFrom]': '1970-01-01T00:00:00Z' }),
+      getPropertyGroupMap(),
+    ])
+
+    const totalByTeam  = { green_team: 0, yellow_team: 0, blue_team: 0 }
+    const vacantByTeam = { green_team: 0, yellow_team: 0, blue_team: 0 }
+
+    for (const unit of allUnits) {
+      const team = propGroupMap[unit.PropertyId]
+      if (!team) continue
+      totalByTeam[team]++
+      if (unit.Status === 'Vacant') vacantByTeam[team]++
+    }
+
+    const pct = (team) => {
+      const total = totalByTeam[team]
+      if (!total) return null
+      return parseFloat(((vacantByTeam[team] / total) * 100).toFixed(1))
+    }
+
+    const green  = pct('green_team')
+    const yellow = pct('yellow_team')
+    const blue   = pct('blue_team')
+
+    console.log(`  Units:   green=${totalByTeam.green_team} | yellow=${totalByTeam.yellow_team} | blue=${totalByTeam.blue_team}`)
+    console.log(`  Vacant:  green=${vacantByTeam.green_team} | yellow=${vacantByTeam.yellow_team} | blue=${vacantByTeam.blue_team}`)
+    console.log(`  Vacancy: beyond=${green ?? 'n/a'}% | rubin=${yellow ?? 'n/a'}% | mark=${blue ?? 'n/a'}%`)
+
+    if (green  !== null) await upsertEntry(weekStart, 'beyond', 'vacancy_pct', green)
+    if (yellow !== null) await upsertEntry(weekStart, 'rubin',  'vacancy_pct', yellow)
+    if (blue   !== null) await upsertEntry(weekStart, 'mark',   'vacancy_pct', blue)
+
+    logSource('vacancy_pct', 'ok')
+  } catch (err) {
+    console.warn('  vacancy_pct failed:', err.message)
+    logSource('vacancy_pct', `error: ${err.message}`)
+  }
+}
+
 // ── SOURCE: call_answer_rate ──────────────────────────────────────────────────
 // Pull inbound calls from LeadSimple for the past 7 days.
 // Group by deal.assignee.email to get per-person answer rate.
@@ -983,6 +1031,7 @@ async function main() {
   await syncSecurityDeposits(weekStart)
   await syncWorkOrdersPerUnit(weekStart)
   await syncDaysOnMarket(weekStart)
+  await syncVacancyPct(weekStart)
   await syncResidentHealth(weekStart)
   await syncResidentSatisfaction(weekStart)
   await syncOwnerHealth(weekStart)
