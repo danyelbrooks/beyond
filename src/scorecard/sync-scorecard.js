@@ -127,6 +127,14 @@ async function fetchAll(endpoint, params = {}) {
 // ── AppFolio property-group map ───────────────────────────────────────────────
 // Builds a map of propertyId → group key ('green_team'|'yellow_team'|'blue_team')
 // so we can filter AppFolio results per team lead.
+//
+// AppFolio properties expose a PropertyGroupIds array of UUIDs (no name field).
+// These UUIDs were identified by cross-referencing LeadSimple deal assignees:
+const PROP_GROUP_IDS = {
+  '039cedb2-a198-11f1-8999-120b9c3576af': 'green_team',   // beyond@bpmsd.com
+  '093d8f46-a198-11f1-8999-120b9c3576af': 'yellow_team',  // help@bpmsd.com
+  '0f1501b9-a198-11f1-8999-120b9c3576af': 'blue_team',    // success@bpmsd.com
+}
 
 let _propGroupMap = null
 
@@ -137,12 +145,13 @@ async function getPropertyGroupMap() {
     const props = await fetchAll('properties', { 'filters[LastUpdatedAtFrom]': '1970-01-01T00:00:00Z' })
     let mapped = 0
     for (const p of props) {
-      const id    = p.Id || p.PropertyID || p.id
-      const group = (p.PropertyGroupName || p.GroupName || p.Group || p.PropertyGroup || '').toLowerCase()
+      const id  = p.Id
       if (!id) continue
-      if (group.includes('green'))  { _propGroupMap[id] = 'green_team';  mapped++ }
-      else if (group.includes('yellow')) { _propGroupMap[id] = 'yellow_team'; mapped++ }
-      else if (group.includes('blue'))   { _propGroupMap[id] = 'blue_team';   mapped++ }
+      const gids = p.PropertyGroupIds || []
+      for (const gid of gids) {
+        const team = PROP_GROUP_IDS[gid]
+        if (team) { _propGroupMap[id] = team; mapped++; break }
+      }
     }
     console.log(`  Property group map built: ${props.length} properties, ${mapped} grouped`)
   } catch (err) {
@@ -330,61 +339,166 @@ async function syncSecurityDeposits(weekStart) {
 }
 
 // ── SOURCE: appfolio_wo ───────────────────────────────────────────────────────
-// Open work orders per property, filtered per team.
+// Active (non-completed, non-canceled, non-recurring) work orders per unit,
+// grouped by green/yellow/blue team. Fetches all WOs regardless of age so
+// long-standing open WOs are not missed.
 
-async function syncWorkOrdersPerProperty(weekStart) {
-  console.log('\n[appfolio_wo] Calculating work orders per property…')
+// Statuses that count as "active" — everything except Completed and Canceled
+const WO_EXCLUDE_STATUSES = new Set(['Completed', 'Canceled', 'Cancelled', 'Closed'])
+
+async function fetchAllWorkOrders() {
+  const rows = []
+  let page = 1
+  while (true) {
+    const url = new URL(`${BASE}/work_orders`)
+    url.searchParams.set('page[number]', String(page))
+    url.searchParams.set('page[size]', '500')
+    url.searchParams.set('filters[LastUpdatedAtFrom]', '1970-01-01T00:00:00Z')
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization:             `Basic ${BASIC_AUTH}`,
+        'X-AppFolio-Developer-ID': DEVELOPER_ID,
+        Accept:                    'application/json',
+      },
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      throw new Error(`work_orders failed (${res.status}): ${body.slice(0, 200)}`)
+    }
+    const data  = await res.json()
+    const items = data.data || []
+    rows.push(...items)
+    if (!data.next_page_path || items.length < 500) break
+    page++
+  }
+  return rows
+}
+
+async function syncWorkOrdersPerUnit(weekStart) {
+  console.log('\n[appfolio_wo] Counting active work orders per unit by team…')
+  console.log('  (Fetching all WOs — this may take 60-90 seconds)')
   try {
-    const [workOrders, properties, propGroupMap] = await Promise.all([
-      fetchAll('workorders', { 'filters[LastUpdatedAtFrom]': '1970-01-01T00:00:00Z' }),
-      fetchAll('properties', { 'filters[LastUpdatedAtFrom]': '1970-01-01T00:00:00Z' }),
+    const [allWOs, allUnits, propGroupMap] = await Promise.all([
+      fetchAllWorkOrders(),
+      fetchAll('units', { 'filters[LastUpdatedAtFrom]': '1970-01-01T00:00:00Z' }),
       getPropertyGroupMap(),
     ])
 
-    const open = workOrders.filter(wo =>
-      !['Completed', 'Closed', 'Cancelled'].includes(wo.Status || wo.status || '')
+    console.log(`  Total WOs fetched: ${allWOs.length}`)
+
+    // Filter to active, non-recurring WOs only
+    const activeWOs = allWOs.filter(wo =>
+      !WO_EXCLUDE_STATUSES.has(wo.Status || '') && !wo.Recurring
     )
+    console.log(`  Active non-recurring WOs: ${activeWOs.length}`)
 
-    const propsByGroup = {
-      green_team:  properties.filter(p => propGroupMap[p.Id || p.PropertyID] === 'green_team'),
-      yellow_team: properties.filter(p => propGroupMap[p.Id || p.PropertyID] === 'yellow_team'),
-      blue_team:   properties.filter(p => propGroupMap[p.Id || p.PropertyID] === 'blue_team'),
+    // Count active WOs by team using PropertyId
+    const woByTeam = { green_team: 0, yellow_team: 0, blue_team: 0 }
+    const woByStatus = {}
+    for (const wo of activeWOs) {
+      const team = propGroupMap[wo.PropertyId]
+      if (team && woByTeam[team] !== undefined) woByTeam[team]++
+      const s = wo.Status || 'Unknown'
+      woByStatus[s] = (woByStatus[s] || 0) + 1
+    }
+    console.log('  Active WO statuses:', JSON.stringify(woByStatus))
+
+    // Count units by team
+    const unitsByTeam = { green_team: 0, yellow_team: 0, blue_team: 0 }
+    for (const unit of allUnits) {
+      const team = propGroupMap[unit.PropertyId]
+      if (team && unitsByTeam[team] !== undefined) unitsByTeam[team]++
+    }
+    console.log(`  Units by team: green=${unitsByTeam.green_team} | yellow=${unitsByTeam.yellow_team} | blue=${unitsByTeam.blue_team}`)
+    console.log(`  WOs by team:   green=${woByTeam.green_team} | yellow=${woByTeam.yellow_team} | blue=${woByTeam.blue_team}`)
+
+    const ratio = (team) => {
+      const units = unitsByTeam[team]
+      if (!units) return null
+      return parseFloat((woByTeam[team] / units).toFixed(2))
     }
 
-    const openByGroup = {
-      green_team:  open.filter(wo => propGroupMap[wo.PropertyID] === 'green_team'),
-      yellow_team: open.filter(wo => propGroupMap[wo.PropertyID] === 'yellow_team'),
-      blue_team:   open.filter(wo => propGroupMap[wo.PropertyID] === 'blue_team'),
+    const green  = ratio('green_team')
+    const yellow = ratio('yellow_team')
+    const blue   = ratio('blue_team')
+    console.log(`  WO/unit: beyond=${green ?? 'n/a'} | rubin=${yellow ?? 'n/a'} | mark=${blue ?? 'n/a'}`)
+
+    if (green  !== null) await upsertEntry(weekStart, 'beyond', 'wo_per_unit', green)
+    if (yellow !== null) await upsertEntry(weekStart, 'rubin',  'wo_per_unit', yellow)
+    if (blue   !== null) await upsertEntry(weekStart, 'mark',   'wo_per_unit', blue)
+
+    // Write breakdown to Google Sheet "Work Orders" tab
+    const sheets = getSheetsClient()
+    if (sheets && !DRY_RUN) {
+      try {
+        const TEAM_LABEL = {
+          green_team:  'Green (Beyond)',
+          yellow_team: 'Yellow (Help)',
+          blue_team:   'Blue (Success)',
+        }
+        // Summary section
+        const header = [
+          [`Work Orders per Unit — ${weekStart}`, '', '', '', ''],
+          ['', '', '', '', ''],
+          ['How calculated: Active WOs (excluding Completed, Canceled, Recurring) ÷ Units managed per team.', '', '', '', ''],
+          ['', '', '', '', ''],
+          ['SUMMARY', '', '', '', ''],
+          ['Team', 'Active WOs', 'Units Managed', 'WO per Unit', ''],
+          ['Green (Beyond)',  woByTeam.green_team,  unitsByTeam.green_team,  green  ?? 'n/a', ''],
+          ['Yellow (Help)',   woByTeam.yellow_team, unitsByTeam.yellow_team, yellow ?? 'n/a', ''],
+          ['Blue (Success)',  woByTeam.blue_team,   unitsByTeam.blue_team,   blue   ?? 'n/a', ''],
+          ['', '', '', '', ''],
+          ['ACTIVE WORK ORDER DETAIL', '', '', '', ''],
+          ['WO #', 'Status', 'Team', 'AppFolio Link', ''],
+        ]
+
+        // Detail rows — one per active WO, grouped by team
+        const TEAM_ORDER = ['green_team', 'yellow_team', 'blue_team']
+        const detail = TEAM_ORDER.flatMap(t => {
+          const group = activeWOs.filter(wo => propGroupMap[wo.PropertyId] === t)
+          if (group.length === 0) return []
+          return [
+            [TEAM_LABEL[t], '', '', '', ''],
+            ...group.map(wo => [
+              wo.WorkOrderNumber || wo.Id?.slice(0, 8) || '',
+              wo.Status || '',
+              TEAM_LABEL[t],
+              wo.Link || '',
+              '',
+            ]),
+            ['', '', '', '', ''],
+          ]
+        })
+
+        // WOs with no team match
+        const unmatched = activeWOs.filter(wo => !propGroupMap[wo.PropertyId])
+        if (unmatched.length > 0) {
+          detail.push(['Unassigned (no team match)', '', '', '', ''])
+          unmatched.forEach(wo => detail.push([
+            wo.WorkOrderNumber || wo.Id?.slice(0, 8) || '',
+            wo.Status || '',
+            'Unknown',
+            wo.Link || '',
+            '',
+          ]))
+        }
+
+        const values = [...header, ...detail]
+        await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: 'Work Orders!A1:E500' })
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SHEET_ID, range: 'Work Orders!A1',
+          valueInputOption: 'RAW', requestBody: { values },
+        })
+        console.log('  Wrote WO breakdown to Google Sheet "Work Orders" tab')
+      } catch (sheetErr) {
+        console.warn('  Sheet write failed:', sheetErr.message)
+      }
     }
 
-    const calc = (group) => {
-      const pc = propsByGroup[group].length || properties.length || 1
-      const wc = openByGroup[group].length || 0
-      // If no group mapping found, fall back to company-wide
-      const propCount = propsByGroup[group].length > 0 ? propsByGroup[group].length : properties.length
-      const woCount   = openByGroup[group].length > 0 || Object.keys(propGroupMap).length > 0
-        ? openByGroup[group].length
-        : open.length
-      return propCount > 0 ? parseFloat((woCount / propCount).toFixed(2)) : 0
-    }
-
-    const green  = calc('green_team')
-    const yellow = calc('yellow_team')
-    const blue   = calc('blue_team')
-    console.log(`  WO/property: beyond=${green} | rubin=${yellow} | mark=${blue}`)
-
-    await upsertEntry(weekStart, 'beyond', 'wo_per_property', green)
-    await upsertEntry(weekStart, 'rubin',  'wo_per_property', yellow)
-    await upsertEntry(weekStart, 'mark',   'wo_per_property', blue)
     logSource('appfolio_wo', 'ok')
   } catch (err) {
-    if (err.message.includes('404') || err.message.includes('not found')) {
-      console.log('  /workorders not available on this AppFolio plan — manual entry needed.')
-      logSource('appfolio_wo', 'not available — manual entry needed')
-    } else {
-      console.warn('  appfolio_wo failed:', err.message)
-      logSource('appfolio_wo', `error: ${err.message}`)
-    }
+    console.warn('  appfolio_wo failed:', err.message)
+    logSource('appfolio_wo', `error: ${err.message}`)
   }
 }
 
@@ -792,7 +906,7 @@ async function main() {
   await syncEmailCounts(weekStart)
   await syncTurningPointsEmail(weekStart)
   await syncSecurityDeposits(weekStart)
-  await syncWorkOrdersPerProperty(weekStart)
+  await syncWorkOrdersPerUnit(weekStart)
   await syncDaysOnMarket(weekStart)
   await syncResidentHealth(weekStart)
   await syncResidentSatisfaction(weekStart)
