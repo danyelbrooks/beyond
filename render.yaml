@@ -103,6 +103,35 @@ services:
         value: "e6bec046-8097-11eb-8ad9-06457bb955b6"
 
   # ============================================================
+  # Listing Dates Sync — runs daily at 6am Pacific (2pm UTC)
+  # Scrapes the BPM website for active rental listings and records
+  # the first time each listing appears (for Days on Market tracking).
+  # ============================================================
+  - type: cron
+    name: listing-dates-sync-daily
+    runtime: node
+    schedule: "0 14 * * *"
+    buildCommand: npm install
+    startCommand: node src/scorecard/sync-listing-dates.js
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: APPFOLIO_DEVELOPER_ID
+        value: "ba023937-8784-11f1-8ce1-0a9c478fe029"
+
+      # Secrets — enter these manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: APPFOLIO_STACK_CLIENT_ID
+        sync: false
+      - key: APPFOLIO_STACK_CLIENT_SECRET
+        sync: false
+
+  # ============================================================
   # Scorecard Sync — runs every Friday at 6pm Pacific (1am UTC Saturday)
   # ============================================================
   - type: cron
@@ -129,6 +158,8 @@ services:
       - key: APPFOLIO_STACK_CLIENT_ID
         sync: false
       - key: APPFOLIO_STACK_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY
         sync: false
 
   # ============================================================

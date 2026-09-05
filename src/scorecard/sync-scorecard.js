@@ -7,7 +7,21 @@
 //   node src/scorecard/sync-scorecard.js --dry-run
 
 import 'dotenv/config'
-import { supabase } from '../db/server-client.js'
+import { readFileSync } from 'fs'
+import { google }       from 'googleapis'
+import { supabase }     from '../db/server-client.js'
+
+const SHEET_ID = '1PxbQTzL_C3YBhlUt0mCVPJliBNDX4BjSeOTqpdDYhQg'
+
+function getSheetsClient() {
+  const keyPath = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY
+  if (!keyPath) return null
+  try {
+    const key  = JSON.parse(readFileSync(keyPath, 'utf8'))
+    const auth = new google.auth.GoogleAuth({ credentials: key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] })
+    return google.sheets({ version: 'v4', auth })
+  } catch { return null }
+}
 
 const DRY_RUN       = process.argv.includes('--dry-run')
 const CLIENT_ID     = process.env.APPFOLIO_STACK_CLIENT_ID
@@ -374,69 +388,161 @@ async function syncWorkOrdersPerProperty(weekStart) {
   }
 }
 
-// ── SOURCE: appfolio_days_on_market ───────────────────────────────────────────
-// Average days on market for vacant units.
-// beyond/rubin/mark → filtered by team. gael → company-wide.
+// ── SOURCE: days_on_market ────────────────────────────────────────────────────
+// Reads listing_first_seen (populated daily by sync-listing-dates.js) to get
+// start dates. End date = AppFolio "Future" tenant move-in date if assigned,
+// otherwise today. Groups by team via AppFolio property group map.
+
+async function fetchFutureTenants() {
+  const tenants = []
+  let page = 1
+  while (true) {
+    const url = new URL(`${BASE}/tenants`)
+    url.searchParams.set('page[number]', String(page))
+    url.searchParams.set('page[size]', '500')
+    url.searchParams.set('filters[LastUpdatedAtFrom]', '1970-01-01T00:00:00Z')
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization:             `Basic ${BASIC_AUTH}`,
+        'X-AppFolio-Developer-ID': DEVELOPER_ID,
+        Accept:                    'application/json',
+      },
+    })
+    if (!res.ok) break
+    const data  = await res.json()
+    const items = data.data || []
+    tenants.push(...items.filter(t => t.Status === 'Future'))
+    if (!data.next_page_path || items.length < 500) break
+    page++
+  }
+  return tenants
+}
 
 async function syncDaysOnMarket(weekStart) {
-  console.log('\n[appfolio_days_on_market] Calculating days on market…')
+  console.log('\n[days_on_market] Reading listing_first_seen table…')
   try {
-    const [units, propGroupMap] = await Promise.all([
-      fetchAll('units', { 'filters[LastUpdatedAtFrom]': '1970-01-01T00:00:00Z' }),
-      getPropertyGroupMap(),
-    ])
+    // Read listings seen in the last 60 days (active + recently leased)
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - 60)
+    const cutoff = cutoffDate.toISOString().split('T')[0]
 
-    const vacant = units.filter(u =>
-      u.IsVacant === true ||
-      (u.Status || u.OccupancyStatus || '').toLowerCase().includes('vacant')
-    )
+    const { data: listings, error: dbErr } = await supabase
+      .from('listing_first_seen')
+      .select('listing_id, address, unit_id, property_id, first_seen, last_seen')
+      .gte('last_seen', cutoff)
 
-    if (vacant.length === 0) {
-      console.log('  No vacant units found — skipping.')
-      logSource('appfolio_days_on_market', 'not available — no vacant units')
+    if (dbErr) throw dbErr
+    if (!listings || listings.length === 0) {
+      console.log('  No listings in database yet — run sync-listing-dates.js first.')
+      logSource('days_on_market', 'no data — listing_first_seen table empty')
       return
     }
+    console.log(`  Found ${listings.length} listing(s) active in last 60 days`)
 
-    const now = new Date()
+    // Fetch Future tenants from AppFolio → unit_id → MoveInOn
+    console.log('  Fetching AppFolio Future tenants…')
+    const futureTenants = await fetchFutureTenants()
+    const unitMoveIn = {}
+    for (const t of futureTenants) {
+      if (t.UnitId && t.MoveInOn) unitMoveIn[t.UnitId] = t.MoveInOn
+    }
+    console.log(`  Future tenants with move-in dates: ${Object.keys(unitMoveIn).length}`)
 
-    function avgDays(unitSet) {
-      const days = unitSet
-        .map(u => {
-          const listed = u.ListedOn || u.AvailableDate || u.DateAvailable
-          if (!listed) return null
-          const diff = Math.round((now - new Date(listed)) / (1000 * 60 * 60 * 24))
-          return diff >= 0 ? diff : null
-        })
-        .filter(d => d !== null)
-      if (days.length === 0) return null
-      return Math.round(days.reduce((a, b) => a + b, 0) / days.length)
+    // Build property group map for team assignment
+    const propGroupMap = await getPropertyGroupMap()
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Calculate DOM for each listing
+    const enriched = []
+    for (const l of listings) {
+      const firstSeen  = new Date(l.first_seen)
+      const moveInDate = l.unit_id ? unitMoveIn[l.unit_id] : null
+      const endDate    = moveInDate ? new Date(moveInDate) : today
+      const dom        = Math.max(0, Math.round((endDate - firstSeen) / (1000 * 60 * 60 * 24)))
+
+      const team = l.property_id ? (propGroupMap[l.property_id] || 'unknown') : 'unknown'
+
+      const teamLabel = { green_team: 'Green (Beyond)', yellow_team: 'Yellow (Help)', blue_team: 'Blue (Success)' }[team] || 'Unassigned'
+      console.log(`    [${l.listing_id}] ${l.address} | team=${teamLabel} | DOM=${dom}d | first_seen=${l.first_seen}${moveInDate ? ' | move_in='+moveInDate : ''}`)
+
+      enriched.push({ ...l, team, dom, moveInDate })
     }
 
-    const groupedVacant = {
-      green_team:  vacant.filter(u => propGroupMap[u.PropertyID] === 'green_team'),
-      yellow_team: vacant.filter(u => propGroupMap[u.PropertyID] === 'yellow_team'),
-      blue_team:   vacant.filter(u => propGroupMap[u.PropertyID] === 'blue_team'),
+    // Average DOM per team
+    function teamAvg(t) {
+      const rows = enriched.filter(l => l.team === t)
+      if (rows.length === 0) return null
+      return Math.round(rows.reduce((s, l) => s + l.dom, 0) / rows.length)
     }
 
-    const hasGrouping = Object.keys(propGroupMap).length > 0
+    const greenAvg  = teamAvg('green_team')
+    const yellowAvg = teamAvg('yellow_team')
+    const blueAvg   = teamAvg('blue_team')
+    const allAvg    = enriched.length > 0
+      ? Math.round(enriched.reduce((s, l) => s + l.dom, 0) / enriched.length)
+      : null
 
-    const greenAvg  = avgDays(hasGrouping ? groupedVacant.green_team  : vacant)
-    const yellowAvg = avgDays(hasGrouping ? groupedVacant.yellow_team : vacant)
-    const blueAvg   = avgDays(hasGrouping ? groupedVacant.blue_team   : vacant)
-    const allAvg    = avgDays(vacant)
+    console.log(`  Avg DOM: beyond=${greenAvg ?? 'n/a'} | rubin=${yellowAvg ?? 'n/a'} | mark=${blueAvg ?? 'n/a'} | gael/all=${allAvg ?? 'n/a'}`)
 
-    console.log(`  Avg days: beyond=${greenAvg ?? 'n/a'} | rubin=${yellowAvg ?? 'n/a'} | mark=${blueAvg ?? 'n/a'} | gael/all=${allAvg ?? 'n/a'}`)
-
+    // Write to scorecard
     if (greenAvg  !== null) await upsertEntry(weekStart, 'beyond', 'days_on_market', greenAvg)
     if (yellowAvg !== null) await upsertEntry(weekStart, 'rubin',  'days_on_market', yellowAvg)
     if (blueAvg   !== null) await upsertEntry(weekStart, 'mark',   'days_on_market', blueAvg)
     if (allAvg    !== null) await upsertEntry(weekStart, 'gael',   'days_on_market', allAvg)
 
-    const anyWritten = [greenAvg, yellowAvg, blueAvg, allAvg].some(v => v !== null)
-    logSource('appfolio_days_on_market', anyWritten ? 'ok' : 'not available — no listing dates in AppFolio')
+    // Write breakdown to Google Sheet "Days on Market" tab
+    const sheets = getSheetsClient()
+    if (sheets && !DRY_RUN) {
+      try {
+        const TEAM_ORDER = ['green_team', 'yellow_team', 'blue_team', 'unknown']
+        const TEAM_LABEL = {
+          green_team:  'Green (Beyond)',
+          yellow_team: 'Yellow (Help)',
+          blue_team:   'Blue (Success)',
+          unknown:     'Unassigned',
+        }
+        const header = [
+          ['Days on Market — ' + weekStart, '', '', '', '', ''],
+          ['', '', '', '', '', ''],
+          ['How calculated: Start = date first listed on BPM website. End = AppFolio future move-in date (if signed) or today.', '', '', '', '', ''],
+          ['', '', '', '', '', ''],
+          ['Property Address', 'Team', 'First Listed', 'End Date', 'Days on Market', 'Notes'],
+        ]
+        const rows = TEAM_ORDER.flatMap(t => {
+          const group = enriched.filter(l => l.team === t)
+          if (group.length === 0) return []
+          const avg = Math.round(group.reduce((s, l) => s + l.dom, 0) / group.length)
+          return [
+            [TEAM_LABEL[t], '', '', `Team avg: ${avg} days`, '', ''],
+            ...group.map(l => [
+              l.address,
+              TEAM_LABEL[l.team],
+              l.first_seen,
+              l.moveInDate || 'Active (today)',
+              l.dom,
+              '',
+            ]),
+            ['', '', '', '', '', ''],
+          ]
+        })
+        const values = [...header, ...rows]
+        await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: 'Days on Market!A1:F300' })
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SHEET_ID, range: 'Days on Market!A1',
+          valueInputOption: 'RAW', requestBody: { values },
+        })
+        console.log('  Wrote DOM breakdown to Google Sheet "Days on Market" tab')
+      } catch (sheetErr) {
+        console.warn('  Sheet write failed:', sheetErr.message)
+      }
+    }
+
+    logSource('days_on_market', `ok — ${enriched.length} listings, avg all=${allAvg ?? 'n/a'}d`)
   } catch (err) {
-    console.warn('  appfolio_days_on_market failed:', err.message)
-    logSource('appfolio_days_on_market', `error: ${err.message}`)
+    console.warn('  days_on_market failed:', err.message)
+    logSource('days_on_market', `error: ${err.message}`)
   }
 }
 
