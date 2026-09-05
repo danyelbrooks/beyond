@@ -52,14 +52,17 @@ function normalizeAddress(addr) {
   return (addr || '').toLowerCase().replace(/[.,#]/g, '').replace(/\s+/g, ' ').trim()
 }
 
+// Keywords must appear as whole words (\b word boundary) so "MI" matches "MI" or "MI-"
+// but not "Michael" or "Mitchell". Case-insensitive.
+const KW_REGEX = new RegExp(`\\b(${TRIGGER_KEYWORDS.join('|')})\\b`, 'i')
+
 function hasKeyword(str) {
-  const up = (str || '').toUpperCase()
-  return TRIGGER_KEYWORDS.some(k => up.includes(k))
+  return KW_REGEX.test(str || '')
 }
 
 function matchedKeyword(str) {
-  const up = (str || '').toUpperCase()
-  return TRIGGER_KEYWORDS.find(k => up.includes(k)) || ''
+  const m = (str || '').match(KW_REGEX)
+  return m ? m[1].toUpperCase() : ''
 }
 
 // ── LeadSimple paginated fetch ────────────────────────────────────────────────
