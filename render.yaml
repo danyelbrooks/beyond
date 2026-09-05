@@ -103,7 +103,7 @@ services:
         value: "e6bec046-8097-11eb-8ad9-06457bb955b6"
 
   # ============================================================
-  # Scorecard Sync — runs every Friday at 6am Pacific (1pm UTC)
+  # Scorecard Sync — runs every Friday at 6pm Pacific (1am UTC Saturday)
   # ============================================================
   - type: cron
     name: scorecard-sync-friday
@@ -129,4 +129,38 @@ services:
       - key: APPFOLIO_STACK_CLIENT_ID
         sync: false
       - key: APPFOLIO_STACK_CLIENT_SECRET
+        sync: false
+
+  # ============================================================
+  # Owner Updates Sync — runs every Sunday at 11:59pm Pacific (6:59am UTC Monday)
+  # Checks whether each owner with an active-status property (OFFBOARDING, NP,
+  # TPO, MO, VACANT, MI, DOWN, PROJECT, INS) received a weekly update email.
+  # Writes evidence to the KPI Google Sheet and scorecard.
+  # ============================================================
+  - type: cron
+    name: owner-updates-sync-sunday
+    runtime: node
+    schedule: "59 6 * * 1"
+    buildCommand: npm install
+    startCommand: node src/scorecard/sync-owner-updates.js
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: APPFOLIO_DEVELOPER_ID
+        value: "ba023937-8784-11f1-8ce1-0a9c478fe029"
+
+      # Secrets — enter these manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: LEADSIMPLE_API_KEY
+        sync: false
+      - key: APPFOLIO_STACK_CLIENT_ID
+        sync: false
+      - key: APPFOLIO_STACK_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY
         sync: false
