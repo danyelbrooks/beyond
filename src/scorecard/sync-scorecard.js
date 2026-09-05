@@ -804,8 +804,16 @@ async function syncLeaseRenewals(weekStart) {
     const ago12mo = new Date(today)
     ago12mo.setFullYear(ago12mo.getFullYear() - 1)
 
-    const countsByTeam = { green_team: 0, yellow_team: 0, blue_team: 0 }
-    const detailByTeam = { green_team: [], yellow_team: [], blue_team: [] }
+    const TEAM_LABEL = {
+      green_team:  'Green (Beyond)',
+      yellow_team: 'Yellow (Help)',
+      blue_team:   'Blue (Success)',
+    }
+
+    const countsByTeam  = { green_team: 0, yellow_team: 0, blue_team: 0 }
+    // Each entry: { team, address, name, category, date, link }
+    const flagged = []
+    const seen = new Set()  // deduplicate co-tenants at the same unit
 
     for (const t of current) {
       const team = propGroupMap[t.PropertyId]
@@ -814,32 +822,86 @@ async function syncLeaseRenewals(weekStart) {
       const leaseEnd    = t.LeaseEndDate ? new Date(t.LeaseEndDate) : null
       const lastRenewal = t.LastLeaseRenewal ? new Date(t.LastLeaseRenewal) : null
 
-      let reason = null
+      let category = null
+      let dateVal  = null
       if (!t.IsMonthlyLease && leaseEnd && leaseEnd < today) {
-        reason = `overdue (expired ${t.LeaseEndDate})`
+        category = 'Overdue — expired, not converted'
+        dateVal  = t.LeaseEndDate
       } else if (!t.IsMonthlyLease && leaseEnd && leaseEnd >= today && leaseEnd <= in60) {
-        reason = `expiring ${t.LeaseEndDate}`
+        category = 'Expiring within 60 days'
+        dateVal  = t.LeaseEndDate
       } else if (t.IsMonthlyLease && (!lastRenewal || lastRenewal < ago12mo)) {
-        reason = `M2M, last action ${t.LastLeaseRenewal || 'never'}`
+        category = 'Month-to-Month — no action 12+ months'
+        dateVal  = t.LastLeaseRenewal || 'never'
       }
 
-      if (reason) {
+      if (!category) continue
+
+      const address = t.Addresses?.[0]?.Address1 || ''
+      const unitKey = `${t.UnitId}|${category}`
+
+      // Count once per unit (not once per co-tenant)
+      if (!seen.has(unitKey)) {
+        seen.add(unitKey)
         countsByTeam[team]++
-        detailByTeam[team].push(`${t.FirstName} ${t.LastName} — ${reason}`)
       }
+
+      flagged.push({ team, address, name: `${t.FirstName} ${t.LastName}`.trim(), category, dateVal, link: t.Link || '' })
     }
 
     const green  = countsByTeam.green_team
     const yellow = countsByTeam.yellow_team
     const blue   = countsByTeam.blue_team
     console.log(`  Leases needing attention: green=${green} | yellow=${yellow} | blue=${blue}`)
-    for (const [team, items] of Object.entries(detailByTeam)) {
-      if (items.length) items.forEach(i => console.log(`    [${team}] ${i}`))
-    }
 
     await upsertEntry(weekStart, 'beyond', 'lease_renewals_overdue', green)
     await upsertEntry(weekStart, 'rubin',  'lease_renewals_overdue', yellow)
     await upsertEntry(weekStart, 'mark',   'lease_renewals_overdue', blue)
+
+    // Write detail to Google Sheet "Lease Renewals" tab
+    const sheets = getSheetsClient()
+    if (sheets && !DRY_RUN) {
+      try {
+        const TEAM_ORDER = ['green_team', 'yellow_team', 'blue_team']
+        const header = [
+          [`Lease Renewals Needing Attention — ${weekStart}`, '', '', '', ''],
+          ['', '', '', '', ''],
+          ['How calculated: (1) Fixed-term leases expired but not converted to M2M. (2) Fixed-term leases expiring within 60 days. (3) Month-to-month tenants with no rent increase or change of terms in 12+ months (team updates LastLeaseRenewal in AppFolio when action is taken).', '', '', '', ''],
+          ['', '', '', '', ''],
+          ['SUMMARY', '', '', '', ''],
+          ['Team', 'Count', '', '', ''],
+          ['Green (Beyond)',  green,  '', '', ''],
+          ['Yellow (Help)',   yellow, '', '', ''],
+          ['Blue (Success)',  blue,   '', '', ''],
+          ['', '', '', '', ''],
+          ['DETAIL', '', '', '', ''],
+          ['Property Address', 'Tenant Name', 'Category', 'Lease End / Last Action', 'AppFolio Link'],
+        ]
+
+        const detail = TEAM_ORDER.flatMap(t => {
+          const rows = flagged.filter(f => f.team === t)
+          if (rows.length === 0) return []
+          return [
+            [TEAM_LABEL[t], '', '', '', ''],
+            ...rows.map(f => [f.address, f.name, f.category, f.dateVal, f.link]),
+            ['', '', '', '', ''],
+          ]
+        })
+
+        const values = [...header, ...detail]
+        await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: 'Lease Renewals!A1:E500' })
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SHEET_ID, range: 'Lease Renewals!A1',
+          valueInputOption: 'RAW', requestBody: { values },
+        })
+        console.log('  Wrote lease renewals breakdown to Google Sheet "Lease Renewals" tab')
+      } catch (sheetErr) {
+        console.warn('  Sheet write failed:', sheetErr.message)
+      }
+    } else if (DRY_RUN) {
+      console.log('  [DRY RUN] Would write', flagged.length, 'rows to Google Sheet "Lease Renewals" tab')
+      flagged.slice(0, 5).forEach(f => console.log(`    ${TEAM_LABEL[f.team]} | ${f.address} | ${f.name} | ${f.category} | ${f.dateVal}`))
+    }
 
     logSource('lease_renewals', 'ok')
   } catch (err) {
