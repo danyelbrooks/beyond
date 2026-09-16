@@ -2779,13 +2779,24 @@ function renderStep3() {
       <div class="form-section-title">W-9 — Taxpayer Identification</div>
       ${w9Html}
 
-      <!-- Signature (shared for all W-9s) -->
-      <div class="form-section-title" style="margin-top:24px">Signature</div>
+      <!-- Signature(s) — one per owner -->
+      <div class="form-section-title" style="margin-top:24px">${parseInt(numOwners) > 1 ? 'Signatures' : 'Signature'}</div>
       <div class="sig-declaration">
         Under penalties of perjury, I certify that all information provided above is accurate and complete.
         Today: <strong>${new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</strong>
       </div>
-      <div id="sig-widget-3"></div>
+      ${(() => {
+        const n = parseInt(numOwners) || 1
+        let html = ''
+        for (let i = 1; i <= n; i++) {
+          const first = s2[`owner${i}First`] || ''
+          const last  = s2[`owner${i}Last`]  || ''
+          const name  = [first, last].filter(Boolean).join(' ')
+          if (n > 1) html += `<div style="font-weight:600;margin:16px 0 6px;font-size:0.9rem;color:var(--bpm-muted)">Owner ${i}${name ? ' — ' + name : ''}</div>`
+          html += `<div id="sig-widget-o${i}"></div>`
+        }
+        return html
+      })()}
 
       <div class="error-msg"></div>
 
@@ -2800,7 +2811,9 @@ function renderStep3() {
   `
 
   applyTenantPlacementMode()
-  buildSignatureWidget('sig-widget-3')
+  for (let _si = 1; _si <= (parseInt(numOwners) || 1); _si++) {
+    buildSignatureWidget(`sig-widget-o${_si}`)
+  }
 
   // CA notice toggle — one per W-9 block
   function setupCaToggle(prefix, caName) {
@@ -2942,8 +2955,16 @@ async function submitStep3() {
     if (!w9b._caAnswered)       return showStepError('Please answer the California residency question for Owner 2.')
   }
 
-  const sig = getSignatureData('sig-widget-3')
-  if (!sig) return showStepError('Please sign the tax forms before continuing.')
+  const _sigCount = parseInt(numOwners) || 1
+  const w9Signatures = []
+  for (let _si = 1; _si <= _sigCount; _si++) {
+    const _first = s2[`owner${_si}First`] || `Owner ${_si}`
+    const _last  = s2[`owner${_si}Last`]  || ''
+    const _label = _last ? `${_first} ${_last}` : _first
+    const _sig = getSignatureData(`sig-widget-o${_si}`)
+    if (!_sig) return showStepError(_sigCount > 1 ? `Please sign for ${_label} before continuing.` : 'Please sign the tax forms before continuing.')
+    w9Signatures.push(_sig)
+  }
 
   // Danyel flags — do not block the form, just flag for review
   const NEEDS_EIN = new Set(['partnership', 'trust_estate'])
@@ -2966,7 +2987,7 @@ async function submitStep3() {
       owners,
       _tin_a:      tinA,    // prefixed _ = PDF only, server must not write to Supabase
       _tin_b:      tinB,
-      w9Signature: sig,
+      w9Signatures,
       timestamp:   new Date().toISOString(),
       userAgent:   navigator.userAgent,
     })

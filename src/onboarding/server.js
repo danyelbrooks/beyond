@@ -931,6 +931,23 @@ app.post(
       })
 
       await saveStepData(ob.id, 2, safeData)
+
+      // Combine all owner names and update owner_name on the onboarding record
+      const numO = parseInt(safeData.numOwners) || 1
+      const ownerNameParts = []
+      for (let i = 1; i <= numO; i++) {
+        const first = i === 1 ? safeData.owner1First : safeData[`owner${i}First`]
+        const last  = i === 1 ? safeData.owner1Last  : safeData[`owner${i}Last`]
+        const full  = [first, last].filter(Boolean).join(' ').trim()
+        if (full) ownerNameParts.push(full)
+      }
+      if (ownerNameParts.length > 0) {
+        const combinedOwnerName = ownerNameParts.length === 1
+          ? ownerNameParts[0]
+          : ownerNameParts.slice(0, -1).join(', ') + ' and ' + ownerNameParts[ownerNameParts.length - 1]
+        await supabase.from('onboardings').update({ owner_name: combinedOwnerName }).eq('id', ob.id)
+      }
+
       await markStepComplete(ob.id, 2)
 
       // Determine step 7: skip if tenant is NOT staying
@@ -977,7 +994,8 @@ app.post('/api/onboard/:token/step/3', requireToken, async (req, res) => {
   delete req.body._tin_a
   delete req.body._tin_b
 
-  const { owners, numW9s, sameLastName, w9Signature, timestamp, userAgent } = req.body
+  const { owners, numW9s, sameLastName, w9Signatures, w9Signature, timestamp, userAgent } = req.body
+  const sigArray = w9Signatures || (w9Signature ? [w9Signature] : [])
 
   if (!owners || !Array.isArray(owners) || owners.length === 0) {
     return res.status(400).json({ error: 'owners array is required' })
