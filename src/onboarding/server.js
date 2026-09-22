@@ -18,6 +18,7 @@ import { createClient } from '@supabase/supabase-js'
 import path           from 'path'
 import { fileURLToPath } from 'url'
 import { createReadStream, existsSync } from 'fs'
+import mammoth from 'mammoth'
 
 import { generateToken }             from './token.js'
 import { lookupByAddress, lookupByApn, lookupPropertyDetails, lookupFloodZone } from './arcgis.js'
@@ -1565,21 +1566,22 @@ app.post('/api/onboard/:token/upload-document', requireToken, upload.single('fil
 // =============================================================================
 app.get('/api/onboard/:token/agreement.pdf', requireToken, async (req, res) => {
   const ob = req.onboarding
-  const fileMap = { full_management: 'pma.pdf', tenant_placement: 'lease-listing.pdf' }
-  const staticPdf = path.join(__dirname, 'templates', fileMap[ob.agreement_type] || 'pma.pdf')
-
   try {
     const docxBuffer = await generateFilledAgreement(ob)
-    const pdfBuffer  = await docxBufferToPdf(docxBuffer)
-    res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', 'inline; filename="agreement.pdf"')
-    res.send(pdfBuffer)
+    const { value: html } = await mammoth.convertToHtml({ buffer: docxBuffer })
+    const page = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+  body { font-family: Georgia, serif; font-size: 13px; line-height: 1.6;
+         max-width: 800px; margin: 0 auto; padding: 32px 40px; color: #111; }
+  h1, h2, h3 { font-family: Arial, sans-serif; }
+  p { margin: 0 0 10px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  td, th { border: 1px solid #ccc; padding: 6px 8px; }
+</style></head><body>${html}</body></html>`
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.send(page)
   } catch (err) {
-    console.error('[agreement.pdf] generation failed, serving static template:', err.message)
-    // Fall back to static template so the owner sees a PDF instead of an error
-    if (existsSync(staticPdf)) {
-      return res.sendFile(staticPdf)
-    }
+    console.error('[agreement.pdf]', err.message)
     res.status(500).json({ error: 'Failed to generate agreement preview' })
   }
 })

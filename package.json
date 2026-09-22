@@ -32,6 +32,7 @@
     "express": "^4.22.2",
     "express-rate-limit": "^8.6.1",
     "googleapis": "^144.0.0",
+    "mammoth": "^1.12.3",
     "multer": "^2.2.0",
     "node-fetch": "^3.3.2",
     "pdf-lib": "^1.17.1",
