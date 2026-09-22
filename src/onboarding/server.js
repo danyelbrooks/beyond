@@ -89,7 +89,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-const PORTAL_BASE  = process.env.PORTAL_BASE_URL || 'http://localhost:3006'
+const PORTAL_BASE  = process.env.PORTAL_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://bpm-onboarding-portal.onrender.com' : 'http://localhost:3006')
 const anthropic    = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // =============================================================================
