@@ -25,21 +25,24 @@ async function getAuth() {
     throw new Error('GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY is not set in environment')
   }
 
+  // Strip BOM and whitespace — Notepad copy-paste can prepend
+  const cleaned = keyValue.replace(/^﻿/, '').trim()
+
   let keyFile
   // If the value starts with '{' it is the JSON content (Render / production).
   // Otherwise treat it as a file path (local dev with bpm-drive-account.json).
-  if (keyValue.trim().startsWith('{')) {
+  if (cleaned.startsWith('{')) {
     try {
-      keyFile = JSON.parse(keyValue)
+      keyFile = JSON.parse(cleaned)
     } catch (err) {
       throw new Error(`GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY is not valid JSON: ${err.message}`)
     }
   } else {
     try {
-      const raw = await readFile(keyValue, 'utf8')
+      const raw = await readFile(cleaned, 'utf8')
       keyFile = JSON.parse(raw)
     } catch (err) {
-      throw new Error(`Could not read Drive service account key at "${keyValue}": ${err.message}`)
+      throw new Error(`Could not read Drive service account key at "${cleaned}": ${err.message}`)
     }
   }
 
