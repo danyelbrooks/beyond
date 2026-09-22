@@ -1564,15 +1564,22 @@ app.post('/api/onboard/:token/upload-document', requireToken, upload.single('fil
 // Generates the filled DOCX on-demand and converts to PDF via Google Drive.
 // =============================================================================
 app.get('/api/onboard/:token/agreement.pdf', requireToken, async (req, res) => {
+  const ob = req.onboarding
+  const fileMap = { full_management: 'pma.pdf', tenant_placement: 'lease-listing.pdf' }
+  const staticPdf = path.join(__dirname, 'templates', fileMap[ob.agreement_type] || 'pma.pdf')
+
   try {
-    const ob = req.onboarding
     const docxBuffer = await generateFilledAgreement(ob)
     const pdfBuffer  = await docxBufferToPdf(docxBuffer)
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', 'inline; filename="agreement.pdf"')
     res.send(pdfBuffer)
   } catch (err) {
-    console.error('[agreement.pdf]', err.message)
+    console.error('[agreement.pdf] generation failed, serving static template:', err.message)
+    // Fall back to static template so the owner sees a PDF instead of an error
+    if (existsSync(staticPdf)) {
+      return res.sendFile(staticPdf)
+    }
     res.status(500).json({ error: 'Failed to generate agreement preview' })
   }
 })
