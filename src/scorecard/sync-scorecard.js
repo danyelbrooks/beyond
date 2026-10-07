@@ -1296,10 +1296,17 @@ async function syncTasks(weekStart) {
   for (const pk of Object.values(emailToKey)) counts[pk] = 0
 
   try {
-    const first = await fetch(`${LS_BASE}/tasks?per_page=100&page=1`, {
-      headers: { Authorization: `Bearer ${LS_KEY}` },
-    })
-    const firstData  = await first.json()
+    async function getTasksPage1() {
+      const r = await fetch(`${LS_BASE}/tasks?per_page=100&page=1`, {
+        headers: { Authorization: `Bearer ${LS_KEY}` },
+      })
+      return r.json()
+    }
+    let firstData  = await getTasksPage1()
+    if ((firstData.meta?.total_pages || 1) < 10) {
+      await new Promise(r => setTimeout(r, 3000))
+      firstData = await getTasksPage1()
+    }
     const totalPages = firstData.meta?.total_pages || 1
     console.log(`  Scanning ${totalPages} pages of tasks…`)
 
