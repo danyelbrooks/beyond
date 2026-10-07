@@ -1207,13 +1207,13 @@ async function syncOwnerCallKPI(weekStart) {
       for (const c of [...calls].reverse()) {
         if (c.created_at < weekStart) break outer  // Past this week — done
         if (c.created_at > weekEnd)    continue
-        if (c.direction !== 'outbound') continue
         if (c.deal?.pipeline?.id !== LS_OWNER_PIPELINE) continue
         const pmEmail = c.deal?.assignee?.email?.toLowerCase()
         if (!newCalledByPM[pmEmail]) continue
 
-        const toPhone = normalizePhone(c.to)
-        const owner   = toPhone ? ownerMap.get(toPhone) : null
+        // Outbound: owner is c.to. Inbound: owner is c.from.
+        const ownerPhone = normalizePhone(c.direction === 'inbound' ? c.from : c.to)
+        const owner      = ownerPhone ? ownerMap.get(ownerPhone) : null
         if (!owner) continue
 
         const callDate = c.created_at.split('T')[0]
