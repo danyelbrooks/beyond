@@ -1189,17 +1189,22 @@ async function syncOwnerCallKPI(weekStart) {
     // Track most-recent call date per owner this week (for accurate PATCH)
     const latestCallDate = new Map()  // ownerId → 'YYYY-MM-DD'
 
+    // LeadSimple returns calls oldest-first. Get total pages, then read backwards.
     const weekEnd = new Date(new Date(weekStart).getTime() + 7 * 86400000).toISOString()
-    let page = 1
-    outer: while (page <= 30) {
+    const metaRes   = await fetch(`${LS_BASE}/calls?per_page=100&page=1`, { headers: { Authorization: `Bearer ${LS_KEY}` } })
+    const totalPages = (await metaRes.json()).meta?.total_pages || 1
+
+    let page = totalPages
+    outer: while (page >= 1) {
       const res   = await fetch(`${LS_BASE}/calls?per_page=100&page=${page}`, {
         headers: { Authorization: `Bearer ${LS_KEY}` }
       })
       const calls = (await res.json()).data || []
-      if (!calls.length) break
+      if (!calls.length) { page--; continue }
 
-      for (const c of calls) {
-        if (c.created_at < weekStart) break outer
+      // Page is oldest-first within itself; reverse to process newest-first
+      for (const c of [...calls].reverse()) {
+        if (c.created_at < weekStart) break outer  // Past this week — done
         if (c.created_at > weekEnd)    continue
         if (c.direction !== 'outbound') continue
         if (c.deal?.pipeline?.id !== LS_OWNER_PIPELINE) continue
@@ -1220,7 +1225,7 @@ async function syncOwnerCallKPI(weekStart) {
         // Count toward KPI only if this owner has never been called (null lastCallDate)
         if (!owner.lastCallDate) newCalledByPM[pmEmail].add(owner.id)
       }
-      page++
+      page--
     }
 
     // Patch AppFolio: update Owner Last Phone Call for every owner called this week
