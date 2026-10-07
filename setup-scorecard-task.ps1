@@ -1,18 +1,20 @@
 # Register BPM Scorecard Sync — weekly, Sunday midnight, runs even when not logged in
-# Windows will prompt for your password once to store securely with the task.
+# Uses the SYSTEM account so no password is needed.
+# Must be run from an Administrator PowerShell window.
+
 $taskName = "BPM Scorecard Sync"
 $bat      = "C:\Code\beyond\sync-scorecard.bat"
-$user     = "$env:USERDOMAIN\$env:USERNAME"
 
 # Delete old task if it exists
 schtasks /delete /tn $taskName /f 2>$null
 
-Write-Host "Creating task for user: $user"
-Write-Host "Windows will prompt for your password to allow the task to run when logged out."
-Write-Host ""
+# Register using PowerShell's task scheduler (requires admin)
+$action  = New-ScheduledTaskAction -Execute $bat
+$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At "12:00AM"
+$settings = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -WakeToRun
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
-# /rp * tells schtasks to prompt for the password interactively (never stored in a variable)
-schtasks /create /tn $taskName /tr $bat /sc weekly /d SUN /st 00:00 /ru $user /rp * /f
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force
 
 Write-Host ""
 Write-Host "Done. Task status:"
