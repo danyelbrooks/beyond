@@ -616,6 +616,7 @@
       offboarding_packets:         'Percentage of offboarding packets completed and delivered to departing owners. Goal: 100%.',
       review_pulled:               'Did this team member successfully request and receive a review from a tenant or owner this week? Goal: ≥1.',
       wo_days:                     'Average days from work order opened to completed this week. Goal: ≤8 days.',
+      owner_calls_this_week:       'Number of owners who have never been called before that were called this week. Goal: 25 per week (5 per day). Pulled automatically from outbound LeadSimple calls matched to AppFolio owner phone numbers.',
     }
 
     // ── Week helpers ─────────────────────────────────────────────────────────
@@ -1374,7 +1375,7 @@
         } else if (info.autoSource && [
           'appfolio_rent','appfolio_wo','appfolio_days_on_market',
           'appfolio_security_deposits_moveout','appfolio_turning_points','appfolio_lost_units',
-          'birdeye_rating','leadsimple_email_count','leadsimple_task_count'
+          'birdeye_rating','leadsimple_email_count','leadsimple_task_count','leadsimple_owner_calls'
         ].includes(info.autoSource)) {
           const srcName = info.autoSource.startsWith('appfolio') ? 'AppFolio'
                         : info.autoSource.startsWith('birdeye')  ? 'BirdEye'
