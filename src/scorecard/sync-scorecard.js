@@ -168,20 +168,26 @@ function filterByGroup(items, groupKey, propGroupMap, propIdField = null) {
   })
 }
 
-// ── LeadSimple API fetch (calls) ──────────────────────────────────────────────
+// ── LeadSimple API fetch (calls since a date) ────────────────────────────────
 // LeadSimple does not support date filtering — we paginate from the last page
-// backwards and stop once we go past 7 days ago.
+// backwards and stop once we go past the cutoff date.
+// Retries total_pages once if the value looks rate-limited (< 10).
 
-async function fetchLSCallsLastDays(days = 7) {
+async function fetchLSCallsSince(cutoff) {
   if (!LS_KEY) throw new Error('Missing LEADSIMPLE_API_KEY in .env')
-  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
-  // Get total page count
-  const first = await fetch(`${LS_BASE}/calls?per_page=50&page=1`, {
-    headers: { Authorization: `Bearer ${LS_KEY}` },
-  })
-  const firstData = await first.json()
-  const totalPages = firstData.meta?.total_pages || 1
+  async function getTotalPages() {
+    const r = await fetch(`${LS_BASE}/calls?per_page=50&page=1`, {
+      headers: { Authorization: `Bearer ${LS_KEY}` },
+    })
+    return (await r.json()).meta?.total_pages || 1
+  }
+
+  let totalPages = await getTotalPages()
+  if (totalPages < 10) {
+    await new Promise(r => setTimeout(r, 3000))
+    totalPages = await getTotalPages()
+  }
 
   const recentCalls = []
   let page = totalPages
@@ -194,16 +200,14 @@ async function fetchLSCallsLastDays(days = 7) {
     const data  = await res.json()
     const calls = data.data || []
 
-    // Page is oldest-first — iterate newest to oldest
+    // Pages are oldest-first — iterate newest to oldest within each page
     for (let i = calls.length - 1; i >= 0; i--) {
       const call = calls[i]
       if (new Date(call.created_at) < cutoff) { done = true; break }
       recentCalls.push(call)
     }
 
-    // If the oldest call on this page is already before our cutoff, stop
     if (!done && calls.length > 0 && new Date(calls[0].created_at) < cutoff) done = true
-
     page--
   }
 
@@ -959,52 +963,53 @@ async function syncVacancyPct(weekStart) {
 }
 
 // ── SOURCE: call_answer_rate ──────────────────────────────────────────────────
-// Pull inbound calls from LeadSimple for the past 7 days.
-// Group by deal.assignee.email to get per-person answer rate.
-// Answered = outcome === 'answered'. Total = all inbound calls.
+// Inbound calls Mon–Fri 9am–6pm PT for beyond@, help@, success@ only.
+// Grouped by deal.assignee.email. Answered = outcome === 'answered'.
+// Designed to run on Fridays after 6pm so the full week is captured.
+
+function isBusinessHoursPT(dateStr) {
+  const d = new Date(dateStr)
+  const pt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    weekday: 'short', hour: 'numeric', hour12: false,
+  }).formatToParts(d)
+  const day  = pt.find(p => p.type === 'weekday')?.value   // Mon/Tue/…
+  const hour = parseInt(pt.find(p => p.type === 'hour')?.value ?? '0', 10)
+  return ['Mon','Tue','Wed','Thu','Fri'].includes(day) && hour >= 9 && hour < 18
+}
 
 async function syncCallAnswerRate(weekStart) {
-  console.log('\n[call_answer_rate] Pulling LeadSimple inbound calls (last 7 days)…')
+  console.log('\n[call_answer_rate] Pulling LeadSimple inbound calls (Mon–Fri 9am–6pm PT)…')
   if (!LS_KEY) {
-    console.log('  No LEADSIMPLE_API_KEY — skipping.')
     logSource('call_answer_rate', 'skipped — no LEADSIMPLE_API_KEY')
     return
   }
 
-  const emailToPersonKey = {
-    'beyond@bpmsd.com':   'beyond',
-    'help@bpmsd.com':     'rubin',
-    'success@bpmsd.com':  'mark',
-    'home@bpmsd.com':     'gael',
-    'admin@bpmsd.com':    'ella',
-    'accounts@bpmsd.com': 'moira',
-    'info@bpmsd.com':     'nayelie',
+  const inboxToKey = {
+    'beyond@bpmsd.com':  'beyond',
+    'help@bpmsd.com':    'rubin',
+    'success@bpmsd.com': 'mark',
   }
 
-  const tally = {}
-  for (const pk of Object.values(emailToPersonKey)) {
-    tally[pk] = { answered: 0, total: 0 }
-  }
+  const tally = { beyond: { answered: 0, total: 0 }, rubin: { answered: 0, total: 0 }, mark: { answered: 0, total: 0 } }
 
   try {
-    const calls = await fetchLSCallsLastDays(7)
-    console.log(`  Fetched ${calls.length} calls from last 7 days`)
+    const cutoff = new Date(weekStart)
+    const calls  = await fetchLSCallsSince(cutoff)
+    console.log(`  Fetched ${calls.length} calls since ${weekStart}`)
 
     for (const call of calls) {
       if (call.direction !== 'inbound') continue
+      if (!isBusinessHoursPT(call.created_at)) continue
       const email = call.deal?.assignee?.email?.toLowerCase()
-      const pk    = email ? emailToPersonKey[email] : null
+      const pk    = email ? inboxToKey[email] : null
       if (!pk) continue
-
       tally[pk].total++
       if (call.outcome === 'answered') tally[pk].answered++
     }
 
     for (const [pk, { answered, total }] of Object.entries(tally)) {
-      if (total === 0) {
-        console.log(`  ${pk}: no inbound calls — skipping`)
-        continue
-      }
+      if (total === 0) { console.log(`  ${pk}: no calls in window`); continue }
       const rate = Math.round((answered / total) * 100)
       console.log(`  ${pk}: ${answered}/${total} answered = ${rate}%`)
       await upsertEntry(weekStart, pk, 'call_answer_rate', rate)
