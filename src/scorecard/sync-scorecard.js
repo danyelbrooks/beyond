@@ -1123,6 +1123,138 @@ async function syncResidentSatisfaction(weekStart) {
   }
 }
 
+// ── Owner Call KPI ────────────────────────────────────────────────────────────
+
+const OWNER_LAST_CALL_CF  = '0ceaf2d9-a4b6-11f0-be47-0e89a8475669'
+const LS_OWNER_PIPELINE   = '107b373d-bca5-4b45-b95a-1cc3200a7d32'
+
+function normalizePhone(raw) {
+  if (!raw) return null
+  const digits = raw.replace(/\D/g, '')
+  return digits.length >= 10 ? digits.slice(-10) : null
+}
+
+// ownerData: Map of phone (10 digits) → { id, lastCallDate: 'YYYY-MM-DD' | null }
+async function buildOwnerMap() {
+  // Fetch active owners (updated since 2024) — ~400 records, fits in one page.
+  // Also reads their current Owner Last Phone Call date so we can detect overdue owners.
+  const phoneMap = new Map()  // '8581234567' → { id, lastCallDate }
+  let pageNum = 1
+  while (true) {
+    const url = `${BASE}/owners?per_page=500&page_number=${pageNum}&filters[LastUpdatedAtFrom]=2024-01-01T00:00:00Z`
+    const res = await fetch(url, {
+      headers: { Authorization: `Basic ${BASIC_AUTH}`, 'X-AppFolio-Developer-ID': DEVELOPER_ID }
+    })
+    if (!res.ok) throw new Error(`AppFolio owners fetch failed: ${res.status}`)
+    const data   = await res.json()
+    const owners = data.data || []
+    for (const o of owners) {
+      const id = o.Id
+      if (!id) continue
+      const lastCallDate = o.CustomFields?.[OWNER_LAST_CALL_CF]?.Value ?? null
+      const entry = { id, lastCallDate }
+      const phones = [o.PhoneNumber, ...(o.PhoneNumbers || []).map(p => p.Number)]
+      for (const raw of phones) {
+        const pn = normalizePhone(raw)
+        if (pn) phoneMap.set(pn, entry)
+      }
+    }
+    if (owners.length < 500) break
+    pageNum++
+  }
+  return phoneMap
+}
+
+async function syncOwnerCallKPI(weekStart) {
+  console.log('\n── Owner Call KPI ──────────────────────────────────────')
+  try {
+    if (!LS_KEY)     { logSource('owner_calls_this_week', 'skipped: no LEADSIMPLE_API_KEY'); return }
+    if (!BASIC_AUTH) { logSource('owner_calls_this_week', 'skipped: no AppFolio credentials'); return }
+
+    console.log('  Loading owner call history from AppFolio...')
+    const ownerMap = await buildOwnerMap()
+    console.log(`  Loaded ${ownerMap.size} owner phone entries`)
+
+    const pmToPersonKey = {
+      'beyond@bpmsd.com':  'beyond',
+      'help@bpmsd.com':    'rubin',
+      'success@bpmsd.com': 'mark',
+    }
+    // Sets of AppFolio owner IDs: never-called owners reached this week per PM
+    const newCalledByPM = {
+      'beyond@bpmsd.com':  new Set(),
+      'help@bpmsd.com':    new Set(),
+      'success@bpmsd.com': new Set(),
+    }
+    // Track most-recent call date per owner this week (for accurate PATCH)
+    const latestCallDate = new Map()  // ownerId → 'YYYY-MM-DD'
+
+    const weekEnd = new Date(new Date(weekStart).getTime() + 7 * 86400000).toISOString()
+    let page = 1
+    outer: while (page <= 30) {
+      const res   = await fetch(`${LS_BASE}/calls?per_page=100&page=${page}`, {
+        headers: { Authorization: `Bearer ${LS_KEY}` }
+      })
+      const calls = (await res.json()).data || []
+      if (!calls.length) break
+
+      for (const c of calls) {
+        if (c.created_at < weekStart) break outer
+        if (c.created_at > weekEnd)    continue
+        if (c.direction !== 'outbound') continue
+        if (c.deal?.pipeline?.id !== LS_OWNER_PIPELINE) continue
+        const pmEmail = c.deal?.assignee?.email?.toLowerCase()
+        if (!newCalledByPM[pmEmail]) continue
+
+        const toPhone = normalizePhone(c.to)
+        const owner   = toPhone ? ownerMap.get(toPhone) : null
+        if (!owner) continue
+
+        const callDate = c.created_at.split('T')[0]
+
+        // Track the most recent call date seen this week for this owner (for PATCH)
+        if (!latestCallDate.has(owner.id) || callDate > latestCallDate.get(owner.id)) {
+          latestCallDate.set(owner.id, callDate)
+        }
+
+        // Count toward KPI only if this owner has never been called (null lastCallDate)
+        if (!owner.lastCallDate) newCalledByPM[pmEmail].add(owner.id)
+      }
+      page++
+    }
+
+    // Patch AppFolio: update Owner Last Phone Call for every owner called this week
+    let patched = 0
+    for (const [ownerId, callDate] of latestCallDate.entries()) {
+      if (!DRY_RUN) {
+        const pr = await fetch(`${BASE}/owners/${ownerId}`, {
+          method:  'PATCH',
+          headers: { Authorization: `Basic ${BASIC_AUTH}`, 'X-AppFolio-Developer-ID': DEVELOPER_ID, 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ CustomFields: { [OWNER_LAST_CALL_CF]: callDate } }),
+        })
+        if (!pr.ok) console.warn(`  PATCH owner ${ownerId} failed: ${pr.status}`)
+        else patched++
+      } else {
+        console.log(`  [DRY RUN] PATCH owner ${ownerId} → Owner Last Phone Call = ${callDate}`)
+        patched++
+      }
+    }
+
+    // Write scorecard: count of never-called owners reached this week per PM (goal 25/week)
+    for (const [pmEmail, ownerSet] of Object.entries(newCalledByPM)) {
+      const pk    = pmToPersonKey[pmEmail]
+      const count = ownerSet.size
+      console.log(`  ${pk}: ${count} new owners called this week (goal: 25)`)
+      await upsertEntry(weekStart, pk, 'owner_calls_this_week', count)
+    }
+    console.log(`  AppFolio updated: ${patched} owners`)
+    logSource('owner_calls_this_week', 'ok')
+  } catch (err) {
+    console.warn('  owner_calls_this_week failed:', err.message)
+    logSource('owner_calls_this_week', `error: ${err.message}`)
+  }
+}
+
 // ── Helper: group items by team ──────────────────────────────────────────────
 
 function groupByTeam(items, propGroupMap, propIdField) {
@@ -1166,6 +1298,7 @@ async function main() {
   await syncResidentSatisfaction(weekStart)
   await syncOwnerHealth(weekStart)
   await syncCallAnswerRate(weekStart)
+  await syncOwnerCallKPI(weekStart)
 
   console.log('\n══════════════════════════════════════════')
   console.log(`  Entries written: ${results.written}`)
