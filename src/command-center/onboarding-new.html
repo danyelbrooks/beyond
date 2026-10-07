@@ -555,7 +555,7 @@
       navigator.clipboard.writeText(data.portalLink).catch(() => {})
 
     } catch (err) {
-      showError('Network error — is the onboarding server running on port 3006?')
+      showError('Network error — the server may be waking up. Wait 60 seconds and try again.')
     } finally {
       btn.disabled = false
       btn.textContent = 'Create Onboarding & Copy Link'
