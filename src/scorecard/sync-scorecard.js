@@ -1126,6 +1126,7 @@ async function syncResidentSatisfaction(weekStart) {
 // ── Owner Call KPI ────────────────────────────────────────────────────────────
 
 const OWNER_LAST_CALL_CF  = '0ceaf2d9-a4b6-11f0-be47-0e89a8475669'
+const OWNER_LAST_EMAIL_CF = '9ce4382f-a876-11f0-be47-0e89a8475669'
 const LS_OWNER_PIPELINE   = '107b373d-bca5-4b45-b95a-1cc3200a7d32'
 
 function normalizePhone(raw) {
@@ -1260,6 +1261,116 @@ async function syncOwnerCallKPI(weekStart) {
   }
 }
 
+// ── Owner Personalized Update sync ───────────────────────────────────────────
+// Reads last_emailed_at from every LeadSimple Owner Contracts deal and writes
+// the most-recent date per owner into AppFolio custom field
+// "Owner Last Personalized Update" (OWNER_LAST_EMAIL_CF).
+// Matches by email first, then by phone (10-digit normalized).
+// This is a field-update only — no scorecard metric written.
+
+async function syncOwnerPersonalizedUpdate() {
+  console.log('\n── Owner Personalized Update sync ──────────────────────')
+  if (!LS_KEY)     { logSource('owner_last_email', 'skipped: no LEADSIMPLE_API_KEY'); return }
+  if (!BASIC_AUTH) { logSource('owner_last_email', 'skipped: no AppFolio credentials'); return }
+
+  try {
+    // Build AppFolio owner maps (email → id, phone → id)
+    console.log('  Loading AppFolio owners…')
+    const emailMap = new Map()  // normalizedEmail → { id, name }
+    const phoneMap = new Map()  // normalizedPhone → { id, name }
+    let pg = 1
+    while (true) {
+      const res = await fetch(
+        `${BASE}/owners?per_page=500&page_number=${pg}&filters[LastUpdatedAtFrom]=2024-01-01T00:00:00Z`,
+        { headers: { Authorization: `Basic ${BASIC_AUTH}`, 'X-AppFolio-Developer-ID': DEVELOPER_ID } }
+      )
+      const owners = (await res.json()).data || []
+      for (const o of owners) {
+        if (!o.Id) continue
+        const entry = { id: o.Id, name: `${o.FirstName || ''} ${o.LastName || ''}`.trim() }
+        const emails = [o.Email, ...(o.Emails || []).map(e => e.EmailAddress)]
+        for (const e of emails) {
+          const n = (e || '').toLowerCase().trim()
+          if (n) emailMap.set(n, entry)
+        }
+        const phones = [o.PhoneNumber, ...(o.PhoneNumbers || []).map(p => p.Number)]
+        for (const p of phones) {
+          const n = normalizePhone(p)
+          if (n) phoneMap.set(n, entry)
+        }
+      }
+      if (owners.length < 500) break
+      pg++
+    }
+    console.log(`  Owner entries — emails: ${emailMap.size} | phones: ${phoneMap.size}`)
+
+    // Paginate LeadSimple owner deals and collect max last_emailed_at per owner
+    const latestEmail = new Map()  // ownerId → { date, name }
+    let lsPage = 1
+    while (true) {
+      const res = await fetch(
+        `${LS_BASE}/deals?per_page=100&page=${lsPage}&pipeline_id=${LS_OWNER_PIPELINE}`,
+        { headers: { Authorization: `Bearer ${LS_KEY}` } }
+      )
+      const body  = await res.json()
+      const deals = body.data || []
+      if (!deals.length) break
+
+      for (const d of deals) {
+        if (!d.last_emailed_at) continue
+        const emailDate = d.last_emailed_at.split('T')[0]
+        let owner = null
+        for (const c of (d.contacts || [])) {
+          for (const e of (c.emails || [])) {
+            owner = emailMap.get((e || '').toLowerCase().trim())
+            if (owner) break
+          }
+          if (!owner) {
+            for (const p of (c.phone_numbers || [])) {
+              owner = phoneMap.get(normalizePhone(p))
+              if (owner) break
+            }
+          }
+          if (owner) break
+        }
+        if (!owner) continue
+        const existing = latestEmail.get(owner.id)
+        if (!existing || emailDate > existing.date) latestEmail.set(owner.id, { date: emailDate, name: owner.name })
+      }
+
+      if (!body.meta?.total_pages || lsPage >= body.meta.total_pages) break
+      lsPage++
+    }
+    console.log(`  Owners matched with email date: ${latestEmail.size}`)
+
+    // PATCH AppFolio
+    let ok = 0, fail = 0
+    for (const [ownerId, info] of latestEmail.entries()) {
+      if (DRY_RUN) {
+        console.log(`  [DRY RUN] ${info.name} → Owner Last Personalized Update = ${info.date}`)
+        ok++
+        continue
+      }
+      const pr = await fetch(`${BASE}/owners/${ownerId}`, {
+        method:  'PATCH',
+        headers: { Authorization: `Basic ${BASIC_AUTH}`, 'X-AppFolio-Developer-ID': DEVELOPER_ID, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ CustomFields: { [OWNER_LAST_EMAIL_CF]: info.date } }),
+      })
+      if (pr.ok) ok++
+      else {
+        const t = await pr.text()
+        console.warn(`  FAILED: ${info.name} ${pr.status} ${t.substring(0, 80)}`)
+        fail++
+      }
+    }
+    console.log(`  AppFolio updated: ${ok} | Failed: ${fail}`)
+    logSource('owner_last_email', `ok — ${ok} patched, ${fail} failed`)
+  } catch (err) {
+    console.warn('  owner_last_email failed:', err.message)
+    logSource('owner_last_email', `error: ${err.message}`)
+  }
+}
+
 // ── Helper: group items by team ──────────────────────────────────────────────
 
 function groupByTeam(items, propGroupMap, propIdField) {
@@ -1305,6 +1416,7 @@ async function main() {
   await syncOwnerHealth(weekStart)
   await syncCallAnswerRate(weekStart)
   await syncOwnerCallKPI(weekStart)
+  await syncOwnerPersonalizedUpdate()
 
   console.log('\n══════════════════════════════════════════')
   console.log(`  Entries written: ${results.written}`)
