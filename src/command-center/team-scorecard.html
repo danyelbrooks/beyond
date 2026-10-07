@@ -393,27 +393,33 @@
     .dd-cell:hover { background: var(--color-bg) !important; }
 
     /* ── Cheatsheet popover ──────────────────────────────────── */
-    .cs-btn {
+    .cs-label-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text);
+      font-size: inherit;
+      font-family: inherit;
+      padding: 0;
+      text-align: left;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      line-height: 1.3;
+    }
+    .cs-label-btn:hover { color: var(--color-accent); }
+    .cs-info-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 14px; height: 14px;
+      width: 13px; height: 13px;
       border-radius: 50%;
-      background: none;
-      border: 1px solid var(--color-border);
-      color: var(--color-text-muted);
-      font-size: .6rem; font-weight: 700;
-      cursor: pointer;
+      border: 1px solid currentColor;
+      font-size: .58rem; font-weight: 700;
+      opacity: .45;
       flex-shrink: 0;
-      line-height: 1;
-      padding: 0;
-      vertical-align: middle;
     }
-    .cs-btn:hover {
-      background: var(--color-bg);
-      border-color: var(--color-accent);
-      color: var(--color-accent);
-    }
+    .cs-label-btn:hover .cs-info-icon { opacity: 1; }
     .cs-popover {
       position: fixed;
       background: #fff;
@@ -616,7 +622,7 @@
       offboarding_packets:         'Percentage of offboarding packets completed and delivered to departing owners. Goal: 100%.',
       review_pulled:               'Did this team member successfully request and receive a review from a tenant or owner this week? Goal: ≥1.',
       wo_days:                     'Average days from work order opened to completed this week. Goal: ≤8 days.',
-      owner_calls_this_week:       'Number of owners who have never been called before that were called this week. Goal: 25 per week (5 per day). Pulled automatically from outbound LeadSimple calls matched to AppFolio owner phone numbers.',
+      owner_calls_this_week:       'Number of owners who have never been called before that were called this week. Goal: 25 per week (5 per day). Pulled automatically from both inbound and outbound LeadSimple calls in the Owner Contracts pipeline, matched to AppFolio owner phone numbers.',
     }
 
     // ── Week helpers ─────────────────────────────────────────────────────────
@@ -823,12 +829,13 @@
 
     function renderRow(personKey, metric, displayWeeks) {
       const cells = displayWeeks.map(w => renderCell(personKey, metric, w)).join('')
-      const csBtn = CHEATSHEET[metric.metric_key]
-        ? `<button class="cs-btn" onclick="toggleCheatsheet(event,'${esc(metric.metric_key)}')" title="What is this?">?</button>`
-        : ''
+      const hasCs = !!CHEATSHEET[metric.metric_key]
+      const labelHtml = hasCs
+        ? `<button class="cs-label-btn" onclick="toggleCheatsheet(event,'${esc(metric.metric_key)}')" title="How is this calculated?">${esc(metric.metric_label)}<span class="cs-info-icon">?</span></button>`
+        : esc(metric.metric_label)
       return `
         <tr>
-          <td class="col-measurable"><div style="display:flex;align-items:center;gap:5px;">${esc(metric.metric_label)}${csBtn}</div></td>
+          <td class="col-measurable">${labelHtml}</td>
           <td class="col-goal" style="color:var(--color-text-muted);font-size:.75rem;">${goalLabel(metric)}</td>
           ${cells}
         </tr>
