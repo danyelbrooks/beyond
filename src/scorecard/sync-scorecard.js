@@ -1283,7 +1283,8 @@ function groupByTeam(items, propGroupMap, propIdField) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const weekStart = toDateStr(getWeekStart())
+  const arg = process.argv.find(a => a.startsWith('--week='))
+  const weekStart = arg ? arg.split('=')[1] : toDateStr(getWeekStart())
   const weekEnd   = toDateStr(new Date(new Date(weekStart).getTime() + 6 * 86400000))
   const mode      = DRY_RUN ? 'DRY RUN' : 'LIVE'
 
