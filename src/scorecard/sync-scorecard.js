@@ -1302,9 +1302,11 @@ async function syncTasks(weekStart) {
       })
       return r.json()
     }
-    let firstData  = await getTasksPage1()
-    if ((firstData.meta?.total_pages || 1) < 10) {
-      await new Promise(r => setTimeout(r, 3000))
+    let firstData = await getTasksPage1()
+    for (let attempt = 0; attempt < 4 && (firstData.meta?.total_pages || 1) < 10; attempt++) {
+      const wait = (attempt + 1) * 5000
+      console.log(`  LS rate-limited (total_pages=1), waiting ${wait / 1000}s…`)
+      await new Promise(r => setTimeout(r, wait))
       firstData = await getTasksPage1()
     }
     const totalPages = firstData.meta?.total_pages || 1
