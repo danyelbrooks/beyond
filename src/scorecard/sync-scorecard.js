@@ -1270,6 +1270,77 @@ async function syncOwnerCallKPI(weekStart) {
 // Reads last_emailed_at from every LeadSimple Owner Contracts deal and writes
 // the most-recent date per owner into AppFolio custom field
 // "Owner Last Personalized Update" (OWNER_LAST_EMAIL_CF).
+// ── SOURCE: tasks ─────────────────────────────────────────────────────────────
+// Count open (not completed, not skipped) LeadSimple tasks per person.
+// "Open" = due_at is in the past and completed_at is null.
+// Designed to run Friday at 6pm — captures backlog at end of work week.
+
+async function syncTasks(weekStart) {
+  console.log('\n[tasks] Counting open LeadSimple tasks per person…')
+  if (!LS_KEY) { logSource('tasks', 'skipped — no LEADSIMPLE_API_KEY'); return }
+
+  const emailToKey = {
+    'beyond@bpmsd.com':            'beyond',
+    'help@bpmsd.com':              'rubin',
+    'success@bpmsd.com':           'mark',
+    'home@bpmsd.com':              'gael',
+    'admin@bpmsd.com':             'ella',
+    'manager@bpmsd.com':           'maria_a',
+    'results@bpmsd.com':           'laura',
+    'accounts@bpmsd.com':          'moira',
+    'lsbookkeeperbpmsd@gmail.com': 'moira',
+  }
+
+  const now    = new Date()
+  const counts = {}
+  for (const pk of Object.values(emailToKey)) counts[pk] = 0
+
+  try {
+    const first = await fetch(`${LS_BASE}/tasks?per_page=100&page=1`, {
+      headers: { Authorization: `Bearer ${LS_KEY}` },
+    })
+    const firstData  = await first.json()
+    const totalPages = firstData.meta?.total_pages || 1
+    console.log(`  Scanning ${totalPages} pages of tasks…`)
+
+    // Process page 1 data already fetched
+    for (const t of (firstData.data || [])) {
+      if (t.completed_at || t.skipped) continue
+      if (!t.due_at || new Date(t.due_at) > now) continue
+      const pk = emailToKey[t.assignee?.email?.toLowerCase()]
+      if (pk) counts[pk]++
+    }
+
+    for (let page = 2; page <= totalPages; page++) {
+      const res  = await fetch(`${LS_BASE}/tasks?per_page=100&page=${page}`, {
+        headers: { Authorization: `Bearer ${LS_KEY}` },
+      })
+      const tasks = (await res.json()).data || []
+      for (const t of tasks) {
+        if (t.completed_at || t.skipped) continue
+        if (!t.due_at || new Date(t.due_at) > now) continue
+        const pk = emailToKey[t.assignee?.email?.toLowerCase()]
+        if (pk) counts[pk]++
+      }
+      if (page % 100 === 0) console.log(`  …page ${page}/${totalPages}`)
+    }
+
+    let teamTotal = 0
+    for (const [pk, count] of Object.entries(counts)) {
+      if (count === 0) continue
+      console.log(`  ${pk}: ${count} open tasks`)
+      await upsertEntry(weekStart, pk, 'tasks', count)
+      teamTotal += count
+    }
+    if (teamTotal > 0) await upsertEntry(weekStart, 'moira', 'team_total_tasks', teamTotal)
+    console.log(`  Team total: ${teamTotal}`)
+    logSource('tasks', `ok — ${teamTotal} open tasks team-wide`)
+  } catch (err) {
+    console.warn('  tasks failed:', err.message)
+    logSource('tasks', `error: ${err.message}`)
+  }
+}
+
 // Matches by email first, then by phone (10-digit normalized).
 // This is a field-update only — no scorecard metric written.
 
@@ -1421,6 +1492,7 @@ async function main() {
   await syncOwnerHealth(weekStart)
   await syncCallAnswerRate(weekStart)
   await syncOwnerCallKPI(weekStart)
+  await syncTasks(weekStart)
   await syncOwnerPersonalizedUpdate()
 
   console.log('\n══════════════════════════════════════════')
